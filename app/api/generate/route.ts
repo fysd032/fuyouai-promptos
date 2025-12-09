@@ -2,12 +2,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runPromptModule } from "@/lib/promptos/engine";
 
-/**
- * 统一的模块执行 API：
- * 前端传 { promptKey, userInput }
- * 调用后端执行引擎 runPromptModule
- * 返回 { ok, promptKey, finalPrompt, modelOutput }
- */
+// -----------------------------
+// CORS 设置（关键！！！）
+// -----------------------------
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "http://localhost:3000", // 开发模式用
+  // 如需允许所有可改为 "*"
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+// -----------------------------
+// 处理 OPTIONS 预检请求
+// -----------------------------
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders,
+  });
+}
+
+// -----------------------------
+// 处理 POST 请求（真正业务逻辑）
+// -----------------------------
 export async function POST(req: NextRequest) {
   try {
     const { promptKey, userInput } = await req.json();
@@ -15,16 +32,19 @@ export async function POST(req: NextRequest) {
     if (!promptKey) {
       return NextResponse.json(
         { ok: false, error: "promptKey is required" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
     const result = await runPromptModule(promptKey, userInput || "");
 
-    return NextResponse.json({
-      ok: true,
-      ...result, // { promptKey, finalPrompt, modelOutput }
-    });
+    return NextResponse.json(
+      {
+        ok: true,
+        ...result,
+      },
+      { status: 200, headers: corsHeaders }
+    );
   } catch (error: any) {
     console.error("[/api/generate] Error:", error);
     return NextResponse.json(
@@ -32,7 +52,7 @@ export async function POST(req: NextRequest) {
         ok: false,
         error: error?.message ?? "Internal Server Error",
       },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
