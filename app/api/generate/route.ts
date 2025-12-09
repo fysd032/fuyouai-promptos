@@ -6,10 +6,19 @@ import { runPromptModule } from "@/lib/promptos/engine";
 // CORS 设置（关键！！！）
 // -----------------------------
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "http://localhost:3000", // 开发模式用
-  // 如需允许所有可改为 "*"
+  "Access-Control-Allow-Origin": "http://localhost:3000",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+// -----------------------------
+// 模块 ID → 模板 key 映射表（关键!!!）
+// -----------------------------
+const MODULE_KEY_MAP: Record<string, string> = {
+  m1: "A1-01",   // 写作大师 Writing Master
+  // 后续的模块再加：
+  // m2: "A1-02",
+  // m3: "A1-03",
 };
 
 // -----------------------------
@@ -36,7 +45,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await runPromptModule(promptKey, userInput || "");
+    // ⭐⭐ 前端的 m1 转换成后端的真实模板 key ⭐⭐
+    const realKey = MODULE_KEY_MAP[promptKey] ?? promptKey;
+
+    const result = await runPromptModule(realKey, userInput || "");
 
     return NextResponse.json(
       {
