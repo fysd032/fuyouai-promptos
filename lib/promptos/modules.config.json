@@ -1,0 +1,718 @@
+[
+  {
+    "moduleId": "a1",
+    "promptKey": "A1-01",
+    "name": "通用写作助手",
+    "category": "general-writing",
+    "description": "为多种非虚构写作场景生成结构化文章，包括标题、大纲与分段正文，表达自然且信息清晰。适用于科普、职场写作、博客与品牌内容等场景。",
+    "use_case": "用于快速完成主题文章初稿、知识科普文、职场经验总结以及公众号/博客内容创作。",
+    "one_liner": "覆盖全场景的多功能写作引擎。"
+  },
+  {
+    "moduleId": "a2",
+    "promptKey": "A1-02",
+    "name": "营销文案生成器",
+    "category": "general-writing",
+    "description": "根据产品卖点、受众与平台特性生成短平快、有人味、有节奏的营销文案，兼具推广力与准确性。适合广告、海报、活动宣传等渠道。",
+    "use_case": "用于广告投放文案、品牌宣传文案、活动推广文案以及产品亮点提炼。",
+    "one_liner": "快速生成高转化率的品牌营销文案。"
+  },
+  {
+    "moduleId": "a3",
+    "promptKey": "A1-03",
+    "name": "社交媒体帖子助手",
+    "category": "general-writing",
+    "description": "生成自然、有共鸣感的社交媒体帖子，根据平台（微博、小红书、LinkedIn 等）自动调整语气与结构，并鼓励互动。",
+    "use_case": "用于产品更新发布、观点分享、活动预告、个人品牌内容输出等。",
+    "one_liner": "为每个平台量身定制吸引人的社交媒体帖子。"
+  },
+  {
+    "moduleId": "a4",
+    "promptKey": "A1-04",
+    "name": "博客文章生成器",
+    "category": "general-writing",
+    "description": "根据主题输出结构清晰、信息密度适中且具有人味的博客文章，包含标题、大纲与完整正文，适合知识输出与内容营销。",
+    "use_case": "用于个人博客写作、技术/运营类长文创作、品牌软性内容营销。",
+    "one_liner": "生成好读、可信、有深度的博客文章。"
+  },
+  {
+    "moduleId": "a5",
+    "promptKey": "A1-05",
+    "name": "视频脚本撰写助手",
+    "category": "general-writing",
+    "description": "根据平台、受众与时长生成自然口语化的视频脚本，内容节奏清晰，可直接用于拍摄或录制，并支持镜头提示。",
+    "use_case": "用于短视频脚本、B 站讲解脚本、播客大纲、品牌演示脚本等内容制作。",
+    "one_liner": "一键生成顺口好读的视频脚本。"
+  },
+
+  {
+    "moduleId": "a6",
+    "promptKey": "A2-01",
+    "name": "商务邮件写作助手",
+    "category": "general-writing",
+    "description": "根据不同商务场景生成专业、礼貌、清晰的商务邮件，逻辑规范、语气得体，并能精准表达请求、说明或跟进事项。",
+    "use_case": "用于客户沟通、供应商往来、内部跨部门协作邮件、会议邀请与工作汇报邮件撰写。",
+    "one_liner": "写出专业又自然的高质量商务邮件。"
+  },
+  {
+    "moduleId": "a7",
+    "promptKey": "A2-02",
+    "name": "英文商务邮件助手",
+    "category": "general-writing",
+    "description": "生成清晰、礼貌、自然的英文商务邮件，适配国际沟通习惯，避免生硬表达与文化不当之处，适用于各类跨国业务往来。",
+    "use_case": "用于国际客户沟通、合作伙伴邮件往来、跨区域团队协作、英文请求与澄清类邮件。",
+    "one_liner": "为国际沟通场景生成自然专业的英文邮件。"
+  },
+  {
+    "moduleId": "a8",
+    "promptKey": "A2-03",
+    "name": "邮件回复助手",
+    "category": "general-writing",
+    "description": "根据来信内容生成专业、温和、有理解感的邮件回复，清晰表达立场、解决方案或下一步动作，适合客服与商务沟通场景。",
+    "use_case": "用于客户回复、需求澄清、合作洽谈、内部沟通答复以及情绪敏感型邮件回复。",
+    "one_liner": "温和且专业的邮件回复写作助手。"
+  },
+
+  {
+    "moduleId": "a9",
+    "promptKey": "A3-01",
+    "name": "标题生成助手",
+    "category": "general-writing",
+    "description": "根据主题、受众、平台与语气生成多种风格的高质量标题，兼具吸引力、信息清晰度与自然表达，不夸张不标题党。",
+    "use_case": "用于公众号文章标题、博客标题、短视频标题、课程名称、活动页标题等内容创作场景。",
+    "one_liner": "为你的内容生成更吸引人的标题。"
+  },
+  {
+    "moduleId": "a10",
+    "promptKey": "A3-02",
+    "name": "短句创意生成器",
+    "category": "general-writing",
+    "description": "基于主题与语气生成自然、有画面感、传播力强的短句，适用于品牌标语、海报文案与社交媒体配文。",
+    "use_case": "用于品牌 Slogan、海报主文案、短视频文案、社交媒体金句等创意表达场景。",
+    "one_liner": "生成有节奏、有情绪、有记忆点的短句表达。"
+  },
+  {
+    "moduleId": "a11",
+    "promptKey": "A3-03",
+    "name": "CTA 行动号召生成器",
+    "category": "general-writing",
+    "description": "依据用户行为目标生成自然、友好、明确且高转化的 CTA 文案，涵盖按钮、落地页、弹窗等多种交互场景。",
+    "use_case": "用于产品按钮文案、活动落地页、广告点击引导、功能操作提示等转化场景。",
+    "one_liner": "让用户更愿意行动的 CTA 文案。"
+  },
+  {
+    "moduleId": "a12",
+    "promptKey": "A3-04",
+    "name": "爆款开头生成器",
+    "category": "general-writing",
+    "description": "以痛点、反差、故事、悬念等多种结构生成高吸引力开头句表达，使内容在开头三秒抓住注意力。",
+    "use_case": "用于短视频开头三秒文案、小红书/抖音爆款开头、文章开篇 Hook、直播开场等吸引注意力场景。",
+    "one_liner": "瞬间抓住用户注意力的爆款开头句。"
+  },
+
+  {
+    "moduleId": "a13",
+    "promptKey": "A4-01",
+    "name": "PPT 结构规划助手",
+    "category": "general-writing",
+    "description": "根据主题、受众与目的生成清晰、逻辑递进的 PPT 结构大纲，为每个章节提供关键信息点，适合直接进入幻灯片制作流程。",
+    "use_case": "用于商业汇报、项目计划书、路演 Deck、课程结构设计等需要清晰叙事框架的 PPT 场景。",
+    "one_liner": "为你的 PPT 打造清晰有力的整体结构。"
+  },
+  {
+    "moduleId": "a14",
+    "promptKey": "A4-02",
+    "name": "PPT 页面内容与讲稿助手",
+    "category": "general-writing",
+    "description": "将大纲转化为可直接使用的 PPT 页面内容，并生成自然、流畅、适合现场演示的讲稿，让信息表达重点突出、易展示。",
+    "use_case": "用于商业汇报内容填充、路演讲稿撰写、课程讲解稿、项目计划书解说内容生成。",
+    "one_liner": "让 PPT 页面内容与讲稿一次性成型。"
+  },
+  {
+    "moduleId": "a15",
+    "promptKey": "A4-03",
+    "name": "PPT 视觉设计顾问",
+    "category": "general-writing",
+    "description": "提供 PPT 的视觉方向、配色方案、布局结构与构图建议，使呈现效果更加专业、美观、统一。",
+    "use_case": "用于商业汇报视觉增强、产品发布会 Deck、课程体系 PPT 规范、企业品牌化演示材料。",
+    "one_liner": "为你的 PPT 提供专业级视觉设计建议。"
+  },
+  {
+    "moduleId": "a16",
+    "promptKey": "A4-04",
+    "name": "PPT 图表内容生成器",
+    "category": "general-writing",
+    "description": "根据数据内容与叙事目标推荐图表类型，并生成图表标题、洞察点、讲稿说明与视觉注意事项，提升数据表达清晰度。",
+    "use_case": "用于商业汇报数据页、投融资路演、市场/运营分析、趋势展示、数据说明类 PPT。",
+    "one_liner": "把数据变成一眼能理解的图表表达。"
+  },
+  {
+    "moduleId": "a17",
+    "promptKey": "A4-05",
+    "name": "PPT 故事线构建助手",
+    "category": "general-writing",
+    "description": "基于 PPT 目的构建从背景到结论的完整叙事路径，使内容更连贯、有说服力并具备节奏感，可用于路演与管理汇报。",
+    "use_case": "用于 Pitch Deck 叙事设计、产品发布会故事线、管理汇报逻辑梳理、课程结构编排。",
+    "one_liner": "让你的 PPT 不只是内容，而是一个能讲能打的故事。"
+  },
+  {
+    "moduleId": "a18",
+    "promptKey": "A4-06",
+    "name": "PPT 文案优化助手",
+    "category": "general-writing",
+    "description": "对 PPT 文案进行精简、重写和结构化，使表达更专业、易读且重点突出，适配演示场景的阅读节奏。",
+    "use_case": "用于优化内部汇报文案、路演内容、项目计划书、产品介绍 Deck 的文案表达。",
+    "one_liner": "把冗长的 PPT 文案变成清晰有力的表达。"
+  },
+  {
+    "moduleId": "a19",
+    "promptKey": "A4-07",
+    "name": "Pitch Deck 生成器",
+    "category": "general-writing",
+    "description": "根据创业项目输入生成完整 Pitch Deck 内容结构，涵盖问题、方案、市场、模式、竞争优势与增长指标，并附可讲述的路演讲稿。",
+    "use_case": "用于创业融资路演、投资人沟通材料、Demo Day 展示、加速器培养项目 Pitch Deck 生成。",
+    "one_liner": "打造更能打动投资人的 Pitch Deck。"
+  },
+
+  {
+    "moduleId": "a20",
+    "promptKey": "A5-01",
+    "name": "周报生成助手",
+    "category": "general-writing",
+    "description": "将零散的工作事项整理为结构化周报，突出成果、问题与思考，并形成自然、专业的汇报文风，适用于职场各类团队。",
+    "use_case": "用于员工提交周报、项目进展同步、跨部门合作反馈与管理层信息汇报。",
+    "one_liner": "一键整理本周工作，写出清晰有逻辑的周报。"
+  },
+  {
+    "moduleId": "a21",
+    "promptKey": "A5-02",
+    "name": "工作总结生成器",
+    "category": "general-writing",
+    "description": "生成周期性工作总结，涵盖成果亮点、问题应对、经验沉淀与自我复盘，内容真实、有逻辑、有提炼，不堆砌空话。",
+    "use_case": "用于月度/季度/年度总结、项目总结、转正述职、晋升材料准备。",
+    "one_liner": "让总结既有高度，又真实可信。"
+  },
+  {
+    "moduleId": "a22",
+    "promptKey": "A5-03",
+    "name": "工作规划设计助手",
+    "category": "general-writing",
+    "description": "根据目标拆解可执行的工作规划，明确阶段目标、关键任务、指标、时间安排以及风险，使规划更可落地、更清晰。",
+    "use_case": "用于月度/季度规划、项目启动规划、OKR/KPI 拆解、个人学习与发展计划。",
+    "one_liner": "把模糊目标拆成清晰可执行的工作计划。"
+  },
+  {
+    "moduleId": "a23",
+    "promptKey": "A5-04",
+    "name": "提案文档生成器",
+    "category": "general-writing",
+    "description": "围绕问题、目标与方案构建结构化提案文档，展示可行性、价值、资源需求与风险，使决策方易于快速理解与拍板。",
+    "use_case": "用于产品方案提案、活动方案、流程优化方案、内部项目立项申请等。",
+    "one_liner": "让你的提案更专业、更有说服力。"
+  },
+  {
+    "moduleId": "a24",
+    "promptKey": "A6-01",
+    "name": "中英双语稿件生成器",
+    "category": "general-writing",
+    "description": "根据同一主题生成内容一致、风格统一且自然流畅的中英双语对照稿件，并支持按段落或模块对应输出，适用于演讲、官网文案、产品介绍等双语场景。",
+    "use_case": "用于中英双语宣传稿、公司介绍双语版本、对外宣发双语内容、演讲双语稿件准备、培训文档双语对照。",
+    "one_liner": "让中英文内容信息一致、表达自然的双语稿件生成助手。"
+  },
+  {
+    "moduleId": "a25",
+    "promptKey": "A6-02",
+    "name": "本地化文案生成器",
+    "category": "general-writing",
+    "description": "根据目标市场与文化语境，将源文本自然重写为适合当地用户理解与接受的本地化版本，而非简单直译，同时保持术语一致性与专业度。",
+    "use_case": "适用于产品官网、App 文案、营销内容、广告落地页、帮助文档、宣传素材在不同国家地区的本地化处理。",
+    "one_liner": "让翻译像是为当地用户量身创作的本地化文案。"
+  },
+  {
+    "moduleId": "a26",
+    "promptKey": "A6-03",
+    "name": "语气同步翻译生成器",
+    "category": "general-writing",
+    "description": "在翻译中保留原文语气、节奏与情绪，生成读起来风格一致、自然可信的目标语言表达，适用于个人品牌内容、社交媒体、邮件与演讲稿。",
+    "use_case": "用于跨语言保持一致风格的内容，如品牌发帖、个人表达、演讲稿、专业邮件、多语言社交内容。",
+    "one_liner": "让译文既准确传意，又保留原文的语气与感觉。"
+  },
+  {
+    "moduleId": "b1",
+    "promptKey": "B1-01",
+    "name": "商务风格润色器",
+    "category": "business-writing",
+    "description": "将普通文本优化为专业、清晰、正式的商务表达，突出重点并提升逻辑性，适用于邮件、报告与对外沟通。",
+    "use_case": "用于商务邮件润色、内部/外部报告优化、提案文档专业化、跨团队沟通稿件改写。",
+    "one_liner": "让表达更清晰、更专业的商务文本润色助手。"
+  },
+  {
+    "moduleId": "b2",
+    "promptKey": "B1-03",
+    "name": "口语转书面语转换器",
+    "category": "business-writing",
+    "description": "将口语化的表达转换为结构化、逻辑清晰、自然流畅的书面文本，去除口语噪音并保持信息完整。",
+    "use_case": "用于会议录音整理、访谈转稿、口播内容书面化、聊天记录转正式文本。",
+    "one_liner": "把口语内容变成清晰自然的书面表达。"
+  },
+  {
+    "moduleId": "b3",
+    "promptKey": "B2-01",
+    "name": "文档改写生成器",
+    "category": "business-writing",
+    "description": "在保持原意前提下，用全新表达重写文本，使内容更自然、流畅、有逻辑并提升可读性。",
+    "use_case": "用于提升文档质量、生成不同风格的内容版本、重写说明文、优化表达方式。",
+    "one_liner": "在不改变原意的前提下写出更好的版本。"
+  },
+  {
+    "moduleId": "b4",
+    "promptKey": "B2-02",
+    "name": "文档扩写生成器",
+    "category": "business-writing",
+    "description": "将简略文本扩展为清晰、完整、有细节的内容，通过补充背景、示例与解释增强信息密度。",
+    "use_case": "用于扩写提纲、补全项目文档、扩展笔记为教程、扩写简短材料为正式文稿。",
+    "one_liner": "让简略内容变得完整、有信息量且易理解。"
+  },
+  {
+    "moduleId": "b5",
+    "promptKey": "B2-03",
+    "name": "文档压缩生成器",
+    "category": "business-writing",
+    "description": "将冗长文本压缩为核心内容，去除重复与枝节，使表达紧凑清晰，适合快速阅读或汇报场景。",
+    "use_case": "用于将长文压缩为摘要、项目方案压缩为概要、会议内容压缩为行动项列表。",
+    "one_liner": "把冗长内容提炼成一眼读懂的核心要点。"
+  },
+  {
+    "moduleId": "b6",
+    "promptKey": "B3-01",
+    "name": "表格转文档生成器",
+    "category": "business-writing",
+    "description": "将表格结构重写为段落化、自然流畅的说明文或分析文，使信息更易理解与阅读。",
+    "use_case": "用于将需求表格、产品参数表、调研表格转换为正式文档或报告。",
+    "one_liner": "把表格数据转成清晰易读的文档内容。"
+  },
+  {
+    "moduleId": "b7",
+    "promptKey": "B3-02",
+    "name": "文档转PPT生成器",
+    "category": "business-writing",
+    "description": "将文档内容拆解为 PPT 结构，包括标题、要点与视觉提示，使内容更适合展示与讲解。",
+    "use_case": "用于方案文档转为 PPT、文章转演讲结构、报告拆解为展示材料。",
+    "one_liner": "把长文变成可直接用于汇报的 PPT 大纲。"
+  },
+  {
+    "moduleId": "b8",
+    "promptKey": "B3-03",
+    "name": "长文要点抽取器",
+    "category": "business-writing",
+    "description": "从长文中提取关键观点和要点，生成短句化、逻辑清晰的结构化摘要，适用于快速理解。",
+    "use_case": "用于会议记录提要、文章摘要、报告重点提炼、课程内容总结。",
+    "one_liner": "快速提炼长文的核心要点与关键信息。"
+  },
+  {
+    "moduleId": "b9",
+    "promptKey": "B3-04",
+    "name": "视频转文稿生成器",
+    "category": "business-writing",
+    "description": "将视频转写内容整理为结构清晰、可阅读的书面文稿，去除口语噪音并补充必要连贯性。",
+    "use_case": "用于视频课程转讲义、直播回放整理、访谈/分享转文章、产品演示文字版。",
+    "one_liner": "把视频内容整理成清晰可读的文稿。"
+  },
+  {
+    "moduleId": "b10",
+    "promptKey": "B3-05",
+    "name": "文稿转脚本生成器",
+    "category": "business-writing",
+    "description": "将书面文稿改写为适合口播或演讲的脚本，增强节奏感、自然度和现场表达适配性。",
+    "use_case": "用于短视频脚本、演讲稿、课程脚本、产品介绍口播稿生成。",
+    "one_liner": "让书面内容自然地变成可口播的脚本。"
+  },
+  {
+    "moduleId": "b11",
+    "promptKey": "B3-06",
+    "name": "音频结构提取器",
+    "category": "business-writing",
+    "description": "从音频转写中提取结构与大纲，整理主题、段落与行动项，适合会议纪要与访谈分析。",
+    "use_case": "用于会议录音整理、访谈内容结构提取、语音备忘转计划结构。",
+    "one_liner": "将音频内容转成清晰的大纲结构。"
+  },
+  {
+    "moduleId": "b12",
+    "promptKey": "B4-01",
+    "name": "多模态内容整合器",
+    "category": "business-writing",
+    "description": "整合多来源信息（文本、表格、音视频转写）为统一视角的结构化内容，可输出报告、文章或 PPT 大纲。",
+    "use_case": "用于项目资料整合、调研报告生成、产品说明书、综合性复盘材料整理。",
+    "one_liner": "把多来源资料整合成一份清晰完整的内容输出。"
+  },
+  {
+    "moduleId": "b13",
+    "promptKey": "B4-02",
+    "name": "资料包转知识卡片生成器",
+    "category": "business-writing",
+    "description": "从大体量资料中提取知识点并生成为结构化的知识卡片，便于学习、复盘与知识管理。",
+    "use_case": "用于课程卡片拆解、项目复盘知识化、书籍内容拆解、知识体系搭建。",
+    "one_liner": "把海量资料拆成清晰可复用的知识卡片。"
+  },
+  {
+    "moduleId": "b14",
+    "promptKey": "B4-03",
+    "name": "知识库结构生成器",
+    "category": "business-writing",
+    "description": "将知识点整理为层级化知识库结构，形成分类、主题、标签体系，支持文档中心或学习平台搭建。",
+    "use_case": "用于企业知识库搭建、课程体系结构设计、产品文档信息架构规划。",
+    "one_liner": "为你的内容构建一套清晰可维护的知识库结构。"
+  },
+  {
+    "moduleId": "b15",
+    "promptKey": "B4-04",
+    "name": "知识卡片转FAQ/Bot生成器",
+    "category": "business-writing",
+    "description": "将知识卡片转为 FAQ 页面或智能客服 Bot 的问答知识底座，生成提问模板与对应回答。",
+    "use_case": "用于客服机器人知识库构建、课程 FAQ 自动生成、产品问答库建立。",
+    "one_liner": "把知识卡片变成可直接使用的 FAQ/Bot 问答库。"
+  },
+  {
+    "moduleId": "b16",
+    "promptKey": "B4-05",
+    "name": "内容标准化生成器",
+    "category": "business-writing",
+    "description": "将格式不一、逻辑混乱的文本统一为结构规范、命名一致、格式清晰的标准化文档。",
+    "use_case": "用于说明书格式化、团队文档规范统一、培训资料标准化、SOP 文档生成。",
+    "one_liner": "让混乱内容变成结构统一、可发布的标准化文档。"
+  },
+  {
+    "moduleId": "c1",
+    "promptKey": "C1-01",
+    "name": "思维链推理助手",
+    "category": "knowledge-ops",
+    "description": "提供结构化 Chain-of-Thought 推理，将复杂问题拆解为清晰步骤，输出完整逻辑链条与可验证结论。",
+    "use_case": "适用于数学与逻辑推理、复杂业务问题分析、方案比较、因果分析、Bug 排查等需要严谨链式推理的场景。",
+    "one_liner": "最可靠的逐步推理助手，支持完整思维链输出。"
+  },
+  {
+    "moduleId": "c2",
+    "promptKey": "C1-02",
+    "name": "问题拆解分析器",
+    "category": "knowledge-ops",
+    "description": "把模糊问题转化为结构化目标、子任务与执行路径，输出可行动的多层级任务结构。",
+    "use_case": "适用于产品需求拆解、战略目标落地、学习路径设计、复杂项目规划等需要结构化分层的场景。",
+    "one_liner": "把复杂问题拆成清晰可执行的结构化路径。"
+  },
+  {
+    "moduleId": "c3",
+    "promptKey": "C1-03",
+    "name": "决策矩阵分析器",
+    "category": "knowledge-ops",
+    "description": "基于多维度量化评分与权重计算，对多个方案生成可解释的决策矩阵、排序、利弊分析与最终建议。",
+    "use_case": "适用于供应商选择、功能优先级排序、职业路径抉择、策略决策、项目排期等多方案对比场景。",
+    "one_liner": "用结构化量化方式帮助你选出最优方案。"
+  },
+  {
+    "moduleId": "c4",
+    "promptKey": "C1-04",
+    "name": "市场研究洞察分析器",
+    "category": "knowledge-ops",
+    "description": "从行业、竞品、用户趋势中提炼结构化洞察，生成报告、摘要或 PPT 级别的研究输出。",
+    "use_case": "适用于行业研究、竞品对比、趋势分析、商业规划、产品战略分析等专业市场洞察场景。",
+    "one_liner": "快速生成专业的行业研究与趋势洞察。"
+  },
+  {
+    "moduleId": "c5",
+    "promptKey": "C1-05",
+    "name": "用户洞察分析器",
+    "category": "knowledge-ops",
+    "description": "从访谈、日志、反馈等数据中提炼用户动机、任务路径、痛点与机会点，输出结构化洞察模型。",
+    "use_case": "适用于用户研究分析、画像构建、需求提炼、行为分析、运营复盘、设计前期调研等场景。",
+    "one_liner": "把用户反馈转化为可执行洞察与机会点。"
+  },
+  {
+    "moduleId": "c6",
+    "promptKey": "C1-06",
+    "name": "产品问题诊断器",
+    "category": "knowledge-ops",
+    "description": "基于用户反馈、产品表现与行为数据进行因果诊断，构建问题树，输出根因与优先级排序。",
+    "use_case": "适用于产品体验排查、功能表现不佳诊断、转化/留存下降的原因分析、版本复盘等场景。",
+    "one_liner": "定位产品问题根因并给出清晰行动建议。"
+  },
+  {
+    "moduleId": "c7",
+    "promptKey": "C2-01",
+    "name": "数据理解解析器",
+    "category": "knowledge-ops",
+    "description": "解析结构化数据的字段含义、维度类型、关键指标与数据质量问题，为后续分析建立清晰数据视图。",
+    "use_case": "适用于理解报表、BI 导出、CSV 数据结构、数据字典解释等需要快速读懂数据的场景。",
+    "one_liner": "快速理解任何表格数据的结构与含义。"
+  },
+  {
+    "moduleId": "c8",
+    "promptKey": "C2-02",
+    "name": "数据洞察提炼器",
+    "category": "knowledge-ops",
+    "description": "从核心指标中提炼趋势、异常、对比差异，输出关键洞察点，适合用于周报、复盘与运营分析。",
+    "use_case": "用于趋势分析、维度对比、异常点识别、运营复盘、活动分析等数据洞察场景。",
+    "one_liner": "从数据中自动提炼最关键的洞察点。"
+  },
+  {
+    "moduleId": "c9",
+    "promptKey": "C2-03",
+    "name": "数据意义解释器",
+    "category": "knowledge-ops",
+    "description": "将数据洞察转化为业务语言，解释趋势背后的意义、影响、机会点与风险点。",
+    "use_case": "适用于复盘会议、运营分析、业务策略讨论，用于解释数据变化“意味着什么”。",
+    "one_liner": "把数据洞察翻译成业务可理解的意义与判断。"
+  },
+  {
+    "moduleId": "c10",
+    "promptKey": "C2-04",
+    "name": "数据行动策略器",
+    "category": "knowledge-ops",
+    "description": "基于洞察与业务目标生成可执行行动项、优先级与验证方案，提供数据驱动的落地策略。",
+    "use_case": "适用于运营增长策略、转化提升、版本规划、复盘后的下一步行动制定等场景。",
+    "one_liner": "从数据洞察直接生成可执行、可验证的行动方案。"
+  },
+  {
+    "moduleId": "d1",
+    "promptKey": "D1-01",
+    "name": "会议总结生成器",
+    "category": "analysis",
+    "description": "从冗长或杂乱的会议记录中提炼主题、关键观点与结论，输出清晰、准确、可阅读的会议总结文档。",
+    "use_case": "适用于团队例会、跨部门沟通、产品/运营会议、复盘会等需要结构化总结的场景。",
+    "one_liner": "快速生成准确、可阅读的专业会议总结。"
+  },
+  {
+    "moduleId": "d2",
+    "promptKey": "D1-02",
+    "name": "会议行动项提取器",
+    "category": "analysis",
+    "description": "从会议记录中识别清晰可执行的任务，包括责任人、截止时间、优先级与依赖关系，生成标准化行动项列表。",
+    "use_case": "适用于周会、复盘会、OKR 会、项目管理会议的任务跟踪与责任拆解。",
+    "one_liner": "一键提取会议中的所有可执行行动项。"
+  },
+  {
+    "moduleId": "d3",
+    "promptKey": "D1-03",
+    "name": "结构化会议纪要生成器",
+    "category": "analysis",
+    "description": "将非结构化会议内容整理为正式、规范、可流转的会议纪要，包括议程、讨论内容、结论与行动项。",
+    "use_case": "适用于跨部门会议、产品周会、战略会议、项目管理会议等需要存档或对外共享的正式纪要。",
+    "one_liner": "把混乱会议内容整理成清晰规范的正式会议纪要。"
+  },
+  {
+    "moduleId": "d4",
+    "promptKey": "D3-01",
+    "name": "深度访谈问题生成器",
+    "category": "analysis",
+    "description": "基于研究目标生成专业的开放式访谈问题与可追问问题，覆盖动机、行为、场景、痛点等关键维度。",
+    "use_case": "适用于用户研究、产品访谈、市场探索、人物画像构建等深度访谈场景。",
+    "one_liner": "自动生成高质量、无诱导性的深度访谈问题集。"
+  },
+  {
+    "moduleId": "d5",
+    "promptKey": "D3-02",
+    "name": "结构化访谈提纲生成器",
+    "category": "analysis",
+    "description": "生成标准化访谈提纲，包括开场、主题模块、追问问题与收尾结构，确保访谈流程可复用、可对比、可落地。",
+    "use_case": "适用于用户研究、产品访谈、可用性测试、市场探索访谈及团队内部的定性访谈流程。",
+    "one_liner": "按专业访谈流程生成可复用的结构化访谈提纲。"
+  },
+  {
+    "moduleId": "d6",
+    "promptKey": "D4-01",
+    "name": "知识图谱结构提取器",
+    "category": "analysis",
+    "description": "从长文本中自动抽取主题、子概念、知识点并组织成层级结构，支持用于知识库、课程结构与主题建模。",
+    "use_case": "适用于文档理解、行业研究、课程体系搭建、FAQ 知识库构建、AI 语义结构化。",
+    "one_liner": "把复杂文本转化为可视化的多层级知识结构体系。"
+  },
+
+  {
+    "moduleId": "e1",
+    "promptKey": "E1-01",
+    "name": "工作流设计模块（Workflow Design Module）",
+    "category": "workflow-design",
+    "description": "将复杂项目目标拆解为任务与步骤，标注每步的输入、输出、责任角色与依赖关系，生成关键路径与执行顺序，可输出 workflow / roadmap / checklist 等形式。",
+    "use_case": "适用于新项目从 0 到 1 的整体流程设计、跨部门协作流程梳理与责任划分、产品开发全流程拆解（需求→设计→开发→测试→发布）、以及内容生产/运营项目的标准工作流搭建。",
+    "one_liner": "根据项目目标设计清晰、可执行、可追踪的完整工作流。"
+  },
+  {
+    "moduleId": "e2",
+    "promptKey": "E1-02",
+    "name": "行动计划模块（Action Plan Generator）",
+    "category": "execution-planning",
+    "description": "从目标反推任务列表，为每项任务分配 Owner、时间范围、优先级和依赖关系，并提炼里程碑节点，形成可执行、可跟踪的行动计划。",
+    "use_case": "适用于项目启动后的行动计划制定、产品迭代/版本计划（sprint）的任务拆解、个人或团队 OKR 的落地执行方案，以及市场/运营活动的执行排期与优先级管理。",
+    "one_liner": "把目标转成带任务、责任人、时间线和优先级的行动计划。"
+  },
+  {
+    "moduleId": "e3",
+    "promptKey": "E2-03",
+    "name": "分析师代理模块（Analyst Role Agent）",
+    "category": "analysis-agent",
+    "description": "扮演专业分析师，根据主题与数据选择合适框架（如 AARRR、SWOT、5W2H 等），拆解现状、识别驱动与阻碍因素，提取关键信号并给出结构化结论与建议。",
+    "use_case": "适用于业务表现分析与原因拆解、产品数据分析与增长瓶颈识别、用户或市场逻辑的结构化分析，以及月度/季度分析报告的框架搭建。",
+    "one_liner": "用分析框架结构化拆解业务/产品问题并输出洞察与建议。"
+  },
+  {
+    "moduleId": "e4",
+    "promptKey": "E2-04",
+    "name": "顾问代理模块（Consultant Role Agent）",
+    "category": "strategy-consulting",
+    "description": "扮演咨询顾问，基于问题与背景选择合适框架（如金字塔结构、3C、4P 等），构建解决方案框架，填充策略内容，并可输出执行路径、风险与假设说明。",
+    "use_case": "适用于公司/业务战略方向梳理、增长与市场进入策略设计、组织结构与流程重构方案，以及运营优化或成本优化的咨询式方案草案。",
+    "one_liner": "以咨询顾问视角搭建方案框架并输出可执行策略与路径。"
+  },
+  {
+    "moduleId": "e5",
+    "promptKey": "E2-05",
+    "name": "编辑代理模块（Editor Role Agent）",
+    "category": "editing-agent",
+    "description": "扮演专业编辑，通读原文后在保持事实与立场不变的前提下，精简冗余、理顺结构、统一语气与风格，提升文本清晰度与可读性。",
+    "use_case": "适用于报告、方案、分析文稿的终稿编辑，自媒体文章或公开稿件的语言打磨，产品文档/帮助文档的阅读体验优化，以及课程讲义、教材内容的编辑整理。",
+    "one_liner": "在不改观点的前提下，优化文本结构、语言与可读性。"
+  },
+  {
+    "moduleId": "e6",
+    "promptKey": "E2-06",
+    "name": "策略师代理模块（Strategist Role Agent）",
+    "category": "strategy-agent",
+    "description": "从问题或目标出发，结合背景与维度（品牌、增长、留存、变现等）梳理现状、机会与风险，设计 A/B/C 型策略方案，并为主推策略配行动路径与指标。",
+    "use_case": "适用于品牌/市场整体策略设计、产品与业务增长策略规划、新项目/新业务进入策略评估，以及大型运营活动的策略方向论证。",
+    "one_liner": "围绕问题/目标设计多套策略方向并给出主推方案与行动路径。"
+  },
+  {
+    "moduleId": "e7",
+    "promptKey": "E2-07",
+    "name": "产品经理代理模块（Product Manager Role Agent）",
+    "category": "product-strategy",
+    "description": "以产品经理视角，从问题/需求出发构建用户场景与用户任务，抽象功能需求，设计核心流程，按业务目标和优先级方法排序，并输出 PRD 型结构化文档。",
+    "use_case": "适用于新功能需求梳理与方案草稿、现有产品体验问题分析与改版方向、MVP 版本范围与规划设计，以及产品需求文档（PRD）骨架生成。",
+    "one_liner": "从用户场景和业务目标出发，梳理需求并形成产品方案结构。"
+  },
+  {
+    "moduleId": "e8",
+    "promptKey": "E2-08",
+    "name": "教练/导师代理模块（Coach/Mentor Role Agent）",
+    "category": "coaching-agent",
+    "description": "扮演教练/导师角色，以共情和结构化提问推进对话，引导用户澄清主题与目标、梳理现状与障碍，并协助拆解出可执行的小步骤和复盘节奏。",
+    "use_case": "适用于职业发展思考与路径规划、学习计划设计与阶段性复盘、个人目标拆解与执行陪伴，以及软技能、领导力提升的自我教练对话。",
+    "one_liner": "通过提问与反馈帮助用户澄清目标、识别障碍并制定行动计划。"
+  },
+  {
+    "moduleId": "e9",
+    "promptKey": "E2-09",
+    "name": "法务审阅代理模块（Legal Review Role Agent）",
+    "category": "compliance-review",
+    "description": "以审慎法务/合规角色审阅文本，识别夸大承诺、绝对化表达、隐私风险等潜在风险点，给出更中性稳妥的替代表述，并明确这不构成具体法律意见。",
+    "use_case": "适用于市场宣传文案的风险措辞审查、对外公告/声明/说明文稿的风险提醒、协议/条款草稿的合规性措辞优化（非法律意见），以及内部制度文件的风险敏感点提示。",
+    "one_liner": "从合规视角标记文稿中的潜在风险表述并给出更稳妥的说法。"
+  },
+  {
+    "moduleId": "e10",
+    "promptKey": "E3-01",
+    "name": "自我反思模块（Self-Reflection Module）",
+    "category": "quality-reflection",
+    "description": "对给定的 original_prompt 和 model_output 进行冷静复盘，从逻辑、完整性、对齐度等维度指出潜在问题与不确定点，并提出改进方向建议，为后续修订提供依据。",
+    "use_case": "适用于长答案或复杂方案生成后的自检与反思、数学/逻辑推理题解的思路复盘、策略/方案文档的自我质疑与改进空间识别，以及写作/创作后的结构化回顾清单。",
+    "one_liner": "对已有输出做结构化复盘，找出盲点和改进方向而不直接重写。"
+  },
+  {
+    "moduleId": "e11",
+    "promptKey": "E3-02",
+    "name": "错误检查模块（Error Checking Module）",
+    "category": "quality-checking",
+    "description": "对照原始任务，从逻辑、结构、对齐度与内部矛盾等角度逐段检查 model_output，标记错误位置、类型与说明，提供可用于修订的错误报告而非直接改写。",
+    "use_case": "适用于技术文档、说明书的严谨性和一致性检查，复杂推理题解答的逻辑错误排查，报告/方案前的质量审查记录，以及多轮生成结果的质量控制环节。",
+    "one_liner": "为现有内容做严格错误与不一致检查，输出结构化问题清单。"
+  },
+  {
+    "moduleId": "e12",
+    "promptKey": "E3-03",
+    "name": "质量评分模块（Quality Scoring Module）",
+    "category": "quality-scoring",
+    "description": "根据预设 Rubric 和评分刻度，对 model_output 在准确性、完整性、逻辑性、表达清晰度等维度打分，并可给出综合评分和针对性改进建议。",
+    "use_case": "适用于多版本答案/文案/方案的质量对比、模型输出质量的评估与调优反馈、长期追踪某类任务的输出质量趋势，以及写作/翻译/代码说明的自动评分辅助。",
+    "one_liner": "按统一评分 Rubric 对输出在多个维度打分并给出简要评语。"
+  },
+  {
+    "moduleId": "e13",
+    "promptKey": "E4-01",
+    "name": "长任务链编排模块（Long-task Chain Orchestrator）",
+    "category": "task-orchestration",
+    "description": "从大目标出发，拆解为主模块与步骤，根据颗粒度生成步骤链，定义每步的输入/输出、依赖关系和可调用模块，为自动化执行提供结构化 Chain。",
+    "use_case": "适用于一键生成“研究→分析→策略→行动计划”的完整链路、设计 AI 工作流 Pipeline（多模块串联）、将一句话目标变成可执行 Chain Prompt，以及搭建企业内部多步骤智能助手流程。",
+    "one_liner": "把大型复杂目标编排成有依赖关系的多步骤任务链结构。"
+  },
+  {
+    "moduleId": "e14",
+    "promptKey": "E4-02",
+    "name": "多步骤自动执行模块（Multi-step Auto Executor）",
+    "category": "task-automation",
+    "description": "作为执行控制器读取 chain_structure，按依赖关系顺序或并行调用对应模块，串联每步的输入输出，在异常时按设定停机或继续，并最终输出完整成果与执行日志。",
+    "use_case": "适用于一键生成完整报告（研究→结构→写作→校对→打分）、复杂写作流水线的自动执行、企业数据→分析→策略→计划→行动项的链式自动化，以及多模块组合场景下的自动编排执行。",
+    "one_liner": "读取任务链结构，按依赖自动执行每一步并串联输入输出。"
+  },
+  {
+    "moduleId": "e15",
+    "promptKey": "E5-01",
+    "name": "学术摘要生成模块（Academic Abstract Generator）",
+    "category": "academic-writing",
+    "description": "严格基于输入研究内容，按照 IMRaD 或指定结构，提炼背景、目的、方法、结果与结论，控制在指定字数内，不加入主观推断或原文未出现的结论。",
+    "use_case": "适用于论文摘要撰写与重写、研究报告的摘要部分生成、综述文章的整体总结段落，以及会议投稿要求的结构化摘要生成。",
+    "one_liner": "按学术规范从原文中提取信息，生成 IMRaD 结构的摘要。"
+  },
+  {
+    "moduleId": "e16",
+    "promptKey": "E5-02",
+    "name": "学术模型框架构建模块（Academic Model Framework Builder）",
+    "category": "academic-modeling",
+    "description": "根据研究主题识别关键维度，区分自变量、因变量、中介、调节与控制变量，搭建概念或理论模型，描述变量关系并在需要时生成方向性假设。",
+    "use_case": "适用于硕博士开题报告中的概念模型搭建、论文研究模型与假设部分设计、理论框架与结构方程模型构思，以及将业务/管理问题抽象为研究模型。",
+    "one_liner": "围绕研究主题构建变量、关系与假设组成的概念/理论模型。"
+  },
+  {
+    "moduleId": "e17",
+    "promptKey": "E5-03",
+    "name": "理论解释与概念阐释模块（Theory Explanation Module）",
+    "category": "academic-theory",
+    "description": "围绕指定概念或理论，从定义、构成维度、来源与发展脉络、适用范围、典型研究方向及相关理论对比等方面进行中立、结构化的学术阐释。",
+    "use_case": "适用于论文中的理论基础或概念界定章节写作、课堂讲义和教学材料中的理论说明、跨理论比较与概念边界澄清，以及学术术语的系统性解释与整理。",
+    "one_liner": "对学术概念或理论做结构化、严谨的系统解释。"
+  },
+  {
+    "moduleId": "e18",
+    "promptKey": "E5-04",
+    "name": "文献综述生成器（Literature Review Generator）",
+    "category": "literature-review",
+    "description": "仅基于输入的文献信息按时间、主题、方法或流派分组，概括各组研究目标、方法与结论，进行比较和评述，并在此基础上提炼研究局限与未来方向。",
+    "use_case": "适用于硕博士论文中的文献综述章节写作、论文/报告的 Related Work 部分构建、课程论文的前期研究梳理，以及项目/课题立项书中的研究背景与现状总结。",
+    "one_liner": "基于输入文献集合梳理研究脉络、主题、差异与研究空白。"
+  },
+  {
+    "moduleId": "e19",
+    "promptKey": "E6-01",
+    "name": "会议纪要生成模块（Meeting Minutes Generator）",
+    "category": "business-ops",
+    "description": "仅基于输入的会议内容，识别主题、要点、决策和行动项，按会议主题、时间、参与者、讨论要点、决策与行动项等结构输出中立、可执行的会议纪要。",
+    "use_case": "适用于项目周会、专项会纪要整理，跨部门协作会议记录标准化，客户沟通/对接会议的纪要生成，以及内部业务会议的统一纪要格式输出。",
+    "one_liner": "从会议内容中整理出标准化纪要：要点、决策与行动项。"
+  },
+  {
+    "moduleId": "e20",
+    "promptKey": "E6-02",
+    "name": "汇报材料生成模块（Business Report Material Generator）",
+    "category": "business-reporting",
+    "description": "围绕汇报主题与受众，提炼关键数据和问题，按现状→问题→原因→对策的逻辑，生成适合 PPT 或书面汇报的背景、关键数据、问题挑战、核心发现与建议结构。",
+    "use_case": "适用于项目进展周报/月报/阶段性汇报、业务或用户增长分析汇报、专项任务复盘与对上级的总结材料，以及跨部门沟通使用的结构化汇报稿。",
+    "one_liner": "把零散信息与数据整理为结构清晰的业务汇报材料框架。"
+  },
+  {
+    "moduleId": "e21",
+    "promptKey": "E6-03",
+    "name": "商务对话脚本生成模块（Business Dialogue Script Generator）",
+    "category": "business-communication",
+    "description": "根据场景、角色与目标，设计从开场、需求探询、信息澄清、价值呈现到异议处理、推进合作的对话流程，并提供双边话术，语言专业自然、不过度承诺。",
+    "use_case": "适用于 B2B/B2C 客户沟通与需求访谈话术设计、合作洽谈或商务谈判的脚本准备、向高层/关键干系人汇报时的沟通脚本，以及销售常见异议的应对话术沉淀。",
+    "one_liner": "为具体商务场景生成有流程、有异议处理的对话脚本。"
+  }
+]

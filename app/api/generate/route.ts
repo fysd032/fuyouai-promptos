@@ -1,29 +1,14 @@
 // app/api/generate/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { runPromptModule } from "@/lib/promptos/engine";
+import { resolvePromptKey } from "@/lib/promptos/module-map.generated";
 
-// -----------------------------
-// CORS 设置（关键！！！）
-// -----------------------------
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "http://localhost:3000",
+  "Access-Control-Allow-Origin": "http://localhost:3000", // 本地前端
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-// -----------------------------
-// 模块 ID → 模板 key 映射表（关键!!!）
-// -----------------------------
-const MODULE_KEY_MAP: Record<string, string> = {
-  m1: "A1-01",   // 写作大师 Writing Master
-  // 后续的模块再加：
-  // m2: "A1-02",
-  // m3: "A1-03",
-};
-
-// -----------------------------
-// 处理 OPTIONS 预检请求
-// -----------------------------
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
@@ -31,29 +16,34 @@ export async function OPTIONS() {
   });
 }
 
-// -----------------------------
-// 处理 POST 请求（真正业务逻辑）
-// -----------------------------
 export async function POST(req: NextRequest) {
   try {
-    const { promptKey, userInput } = await req.json();
+    const { moduleId, promptKey, userInput } = await req.json();
 
-    if (!promptKey) {
+    // 通过映射解析出真实的 promptKey
+    const realKey = resolvePromptKey({ moduleId, promptKey });
+
+    if (!realKey) {
       return NextResponse.json(
-        { ok: false, error: "promptKey is required" },
+        {
+          ok: false,
+          error: "Unknown moduleId/promptKey",
+          moduleId,
+          promptKey,
+        },
         { status: 400, headers: corsHeaders }
       );
     }
 
-    // ⭐⭐ 前端的 m1 转换成后端的真实模板 key ⭐⭐
-    const realKey = MODULE_KEY_MAP[promptKey] ?? promptKey;
-
+    // 调用执行引擎（里面会用 Gemini / OpenAI 等模型）
     const result = await runPromptModule(realKey, userInput || "");
 
     return NextResponse.json(
       {
         ok: true,
-        ...result,
+        moduleId,
+        promptKey: realKey,
+        ...result, // { finalPrompt, modelOutput, ... }
       },
       { status: 200, headers: corsHeaders }
     );
