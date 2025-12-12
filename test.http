@@ -1,9 +1,13 @@
-### 测试 a1 模块提示词映射是否成功
-
 POST http://localhost:3000/api/generate
 Content-Type: application/json
 
 {
   "moduleId": "a1",
-  "userInput": "请帮我生成一个用于写保险文案的提示词"
+  "promptKey": "A1-02",
+  "engineType": "cot",
+  "mode": "pro",
+  "industryId": "insurance",
+  "userInput": {
+    "text": "请帮我写一个用于保险文案的提示词"
+  }
 }
