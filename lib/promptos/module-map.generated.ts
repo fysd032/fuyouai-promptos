@@ -34,11 +34,20 @@ export const MODULE_KEY_MAP: Record<string, string> = (
  * - 如果直接传 promptKey，则优先使用（认为调用方已经指定了最终 key）
  * - 否则用 moduleId 去映射表里找 promptKey
  */
-export function resolvePromptKey(input: {
+export function resolvePromptKey(params: {
   moduleId?: string;
   promptKey?: string;
-}): string | undefined {
-  if (input.promptKey) return input.promptKey;
-  if (input.moduleId) return MODULE_KEY_MAP[input.moduleId];
-  return undefined;
+  engineType?: string;
+  mode?: string;
+}) {
+  const { moduleId, promptKey } = params;
+
+  // ⚠️ 现在阶段先忽略 engineType / mode
+  // 后面你要做 Pro / 多模型时再用
+
+  if (promptKey) return promptKey;
+  if (moduleId) return moduleId;
+
+  return null;
 }
+
