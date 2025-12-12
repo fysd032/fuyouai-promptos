@@ -1,38 +1,32 @@
-// lib/promptos/engine.ts
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
 import { getModuleTemplate } from "./prompts";
 
-export type EngineType = "gemini" | "deepseek";
-
-export type RunPromptResult = {
+export type RunEngineResult = {
   promptKey: string;
   engineType: string;
   finalPrompt: string;
   modelOutput: string;
   error?: string;
-  availableKeysHint?: string;
 };
 
 const isFinalPromptKey = (k: string) => /^[A-Z]\d+-\d+$/.test((k || "").trim());
 
-export async function runEngine(
+export async function runPromptModule(
   promptKey: string,
   userInput: string,
-  engineType: string = "gemini"
-): Promise<RunPromptResult> {
-  // ✅ HARD GUARD：只允许最终 key（A1-01/E5-02）
+  engineType: string = "deepseek"
+): Promise<RunEngineResult> {
+  const normalizedEngineType = (engineType || "deepseek").toLowerCase();
+
+  // ✅ 只允许最终 key（防止 m1 / writing_master 这种中间态进入执行器）
   if (!isFinalPromptKey(promptKey)) {
     return {
       promptKey,
-      engineType,
+      engineType: normalizedEngineType,
       finalPrompt: "",
       modelOutput: "",
-      error:
-        `[ENGINE_GUARD] Invalid promptKey: "${promptKey}". ` +
-        `Engine only accepts final keys like "A1-01" / "E5-02".`,
-      availableKeysHint:
-        "请先通过 resolver：mX/frontModuleId -> module_mapping.v2.json -> backendModules.promptKey(A1-xx)，再调用执行器。",
+      error: `[ENGINE_GUARD] Invalid promptKey: ${promptKey}. Expect like "A1-01".`,
     };
   }
 
@@ -40,11 +34,10 @@ export async function runEngine(
   if (!baseTemplate) {
     return {
       promptKey,
-      engineType,
+      engineType: normalizedEngineType,
       finalPrompt: "",
       modelOutput: "",
       error: `Unknown promptKey: ${promptKey}`,
-      availableKeysHint: "请检查 prompts.generated.ts 中实际存在的 key",
     };
   }
 
@@ -59,16 +52,13 @@ ${userInput}
 请严格按照上面的模块说明、输入要求、执行步骤与输出格式进行处理，不要偏题。
 `.trim();
 
-  const normalized = (engineType || "gemini").toLowerCase();
-
-  // ========== DeepSeek (OpenAI-compatible) ==========
-  if (normalized === "deepseek") {
+  // ✅ DeepSeek 分支（当作 OpenAI 兼容）
+  if (normalizedEngineType === "deepseek") {
     const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
-
     if (!deepseekApiKey) {
       return {
         promptKey,
-        engineType: "deepseek",
+        engineType: normalizedEngineType,
         finalPrompt,
         modelOutput: "",
         error: "[engine] Missing DEEPSEEK_API_KEY",
@@ -91,62 +81,47 @@ ${userInput}
       });
 
       const text = completion.choices?.[0]?.message?.content?.trim() ?? "";
-
       return {
         promptKey,
-        engineType: "deepseek",
+        engineType: normalizedEngineType,
         finalPrompt,
         modelOutput: text,
       };
     } catch (e: any) {
-      console.error("[engine] DeepSeek 调用失败：", e);
       return {
         promptKey,
-        engineType: "deepseek",
+        engineType: normalizedEngineType,
         finalPrompt,
         modelOutput: "",
-        error: `[engine] DeepSeek 调用失败: ${e?.message ?? String(e)}`,
+        error: `[engine] DeepSeek failed: ${e?.message ?? String(e)}`,
       };
     }
   }
 
-  // ========== Gemini ==========
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  if (!geminiApiKey) {
-    // 没 key 时返回 prompt，方便你调试链路
-    return {
-      promptKey,
-      engineType: "gemini",
-      finalPrompt,
-      modelOutput: "",
-      error: "[engine] Missing GEMINI_API_KEY",
-    };
+  // ✅ Gemini 分支（保留）
+  if (normalizedEngineType === "gemini") {
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+      return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: "", error: "[engine] Missing GEMINI_API_KEY" };
+    }
+
+    try {
+      const genAI = new GoogleGenerativeAI(geminiApiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(finalPrompt);
+      const text = result?.response?.text?.() ?? "";
+      return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: text };
+    } catch (e: any) {
+      return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: "", error: `[engine] Gemini failed: ${e?.message ?? String(e)}` };
+    }
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const result = await model.generateContent(finalPrompt);
-    const text = result?.response?.text?.() ?? "";
-
-    return {
-      promptKey,
-      engineType: "gemini",
-      finalPrompt,
-      modelOutput: text,
-    };
-  } catch (e: any) {
-    console.error("[engine] Gemini 调用失败：", e);
-    return {
-      promptKey,
-      engineType: "gemini",
-      finalPrompt,
-      modelOutput: "",
-      error: `[engine] Gemini 调用失败: ${e?.message ?? String(e)}`,
-    };
-  }
+  return {
+    promptKey,
+    engineType: normalizedEngineType,
+    finalPrompt,
+    modelOutput: "",
+    error: `[engine] Unsupported engineType: ${normalizedEngineType}`,
+  };
 }
 
-// ✅ 兼容旧接口：外部如果 import runPromptModule 不用改
-export const runPromptModule = runEngine;
