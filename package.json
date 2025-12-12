@@ -7,13 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-
     "gen:mmap": "tsx scripts/gen-frontend-module-id-map.ts",
     "check:mmap": "npm run gen:mmap && git diff --exit-code"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "next": "16.0.7",
+    "openai": "^6.10.0",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
