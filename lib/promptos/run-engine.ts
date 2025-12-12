@@ -4,11 +4,7 @@ import { runPromptModule } from "./engine";
 import { resolvePromptKey } from "./module-map.generated";
 
 /**
- * PromptEngine - 系统大脑调度中心
- * 负责：
- * 1) 解析真实 promptKey（路由）
- * 2) 处理 userInput（对象→JSON）
- * 3) 调用 runPromptModule（原始 prompt + 模型执行器）
+ * 调度器：只做路由/映射/兜底，然后调用执行器
  */
 export async function runEngine({
   moduleId,
@@ -16,7 +12,7 @@ export async function runEngine({
   engineType,
   mode,
   industryId,
-  userInput
+  userInput,
 }: {
   moduleId?: string;
   promptKey?: string;
@@ -25,25 +21,19 @@ export async function runEngine({
   industryId?: string | null;
   userInput: any;
 }) {
-  /**
-   * ✅ Step 0（新增）：前端 moduleId → 后端 frontModuleId 翻译
-   * - m9 → researcher
-   * - 如果已经是 frontModuleId，则原样兜底
-   */
+  const finalEngineType = (engineType ?? "gemini").toString();
+  const finalMode = (mode ?? "default").toString();
+
   const normalizedModuleId =
-    moduleId && frontendModuleIdMap[moduleId]
-      ? frontendModuleIdMap[moduleId]
+    moduleId && (frontendModuleIdMap as any)[moduleId]
+      ? (frontendModuleIdMap as any)[moduleId]
       : moduleId;
 
-  /**
-   * Step 1：走你现有的 moduleId + promptKey 路由
-   * ⚠️ 注意：这里传入的是“翻译后的 moduleId”
-   */
   const realKey = resolvePromptKey({
     moduleId: normalizedModuleId,
     promptKey,
-    engineType,
-    mode,
+    engineType: finalEngineType,
+    mode: finalMode,
   });
 
   if (!realKey) {
@@ -52,37 +42,25 @@ export async function runEngine({
     );
   }
 
-  /**
-   * Step 2：处理用户输入
-   * - 如果前端传来对象，我们转成 JSON 格式
-   * - 保持兼容旧行为
-   */
-  let userInputStr = "";
-  if (typeof userInput === "string") {
-    userInputStr = userInput;
-  } else {
-    userInputStr = JSON.stringify(userInput, null, 2);
-  }
+  const userInputStr =
+    typeof userInput === "string"
+      ? userInput
+      : JSON.stringify(userInput ?? {}, null, 2);
 
-  /**
-   * Step 3：调用 PromptOS 执行器
-   */
-const result = await runPromptModule(
-  realKey,
-  userInputStr,
-  finalEngineType // 👈 你之前兜底过的 engineType
-);
+const result = await runPromptModule(realKey, userInputStr, finalEngineType);
 
-  /**
-   * Step 4：统一返回
-   */
-  return {
-    ok: true,
-    moduleId: normalizedModuleId, // ✅ 返回真实执行用的 moduleId
-    promptKey: realKey,
-    engineType,
-    mode,
-    industryId,
-    ...result,
+
+  const { promptKey: _pk, engineType: _et, ...rest } = result;
+
+return {
+  ok: true,
+  moduleId: normalizedModuleId,
+  promptKey: realKey,
+  engineType: finalEngineType,
+  mode: finalMode,
+  industryId: industryId ?? null,
+  ...rest,
+};
+
   };
-}
+

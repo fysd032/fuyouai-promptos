@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev ",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+
+    "gen:mmap": "tsx scripts/gen-frontend-module-id-map.ts",
+    "check:mmap": "npm run gen:mmap && git diff --exit-code"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -22,6 +25,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

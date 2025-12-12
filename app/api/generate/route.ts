@@ -16,51 +16,54 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
+    const body = await req.json();
+
     const {
       moduleId,
       promptKey,
       engineType,
       mode,
       industryId,
-      userInput
-    } = await req.json();
+      userInput,
+    } = body;
 
-    // 基础校验
-    if (!engineType || !mode) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "engineType 和 mode 为必填字段",
-        },
-        { status: 400, headers: corsHeaders }
-      );
-    }
+    /**
+     * ✅ 兜底：保证 runEngine 永远能收到值
+     * （前端 / test.http / 外部请求 都不容易把你打挂）
+     */
+    const finalEngineType: string = engineType ?? "gemini";
+    const finalMode: string = mode ?? "default";
 
-    // 调用统一大脑 runEngine
     const result = await runEngine({
       moduleId,
       promptKey,
-      engineType,
-      mode,
+      engineType: finalEngineType,
+      mode: finalMode,
       industryId,
       userInput,
     });
 
-    return NextResponse.json(
-      {
-        ok: true,
-        ...result, // finalPrompt + modelOutput + promptKey
-      },
-      { status: 200, headers: corsHeaders }
-    );
+    /**
+     * ⚠️ 关键点：
+     * runEngine 内部已经返回 { ok: true, ... }
+     * 这里绝对不要再包一层 ok
+     */
+    return NextResponse.json(result, {
+      status: 200,
+      headers: corsHeaders,
+    });
   } catch (error: any) {
     console.error("[/api/generate] Error:", error);
+
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? "Internal Server Error",
+        error: error?.message || "Unknown error",
       },
-      { status: 500, headers: corsHeaders }
+      {
+        status: 500,
+        headers: corsHeaders,
+      }
     );
   }
 }
