@@ -9,23 +9,30 @@ export default function Home() {
   const [mode, setMode] = useState("default");
   const [result, setResult] = useState("");
 
-  const callAPI = async () => {
-    setResult("请求中…");
+const callAPI = async () => {
+  const safePromptKey = promptKey?.trim() || "A1-01";
 
-    const res = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        promptKey,
-        moduleId: moduleId || undefined,
-        mode,
-        userInput: text,
-      }),
-    });
+  if (!text.trim()) {
+    alert("请输入 userInput");
+    return;
+  }
 
-    const data = await res.json();
-    setResult(JSON.stringify(data, null, 2));
-  };
+  setResult("请求中…");
+
+  const res = await fetch("/api/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      promptKey: safePromptKey,
+      moduleId: moduleId?.trim() || undefined,
+      mode: mode || "default",
+      userInput: text,
+    }),
+  });
+
+  const data = await res.json();
+  setResult(JSON.stringify(data, null, 2));
+};
 
   return (
     <main style={{ padding: 40, maxWidth: 900 }}>
