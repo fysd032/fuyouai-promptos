@@ -16,6 +16,18 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
+        // ===== STEP 1: ENV CHECK =====
+    const ENGINE_LOCK = process.env.ENGINE_LOCK;
+    const ROLLOUT_GEMINI_PERCENT = process.env.ROLLOUT_GEMINI_PERCENT;
+    const FALLBACK_TO_DEEPSEEK = process.env.FALLBACK_TO_DEEPSEEK;
+
+    console.log("[ENV CHECK]", {
+      ENGINE_LOCK,
+      ROLLOUT_GEMINI_PERCENT,
+      FALLBACK_TO_DEEPSEEK,
+    });
+    // =============================
+
     const body = await req.json();
 
     const {
