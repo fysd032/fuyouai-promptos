@@ -16,8 +16,8 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
-        // ===== STEP 1: ENV CHECK =====
-    const ENGINE_LOCK = process.env.ENGINE_LOCK;
+    // ===== STEP 1: ENV CHECK =====
+    const ENGINE_LOCK = process.env.ENGINE_LOCK; // off | deepseek | gemini
     const ROLLOUT_GEMINI_PERCENT = process.env.ROLLOUT_GEMINI_PERCENT;
     const FALLBACK_TO_DEEPSEEK = process.env.FALLBACK_TO_DEEPSEEK;
 
@@ -28,23 +28,50 @@ export async function POST(req: NextRequest) {
     });
     // =============================
 
+    const requestId = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+
     const body = await req.json();
 
-    const {
+    const { moduleId, promptKey, engineType, mode, industryId, userInput } = body;
+
+    // ✅ 打透：看看前端到底传了什么
+    console.log("[API IN]", {
+      requestId,
       moduleId,
       promptKey,
       engineType,
       mode,
       industryId,
-      userInput,
-    } = body;
+      userInputPreview: typeof userInput === "string" ? userInput.slice(0, 80) : typeof userInput,
+    });
 
     /**
-     * ✅ 兜底：保证 runEngine 永远能收到值
-     * （前端 / test.http / 外部请求 都不容易把你打挂）
+     * ✅ 引擎选择（先做“锁死开关”）
+     * - ENGINE_LOCK=deepseek：强制 deepseek（推荐，先让线上稳定）
+     * - ENGINE_LOCK=gemini：强制 gemini
+     * - ENGINE_LOCK=off：不锁死，按请求传入 engineType（下一步再接灰度）
      */
-    const finalEngineType: string = engineType ?? "gemini";
-    const finalMode: string = mode ?? "default";
+    const lock = (ENGINE_LOCK ?? "off").toLowerCase();
+    const requestedEngineType: string | null = engineType ?? null;
+
+    let finalEngineType: string;
+    if (lock === "deepseek" || lock === "gemini") {
+      finalEngineType = lock;
+    } else {
+      // ✅ 不锁死：优先用请求值，否则兜底 deepseek（不要再默认 gemini）
+      finalEngineType = (engineType ?? "deepseek").toString();
+    }
+
+    // ✅ mode 兜底
+    const finalMode: string = (mode ?? "default").toString();
+
+    console.log("[API ENGINE]", {
+      requestId,
+      requestedEngineType,
+      engineLock: lock,
+      engineTypeUsed: finalEngineType,
+      modeUsed: finalMode,
+    });
 
     const result = await runEngine({
       moduleId,
@@ -53,17 +80,31 @@ export async function POST(req: NextRequest) {
       mode: finalMode,
       industryId,
       userInput,
-    });
+      requestId, // runEngine 不接也没关系，我们先透传
+    } as any);
 
     /**
-     * ⚠️ 关键点：
-     * runEngine 内部已经返回 { ok: true, ... }
-     * 这里绝对不要再包一层 ok
+     * ✅ 关键：不改 runEngine 返回结构，只在外面“追加”调试字段
+     * 这样 Test UI 能立刻看到：请求传了啥 / 实际用了啥
      */
-    return NextResponse.json(result, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return NextResponse.json(
+      {
+        ...result,
+        requestId,
+
+        moduleIdRequested: moduleId ?? null,
+        promptKeyRequested: promptKey ?? null,
+        engineTypeRequested: requestedEngineType,
+
+        engineLock: lock,
+        engineTypeUsed: finalEngineType,
+        modeUsed: finalMode,
+      },
+      {
+        status: 200,
+        headers: corsHeaders,
+      }
+    );
   } catch (error: any) {
     console.error("[/api/generate] Error:", error);
 
