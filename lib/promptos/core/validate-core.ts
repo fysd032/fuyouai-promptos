@@ -1,22 +1,22 @@
-import { CORE_PROMPT_BANK_KEY } from "./core-map";
-import { PROMPT_BANK } from "../prompt-bank.generated";
+import { CORE_PROMPT_BANK_KEY, type CoreKey, type PlanTier } from "./core-map";
+import { PROMPT_BANK } from "@/lib/promptos/prompt-bank.generated";
 
-let validated = false;
+// 如果你没有 PROMPT_BANK，而是 getPrompt，也可以改成 getPrompt(promptKey) 判断
 
-export function validateCorePromptBank() {
-  if (validated) return;
+export function validateCorePromptMap() {
+  const coreEntries = Object.entries(CORE_PROMPT_BANK_KEY) as Array<
+    [CoreKey, Record<PlanTier, string>]
+  >;
 
-  for (const coreKey in CORE_PROMPT_BANK_KEY) {
-    for (const tier in CORE_PROMPT_BANK_KEY[coreKey]) {
-      const promptKey = CORE_PROMPT_BANK_KEY[coreKey][tier];
+  for (const [coreKey, tierMap] of coreEntries) {
+    const tierEntries = Object.entries(tierMap) as Array<[PlanTier, string]>;
+
+    for (const [tier, promptKey] of tierEntries) {
       if (!PROMPT_BANK[promptKey]) {
         throw new Error(
-          `[CorePromptValidationError] Prompt key not found: ${promptKey}`
+          `Missing promptKey in PROMPT_BANK: coreKey=${coreKey}, tier=${tier}, promptKey=${promptKey}`
         );
       }
     }
   }
-
-  validated = true;
-  console.log("[CorePromptValidation] OK");
 }
