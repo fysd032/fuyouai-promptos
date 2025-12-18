@@ -2,30 +2,33 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    // 1️⃣ 解析请求体（容错）
     const body = await req.json().catch(() => ({}));
 
-    // 2️⃣ 统一取用户输入（前端怎么传都能接住）
-    const userText =
+    // 统一取用户输入（兼容你前端多种写法）
+    const userInput =
       body?.userInput ??
       body?.input ??
       body?.text ??
       body?.prompt ??
       "";
 
-    // 3️⃣ 返回稳定结构（前端只认 output）
+    // 👉 这里是“假逻辑”（当前阶段用来验证 UI → API → UI 是否跑通）
+    // 后面你只需要把下面这段替换成“真实 Core 逻辑调用”即可
+    const output = `【Core Mock 输出】\n你输入的是：${String(userInput)}`;
+
     return NextResponse.json({
       ok: true,
-      requestId: "core-echo-v1",
-      output: userText || "（空输入）",
+      output,
+      debug: {
+        receivedBody: body,
+        timestamp: Date.now(),
+      },
     });
-  } catch (err: any) {
-    console.error("Core API error:", err);
-
+  } catch (e: any) {
     return NextResponse.json(
       {
         ok: false,
-        error: err?.message ?? "Unknown error",
+        error: e?.message ?? "unknown error",
       },
       { status: 500 }
     );
