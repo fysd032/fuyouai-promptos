@@ -1,3 +1,9 @@
+const output =
+  (engineResult && typeof engineResult === "object" && "output" in engineResult && (engineResult as any).output) ||
+  (engineResult && typeof engineResult === "object" && "text" in engineResult && (engineResult as any).text) ||
+  (engineResult && typeof engineResult === "object" && "aiOutput" in engineResult && (engineResult as any).aiOutput) ||
+  (engineResult && typeof engineResult === "object" && "modelOutput" in engineResult && (engineResult as any).modelOutput) ||
+  "";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
