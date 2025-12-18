@@ -1,7 +1,7 @@
 // app/api/core/run/route.ts
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs"; // 保守写法，避免 edge 环境限制
+export const runtime = "nodejs";
 
 type AnyObj = Record<string, any>;
 
@@ -17,9 +17,6 @@ function pickUserText(body: AnyObj) {
 }
 
 async function tryCallRealCoreRun(body: AnyObj) {
-  // 这里用 “动态 import + 兜底导出名” 的方式：
-  // 1) 不会因为你导出的名字不同而编译失败
-  // 2) 有就调用真实逻辑，没有就返回 null
   try {
     // route.ts 在 app/api/core/run/ 下，handlers 在 app/api/handlers/
     const mod: any = await import("../../handlers/coreRun");
@@ -40,23 +37,24 @@ async function tryCallRealCoreRun(body: AnyObj) {
   }
 }
 
-function normalizeOutput(engineResult: any, fallbackText: string) {
-  // 兼容不同返回字段名（你之前的 coreRun.ts 里可能叫 text / aiOutput / modelOutput 等）
-  if (engineResult && typeof engineResult === "object") {
-    const out =
-      (("output" in engineResult ? (engineResult as any).output : undefined) ??
-        ("text" in engineResult ? (engineResult as any).text : undefined) ??
-        ("aiOutput" in engineResult ? (engineResult as any).aiOutput : undefined) ??
-        ("modelOutput" in engineResult ? (engineResult as any).modelOutput : undefined)) ??
-      fallbackText;
-
-    return { out: String(out), raw: engineResult };
+function normalizeOutput(engineResult: unknown, fallbackText: string) {
+  if (!engineResult || typeof engineResult !== "object") {
+    return { out: fallbackText, raw: engineResult };
   }
-  return { out: fallbackText, raw: engineResult };
+  const r = engineResult as Record<string, unknown>;
+
+  const out =
+    (typeof r.content === "string" ? r.content : undefined) ??
+    (typeof r.output === "string" ? r.output : undefined) ??
+    (typeof r.text === "string" ? r.text : undefined) ??
+    (typeof r.aiOutput === "string" ? r.aiOutput : undefined) ??
+    (typeof r.modelOutput === "string" ? r.modelOutput : undefined) ??
+    fallbackText;
+
+  return { out: String(out), raw: engineResult };
 }
 
 export async function OPTIONS() {
-  // 以后如果你要跨域，这里可以继续加 header
   return new NextResponse(null, {
     status: 204,
     headers: {
@@ -73,10 +71,10 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as AnyObj;
 
-    // 1) 先尝试走你项目里的“真实 core 逻辑”
+    // 1) 优先调用 handlers/coreRun.ts（如果存在且可用）
     const engineResult = await tryCallRealCoreRun(body);
 
-    // 2) 如果没有真实逻辑可调用，就用临时逻辑（但不是写死 test）
+    // 2) 没有真实逻辑/或调用失败 -> fallback（不写死 test，拿用户输入）
     const userText = pickUserText(body);
     const fallbackText = userText
       ? `TEMP_CORE_OK: ${userText}`
@@ -87,8 +85,14 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       requestId,
+
+      // ✅ 给前端/旧代码兼容
       output: out,
-      // 这两个字段是给你排查用的：等你确认稳定后可以删掉
+
+      // ✅ 推荐你未来统一用 content
+      content: out,
+
+      // 调试字段（稳定后可删）
       received: body,
       engineRaw: raw,
     });
