@@ -1,107 +1,76 @@
-// app/api/core/run/route.ts
 import { NextResponse } from "next/server";
-
-export const runtime = "nodejs";
-
-type AnyObj = Record<string, any>;
-
-function pickUserText(body: AnyObj) {
-  return (
-    body?.userInput ??
-    body?.input ??
-    body?.text ??
-    body?.prompt ??
-    body?.message ??
-    ""
-  );
-}
-
-async function tryCallRealCoreRun(body: AnyObj) {
-  try {
-    // route.ts 在 app/api/core/run/ 下，handlers 在 app/api/handlers/
-    const mod: any = await import("../../handlers/coreRun");
-
-    const fn =
-      mod?.default ??
-      mod?.coreRun ??
-      mod?.run ??
-      mod?.handler ??
-      mod?.coreRunHandler;
-
-    if (typeof fn === "function") {
-      return await fn(body);
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function normalizeOutput(engineResult: unknown, fallbackText: string) {
-  if (!engineResult || typeof engineResult !== "object") {
-    return { out: fallbackText, raw: engineResult };
-  }
-  const r = engineResult as Record<string, unknown>;
-
-  const out =
-    (typeof r.content === "string" ? r.content : undefined) ??
-    (typeof r.output === "string" ? r.output : undefined) ??
-    (typeof r.text === "string" ? r.text : undefined) ??
-    (typeof r.aiOutput === "string" ? r.aiOutput : undefined) ??
-    (typeof r.modelOutput === "string" ? r.modelOutput : undefined) ??
-    fallbackText;
-
-  return { out: String(out), raw: engineResult };
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    },
-  });
-}
+// ⚠️ 先别真的引入 runEngine，等你理解了再接
+// import { runEngine } from "@/lib/promptos/run-engine";
 
 export async function POST(req: Request) {
-  const requestId = `core_${Date.now()}`;
+  const requestId = crypto.randomUUID();
 
   try {
-    const body = (await req.json().catch(() => ({}))) as AnyObj;
+    const body = await req.json().catch(() => ({}));
 
-    // 1) 优先调用 handlers/coreRun.ts（如果存在且可用）
-    const engineResult = await tryCallRealCoreRun(body);
+    const coreKey = String(body?.coreKey ?? "");
+    const tier = String(body?.tier ?? "basic");
+    const userInput = String(body?.userInput ?? "");
 
-    // 2) 没有真实逻辑/或调用失败 -> fallback（不写死 test，拿用户输入）
-    const userText = pickUserText(body);
-    const fallbackText = userText
-      ? `TEMP_CORE_OK: ${userText}`
-      : "TEMP_CORE_OK: (empty input)";
+    // ✅ 最小校验
+    if (!coreKey) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: { code: "INVALID_INPUT", message: "Missing coreKey" },
+          meta: { requestId },
+        },
+        { status: 400 }
+      );
+    }
 
-    const { out, raw } = normalizeOutput(engineResult, fallbackText);
+    /**
+     * ✅ 核心开关：是否走真实 core 执行器
+     * - 不设置 / 非 on → 走 MOCK（当前安全状态）
+     * - 设置 CORE_RUN_REAL=on → 将来才会走真逻辑
+     */
+    const useRealCore = (process.env.CORE_RUN_REAL || "").toLowerCase() === "on";
 
-    return NextResponse.json({
-      ok: true,
-      requestId,
+    if (!useRealCore) {
+      // 🟢 当前阶段：MOCK 返回（你现在就在这里）
+      return NextResponse.json({
+        ok: true,
+        output: `TEMP_CORE_OK: ${userInput}`,
+        meta: { requestId },
+      });
+    }
 
-      // ✅ 给前端/旧代码兼容
-      output: out,
+    // 🔵 未来阶段：真实 core 执行器（现在先不启用）
+    // const result = await runEngine({
+    //   moduleId: coreKey,
+    //   mode: tier,
+    //   userInput,
+    // });
 
-      // ✅ 推荐你未来统一用 content
-      content: out,
+    // return NextResponse.json({
+    //   ok: result.ok,
+    //   output: result.modelOutput,
+    //   meta: { requestId },
+    // });
 
-      // 调试字段（稳定后可删）
-      received: body,
-      engineRaw: raw,
-    });
+    // ⚠️ 防御性兜底（防止你误开开关）
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "CORE_RUN_NOT_ENABLED",
+          message: "CORE_RUN_REAL is on, but real core logic is not wired yet.",
+        },
+        meta: { requestId },
+      },
+      { status: 500 }
+    );
   } catch (e: any) {
     return NextResponse.json(
       {
         ok: false,
-        requestId,
-        error: e?.message ?? "unknown error",
+        error: { code: "INTERNAL", message: e?.message ?? String(e) },
+        meta: { requestId },
       },
       { status: 500 }
     );

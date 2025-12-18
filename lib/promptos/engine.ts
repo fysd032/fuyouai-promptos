@@ -1,6 +1,8 @@
+// lib/promptos/engine.ts
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
 import { getModuleTemplate } from "./prompts";
+import { runLLM, type EngineType } from "../llm/provider";
 
 export type RunEngineResult = {
   promptKey: string;
@@ -12,14 +14,31 @@ export type RunEngineResult = {
 
 const isFinalPromptKey = (k: string) => /^[A-Z]\d+-\d+$/.test((k || "").trim());
 
-export async function runPromptModule(
+function buildFinalPrompt(baseTemplate: string, userInput: string) {
+  return `
+${baseTemplate.trim()}
+
+-----------------------
+【用户输入】
+${userInput}
+
+【说明】
+请严格按照上面的模块说明、输入要求、执行步骤与输出格式进行处理，不要偏题。
+`.trim();
+}
+
+/**
+ * ✅ 旧实现（当前通用模块在用）：直连 DeepSeek/Gemini
+ * - 保留用于兜底
+ * - 只有当 ENGINE_PROVIDER_V2 != "on" 时才会走这里
+ */
+async function runPromptModuleLegacy(
   promptKey: string,
   userInput: string,
   engineType: string = "deepseek"
 ): Promise<RunEngineResult> {
   const normalizedEngineType = (engineType || "deepseek").toLowerCase();
 
-  // ✅ 只允许最终 key（防止 m1 / writing_master 这种中间态进入执行器）
   if (!isFinalPromptKey(promptKey)) {
     return {
       promptKey,
@@ -41,36 +60,17 @@ export async function runPromptModule(
     };
   }
 
-  const finalPrompt = `
-${baseTemplate.trim()}
+  const finalPrompt = buildFinalPrompt(baseTemplate, userInput);
 
------------------------
-【用户输入】
-${userInput}
-
-【说明】
-请严格按照上面的模块说明、输入要求、执行步骤与输出格式进行处理，不要偏题。
-`.trim();
-
-  // ✅ DeepSeek 分支（当作 OpenAI 兼容）
+  // DeepSeek（OpenAI兼容）
   if (normalizedEngineType === "deepseek") {
     const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
     if (!deepseekApiKey) {
-      return {
-        promptKey,
-        engineType: normalizedEngineType,
-        finalPrompt,
-        modelOutput: "",
-        error: "[engine] Missing DEEPSEEK_API_KEY",
-      };
+      return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: "", error: "[engine] Missing DEEPSEEK_API_KEY" };
     }
 
     try {
-      const client = new OpenAI({
-        apiKey: deepseekApiKey,
-        baseURL: "https://api.deepseek.com",
-      });
-
+      const client = new OpenAI({ apiKey: deepseekApiKey, baseURL: "https://api.deepseek.com" });
       const completion = await client.chat.completions.create({
         model: "deepseek-chat",
         messages: [
@@ -81,24 +81,13 @@ ${userInput}
       });
 
       const text = completion.choices?.[0]?.message?.content?.trim() ?? "";
-      return {
-        promptKey,
-        engineType: normalizedEngineType,
-        finalPrompt,
-        modelOutput: text,
-      };
+      return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: text };
     } catch (e: any) {
-      return {
-        promptKey,
-        engineType: normalizedEngineType,
-        finalPrompt,
-        modelOutput: "",
-        error: `[engine] DeepSeek failed: ${e?.message ?? String(e)}`,
-      };
+      return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: "", error: `[engine] DeepSeek failed: ${e?.message ?? String(e)}` };
     }
   }
 
-  // ✅ Gemini 分支（保留）
+  // Gemini
   if (normalizedEngineType === "gemini") {
     const geminiApiKey = process.env.GEMINI_API_KEY;
     if (!geminiApiKey) {
@@ -125,3 +114,66 @@ ${userInput}
   };
 }
 
+/**
+ * ✅ 新实现（公共厨师）：走 runLLM()
+ * - 只有当 ENGINE_PROVIDER_V2 === "on" 时启用
+ */
+async function runPromptModuleV2(
+  promptKey: string,
+  userInput: string,
+  engineType: string = "deepseek"
+): Promise<RunEngineResult> {
+  const normalizedEngineType = (engineType || "deepseek").toLowerCase() as EngineType;
+
+  if (!isFinalPromptKey(promptKey)) {
+    return {
+      promptKey,
+      engineType: normalizedEngineType,
+      finalPrompt: "",
+      modelOutput: "",
+      error: `[ENGINE_GUARD] Invalid promptKey: ${promptKey}. Expect like "A1-01".`,
+    };
+  }
+
+  const baseTemplate = getModuleTemplate(promptKey);
+  if (!baseTemplate) {
+    return {
+      promptKey,
+      engineType: normalizedEngineType,
+      finalPrompt: "",
+      modelOutput: "",
+      error: `Unknown promptKey: ${promptKey}`,
+    };
+  }
+
+  const finalPrompt = buildFinalPrompt(baseTemplate, userInput);
+
+  const llm = await runLLM({
+    engineType: normalizedEngineType,
+    prompt: finalPrompt,
+    temperature: 0.7,
+  });
+
+  if (!llm.ok) {
+    return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: "", error: llm.error };
+  }
+
+  return { promptKey, engineType: llm.engineType, finalPrompt, modelOutput: llm.text };
+}
+
+/**
+ * ✅ 对外导出：保持函数名不变（通用模块不需要改任何调用）
+ * - 默认走 Legacy（不影响通用模块）
+ * - 开关打开后走 V2
+ */
+export async function runPromptModule(
+  promptKey: string,
+  userInput: string,
+  engineType: string = "deepseek"
+): Promise<RunEngineResult> {
+  const flag = (process.env.ENGINE_PROVIDER_V2 || "").toLowerCase();
+  if (flag === "on") {
+    return runPromptModuleV2(promptKey, userInput, engineType);
+  }
+  return runPromptModuleLegacy(promptKey, userInput, engineType);
+}
