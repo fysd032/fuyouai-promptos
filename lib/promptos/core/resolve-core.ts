@@ -6,13 +6,19 @@ export type ResolveCoreResult =
   | { ok: true; coreKey: CoreKey; tier: PlanTier; promptKey: keyof typeof PROMPT_BANK }
   | { ok: false; coreKey: string; tier: string; error: string };
 
-export function resolveCorePromptKey(coreKeyRaw: string, tierRaw: string): ResolveCoreResult {
-  const coreKey = coreKeyRaw as CoreKey;
-  const tier = (tierRaw || "basic") as PlanTier;
+export function resolveCorePromptKey(coreKeyRaw: string, tierRaw: string): ResolveCoreResult
+ {
+  const coreKey = String(coreKeyRaw || "").trim() as CoreKey
+;
+  const tier = (String(tierRaw || "basic").toLowerCase() as PlanTier) === "pro" ? "pro" : "basic"
+;
 
-  const tierMap = (CORE_PROMPT_BANK_KEY as any)[coreKey];
-  if (!tierMap) {
-    return { ok: false, coreKey: coreKeyRaw, tier: tierRaw, error: `Unknown coreKey: ${coreKeyRaw}` };
+  const tierMap = CORE_PROMPT_BANK_KEY[coreKey as CoreKey
+];
+  if
+ (!tierMap) {
+    return { ok: false, coreKey: coreKeyRaw, tier: tierRaw, error: `Unknown coreKey: ${coreKeyRaw}
+` };
   }
 
   const promptKey = tierMap[tier] as keyof typeof PROMPT_BANK | undefined;

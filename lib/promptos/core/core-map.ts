@@ -1,4 +1,3 @@
-// lib/promptos/core/core-map.ts
 import { PROMPT_BANK } from "@/lib/promptos/prompt-bank.generated";
 
 export type CoreKey =

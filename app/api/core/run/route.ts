@@ -1,14 +1,15 @@
 // app/api/core/run/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 // ✅ runEngine 真正位置在这里（不是 engine.ts）
-import { runEngine } from "@/lib/promptos/run-engine";
+import { runCoreEngine } from "@/lib/promptos/core/run-core-engine";
 
 // ✅ core 自检 + 映射
 import { bootstrapCore } from "@/lib/promptos/core/bootstrap";
 import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
 
 type Tier = "basic" | "pro";
+type EngineType = "deepseek" | "gemini";
 
 const ALLOWED_CORE_KEYS = new Set([
   "task_breakdown",
@@ -23,13 +24,18 @@ function normalizeTier(raw: unknown): Tier {
   return t === "pro" ? "pro" : "basic";
 }
 
+function normalizeEngineType(raw: unknown): EngineType {
+  const t = String(raw ?? "deepseek").toLowerCase();
+  return t === "gemini" ? "gemini" : "deepseek";
+}
+
 function rid() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const requestId = rid();
 
   try {
@@ -38,7 +44,7 @@ export async function POST(req: Request) {
     const coreKey = String(body?.coreKey ?? "").trim();
     const tier = normalizeTier(body?.tier);
     const userInput = String(body?.userInput ?? "").trim();
-    const engineType = String(body?.engineType ?? "deepseek").toLowerCase();
+    const engineType = normalizeEngineType(body?.engineType);
     const industryId = body?.industryId ?? null;
 
     // ✅ 基础校验
@@ -93,7 +99,7 @@ export async function POST(req: Request) {
     }
 
     // ✅ 真实路径：bootstrap -> resolve -> runEngine（强制用 resolved.promptKey）
-    bootstrapCore();
+    await bootstrapCore(); // ✅ 关键：加 await，避免异步自检/加载时序问题
 
     const resolved = resolveCorePromptKey(coreKey, tier);
     if (!resolved.ok) {
@@ -112,14 +118,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await runEngine({
+    const result = await runCoreEngine({
       moduleId: coreKey,
-      promptKey: resolved.promptKey, // ✅ 零歧义：只用 resolve 后的 promptKey
+      promptKey: resolved.promptKey,
       engineType,
-      mode: tier, // ✅ basic/pro 直接当 mode
+      mode: tier,
       industryId,
       userInput,
     });
+
+    // ✅ 兼容：runEngine 可能返回 {ok, modelOutput} 或 {ok, output}
+    const output =
+      (result as any)?.modelOutput ?? (result as any)?.output ?? "";
 
     if (!result?.ok) {
       return NextResponse.json(
@@ -127,7 +137,7 @@ export async function POST(req: Request) {
           ok: false,
           error: {
             code: "CORE_RUNENGINE_FAILED",
-            message: result?.error || "runEngine returned ok=false",
+            message: (result as any)?.error || "runEngine returned ok=false",
             hint:
               "优先检查：1) DEEPSEEK_API_KEY / GEMINI_API_KEY 是否在 Vercel 环境变量里；2) engineType=deepseek/gemini；3) PROMPT_BANK 是否有该 promptKey。",
           },
@@ -144,19 +154,21 @@ export async function POST(req: Request) {
       );
     }
 
+    // ✅ 防御：ok=true 但 output 为空时也把关键信息带回，方便排查
     return NextResponse.json({
       ok: true,
-      output: result.modelOutput,
-      finalPrompt: result.finalPrompt,
+      output,
+      finalPrompt: (result as any)?.finalPrompt,
       meta: {
         requestId,
         coreKey,
         tier,
         useRealCore: true,
         promptKey: resolved.promptKey,
-        engineTypeRequested: result.engineTypeRequested,
-        engineTypeUsed: result.engineTypeUsed,
-        mode: result.mode,
+        engineTypeRequested: (result as any)?.engineTypeRequested ?? engineType,
+        engineTypeUsed: (result as any)?.engineTypeUsed ?? engineType,
+        mode: (result as any)?.mode ?? tier,
+        outputEmpty: output ? false : true,
       },
     });
   } catch (e: any) {
