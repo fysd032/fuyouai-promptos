@@ -89,6 +89,8 @@ export async function POST(req: NextRequest) {
 
     // ✅ 开关：默认 mock；只有 CORE_RUN_REAL=on 才走真实链路
     const useRealCore = (process.env.CORE_RUN_REAL || "").toLowerCase() === "on";
+    console.log("[core/run] CORE_RUN_REAL=", process.env.CORE_RUN_REAL);
+
 
     if (!useRealCore) {
       return NextResponse.json({

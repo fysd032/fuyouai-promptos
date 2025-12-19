@@ -12,15 +12,26 @@ export type RunEngineResult = {
   error?: string;
 };
 
-const isFinalPromptKey = (k: string) => /^[A-Z]\d+-\d+$/.test((k || "").trim());
+import { PROMPT_BANK } from "./prompt-bank.generated"; // 路径按你项目实际调整
+
+const isFinalPromptKey = (k: string) => {
+  const key = (k || "").trim();
+  // ✅ 1) 老体系：A1-01 / A1-01.xxx
+  const legacyOk =
+    /^[A-Z]\d-\d{2}$/.test(key) || /^[A-Z]\d-\d{2}(\.\w+)?$/.test(key);
+
+  // ✅ 2) 新体系：只要 PROMPT_BANK 里存在，就放行（包括 core.xxx）
+  const bankOk = Boolean((PROMPT_BANK as any)[key]);
+
+  return legacyOk || bankOk;
+};
 
 function buildFinalPrompt(baseTemplate: string, userInput: string) {
   return `
-${baseTemplate.trim()}
+${(baseTemplate ?? "").trim()}
 
------------------------
 【用户输入】
-${userInput}
+${(userInput ?? "").trim()}
 
 【说明】
 请严格按照上面的模块说明、输入要求、执行步骤与输出格式进行处理，不要偏题。
