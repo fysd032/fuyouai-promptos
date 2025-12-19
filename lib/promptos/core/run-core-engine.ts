@@ -1,7 +1,7 @@
 // lib/promptos/core/run-core-engine.ts
 import { PROMPT_BANK } from "@/lib/promptos/prompt-bank.generated";
 // ✅ 正确：引入真正跑模型的函数
-import { runPromptModule } from "@/lib/promptos/run-prompt-module";
+import { runEngine } from "@/lib/promptos/run-engine";
 
 type EngineType = "deepseek" | "gemini";
 
@@ -39,16 +39,14 @@ export async function runCoreEngine(opts: {
       : JSON.stringify(opts.userInput ?? {}, null, 2);
 
   // ✅ 关键：这里才是真正跑模型
-  const result = await runPromptModule({
-    promptKey: String(pk),
-    userInput: userInputStr,
-    engineType,
-    mode,
-    options: {
-      moduleId: opts.moduleId,
-      industryId: opts.industryId ?? null,
-    },
-  });
+const result = await runEngine({
+  moduleId: opts.moduleId,
+  promptKey: String(pk),
+  userInput: userInputStr,
+  engineType,
+  mode,
+  industryId: opts.industryId ?? null,
+});
 
   if (!result || (result as any).error) {
     return {
