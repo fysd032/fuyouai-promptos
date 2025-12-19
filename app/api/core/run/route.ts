@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
+  
     if (!userInput) {
       return NextResponse.json(
         {
