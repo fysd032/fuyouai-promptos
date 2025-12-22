@@ -71,7 +71,10 @@ export async function coreRun(body: any) {
     };
   }
 
-  const promptBankKey = CORE_PROMPT_BANK_KEY[coreKey][tier];
+const coreDef = CORE_PROMPT_BANK_KEY[coreKey] as Record<"basic" | "pro", string>;
+
+const promptBankKey = coreDef[tier];
+
   const record = getPrompt(promptBankKey);
 
   if (!record?.content?.trim()) {
