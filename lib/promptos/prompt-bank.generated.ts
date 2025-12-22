@@ -3,7 +3,7 @@
 
 export type PromptTier = "basic" | "pro";
 
-export interface PromptRecord {
+export interface PromptRecord {   
   key: string;
   tier: PromptTier;
   content: string;
@@ -76,3 +76,4 @@ export const PROMPT_BANK: Record<string, PromptRecord> = {
 export function getPrompt(key: string): PromptRecord | null {
   return PROMPT_BANK[key] ?? null;
 }
+
