@@ -76,3 +76,11 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     },
   },
 };
+// ✅ 兼容旧代码：coreRun.ts 还在 import CORE_PROMPT_BANK_KEY
+// 结构：coreKey -> tier -> promptKey
+export const CORE_PROMPT_BANK_KEY: Record<
+  CoreKey,
+  Partial<Record<PlanTier, string>>
+> = Object.fromEntries(
+  Object.entries(CORE_DEFINITIONS).map(([k, def]) => [k, def.prompts])
+) as Record<CoreKey, Partial<Record<PlanTier, string>>>;
