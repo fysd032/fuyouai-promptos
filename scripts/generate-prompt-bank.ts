@@ -11,12 +11,6 @@ const OUT_FILE = path.join(ROOT, "lib/promptos/prompt-bank.generated.ts");
 const TIERS = ["basic", "pro"] as const;
 type Tier = typeof TIERS[number];
 
-/**
- * 把文件名转成稳定的 promptKey
- * 例：
- *  Task Breakdown Engine · BASIC V2.0.txt
- *  → core.task_breakdown.basic
- */
 function filenameToPromptKey(filename: string, tier: Tier): string {
   const base = filename
     .replace(/\.txt$/i, "")
