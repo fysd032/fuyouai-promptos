@@ -62,13 +62,11 @@ export type RunCoreEngineResult =
     };
 
 function hasPromptKey(pk: string): boolean {
-  // ✅ 关键：判断 key 是否存在，而不是值是否 truthy
+  // ✅ 判断 key 是否存在，而不是值是否 truthy
   return Object.prototype.hasOwnProperty.call(PROMPT_BANK as any, pk);
 }
 
-export async function runCoreEngine(
-  opts: RunCoreEngineParams
-): Promise<RunCoreEngineResult> {
+export async function runCoreEngine(opts: RunCoreEngineParams): Promise<RunCoreEngineResult> {
   const requestId = rid();
 
   const coreKey = String(opts.coreKey ?? "").trim();

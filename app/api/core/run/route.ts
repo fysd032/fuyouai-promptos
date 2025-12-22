@@ -40,7 +40,10 @@ function serializeError(err: unknown) {
 
 // ✅ 强制永远 JSON（避免 Next 默认错误页 text/html）
 function json(status: number, payload: any, requestId: string) {
-  return NextResponse.json({ ...payload, meta: { requestId, ...(payload?.meta ?? {}) } }, { status });
+  return NextResponse.json(
+    { ...payload, meta: { requestId, ...(payload?.meta ?? {}) } },
+    { status }
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -56,10 +59,18 @@ export async function POST(req: NextRequest) {
     const industryId = body?.industryId ?? null;
 
     if (!coreKey) {
-      return json(400, { ok: false, error: { code: "INVALID_INPUT", message: "Missing coreKey" } }, requestId);
+      return json(
+        400,
+        { ok: false, error: { code: "INVALID_INPUT", message: "Missing coreKey" } },
+        requestId
+      );
     }
     if (!userInput) {
-      return json(400, { ok: false, error: { code: "INVALID_INPUT", message: "Missing userInput" } }, requestId);
+      return json(
+        400,
+        { ok: false, error: { code: "INVALID_INPUT", message: "Missing userInput" } },
+        requestId
+      );
     }
 
     // ✅ 开关：只有 CORE_RUN_REAL=on 才走真实链路
@@ -76,7 +87,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ 真实路径：bootstrap -> resolve -> 校验 PROMPT_BANK -> runEngine
     await bootstrapCore();
 
     const resolved = resolveCorePromptKey(coreKey, tier);
@@ -96,9 +106,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ✅ 先用 getPrompt 再校验一次（清晰返回 400 而不是 500）
     const record = getPrompt(resolved.promptKey);
     if (!record) {
-      // ✅ 关键修复：这属于配置/资源缺失，返回 400 更合理，且带 tried 方便你定位
       return json(
         400,
         {
@@ -122,25 +132,23 @@ export async function POST(req: NextRequest) {
 
     const result = await runCoreEngine({
       coreKey: resolved.coreKey,
-      tier: resolved.tier,
-      moduleId: resolved.coreKey, // 可选：你之前就是这么干的
+      tier: tier,
+      moduleId: resolved.coreKey,
       promptKey: resolved.promptKey,
       engineType,
-      mode: resolved.tier, // 可选：不写也行，默认用 tier
+      mode: tier,
       industryId,
       userInput,
     });
 
-    const output = (result as any)?.modelOutput ?? (result as any)?.output ?? "";
-
-    if (!(result as any)?.ok) {
+    if (!result.ok) {
       return json(
         500,
         {
           ok: false,
           error: {
             code: "CORE_RUNENGINE_FAILED",
-            message: (result as any)?.error || "runEngine returned ok=false",
+            message: result.error || "runEngine returned ok=false",
             hint: "检查：API_KEY 环境变量、engineType、PROMPT_BANK 是否有该 promptKey",
           },
           meta: {
@@ -156,12 +164,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ✅ 统一输出：前端只读 output
+    const output = result.modelOutput ?? "";
+
     return json(
       200,
       {
         ok: true,
         output,
-        finalPrompt: (result as any)?.finalPrompt,
+        finalPrompt: result.finalPrompt,
         meta: {
           coreKey,
           tier,
@@ -169,13 +180,10 @@ export async function POST(req: NextRequest) {
           useRealCore: true,
           promptKey: resolved.promptKey,
           tried: resolved.tried,
-          keys: {
-            coreKey,
-            tier,
-            engineType,
-            promptKey: resolved.promptKey,
-          },
+          engineTypeRequested: result.engineTypeRequested,
+          engineTypeUsed: result.engineTypeUsed,
         },
+        raw: result.raw,
       },
       requestId
     );

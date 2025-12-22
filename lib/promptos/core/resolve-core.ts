@@ -18,6 +18,10 @@ type ResolveFail = {
   tried: string[];
 };
 
+function hasKey(k: string): boolean {
+  return Object.prototype.hasOwnProperty.call(PROMPT_BANK as any, k);
+}
+
 export function resolveCorePromptKey(
   coreKeyRaw: unknown,
   tierRaw: unknown
@@ -38,39 +42,42 @@ export function resolveCorePromptKey(
     };
   }
 
-  // ✅ canonical engineName（你项目里 core-map 维护的映射名）
-  const engineName = CORE_ENGINE_NAME[coreKey]; // 例如：task_breakdown_engine / core.task_breakdown_engine 等（取决于你的 core-map）
+  // ✅ canonical engineName（由 core-map 维护）
+  const engineName = CORE_ENGINE_NAME[coreKey];
 
-  // ✅ 候选 key：同时兼容 coreKey 与 engineName 两套命名
+  // ✅ 多候选：同时兼容 coreKey / engineName 的各种命名
   const candidatesRaw = [
-    // 1) 最简单：coreKey.tier
+    // 1) coreKey.tier
     `${coreKey}.${tier}`,
     `core.${coreKey}.${tier}`,
 
-    // 2) engine 后缀（你历史/当前报错风格）
+    // 2) engine 后缀
     `${coreKey}_engine.${tier}`,
     `core.${coreKey}_engine.${tier}`,
 
-    // 3) 使用 core-map 的映射名（关键！）
+    // 3) 使用 core-map 的映射名（关键）
     `${engineName}.${tier}`,
     `core.${engineName}.${tier}`,
 
-    // 4) 目录分隔（兼容生成器按目录拼 key 的情况）
+    // 4) 目录分隔（兼容生成器按目录拼 key）
     `${coreKey}/${tier}`,
     `core/${coreKey}/${tier}`,
     `${coreKey}_engine/${tier}`,
     `core/${coreKey}_engine/${tier}`,
     `${engineName}/${tier}`,
     `core/${engineName}/${tier}`,
+
+    // 5) 兼容你历史出现过的奇怪命名（可选但安全）
+    `core.${coreKey}_enginein.${tier}`,
+    `${coreKey}_enginein.${tier}`,
   ];
 
-  // ✅ 去重（避免 tried 重复干扰排查）
   const candidates = Array.from(new Set(candidatesRaw));
 
   for (const k of candidates) {
     tried.push(k);
-    // ✅ 关键修复：不要用 truthy 判断，直接判断 key 是否存在
-    if (k in (PROMPT_BANK as any)) {
+    // ✅ 不用 truthy 判断，避免值为空导致误判
+    if (hasKey(k)) {
       return { ok: true, coreKey, tier, promptKey: k, tried };
     }
   }
