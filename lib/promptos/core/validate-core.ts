@@ -1,18 +1,28 @@
 // lib/promptos/core/validate-core.ts
-import { CORE_PROMPT_BANK_KEY, type CoreKey, type PlanTier } from "./core-map";
 import { PROMPT_BANK } from "@/lib/promptos/prompt-bank.generated";
+import { CORE_DEFINITIONS, type PlanTier } from "./core-map";
 
-export function validateCorePromptMap() {
-  // ✅ 关键：不要用 for...in（会变 string）
-  for (const coreKey of Object.keys(CORE_PROMPT_BANK_KEY) as CoreKey[]) {
-    const tierMap = CORE_PROMPT_BANK_KEY[coreKey];
+function hasPromptKey(k: string): boolean {
+  return Object.prototype.hasOwnProperty.call(PROMPT_BANK as any, k);
+}
 
-    for (const tier of Object.keys(tierMap) as PlanTier[]) {
-      const promptKey = tierMap[tier];
+/**
+ * 启动时校验：
+ * - core-map 里的 promptKey 是否真实存在于 PROMPT_BANK
+ */
+export function validateCoreDefinitions() {
+  for (const def of Object.values(CORE_DEFINITIONS)) {
+    const tierMap = def.prompts;
 
-      if (!PROMPT_BANK[promptKey]) {
+    for (const [tier, promptKey] of Object.entries(tierMap) as [
+      PlanTier,
+      string
+    ][]) {
+      if (!promptKey) continue;
+
+      if (!hasPromptKey(promptKey)) {
         throw new Error(
-          `Missing promptKey in PROMPT_BANK: coreKey=${coreKey}, tier=${tier}, promptKey=${promptKey}`
+          `[CoreValidate] Missing promptKey "${promptKey}" for core="${def.id}", tier="${tier}"`
         );
       }
     }
