@@ -114,13 +114,16 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await runCoreEngine({
-      moduleId: coreKey,
-      promptKey: resolved.promptKey,
-      engineType,
-      mode: tier,
-      industryId,
-      userInput,
-    });
+  coreKey: resolved.coreKey,
+  tier: resolved.tier,              // ✅ 关键：补上
+  moduleId: resolved.coreKey,       // 可选：你之前就是这么干的
+  promptKey: resolved.promptKey,
+  engineType,
+  mode: resolved.tier,              // 可选：不写也行，默认用 tier
+  industryId,
+  userInput,
+});
+
 
     const output = (result as any)?.modelOutput ?? (result as any)?.output ?? "";
 
