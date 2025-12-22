@@ -11,14 +11,13 @@ function rid() {
     : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
-export async function runCoreEngine(opts: {
-  moduleId: string;              // coreKey
-  promptKey: keyof typeof PROMPT_BANK;
-  engineType?: EngineType | string;
-  mode?: string;                 // basic / pro
-  industryId?: string | null;
-  userInput: any;
-}) {
+export type RunCoreEngineParams = {
+  coreKey: string;                // ✅ 新增
+  tier: "basic" | "pro";
+  promptKey: string;
+  userInput: string;
+};
+ {
   const requestId = rid();
 
   const engineType = String(opts.engineType ?? "deepseek").toLowerCase();
