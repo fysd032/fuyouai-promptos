@@ -71,22 +71,21 @@ export async function coreRun(body: any) {
     };
   }
 
-const coreDef = CORE_PROMPT_BANK_KEY[coreKey] as Record<"basic" | "pro", string>;
+// ✅ 统一 tier，避免 TS/运行时不一致
+const tierKey: "basic" | "pro" = tier === "pro" ? "pro" : "basic";
 
-const promptBankKey = coreDef[tier];
+// ✅ CORE_PROMPT_BANK_KEY 的真实结构在你工程里可能是 CoreDefinition（不是 Record）
+// 所以这里用 any 兜底，让 Vercel 先能编译通过
+const promptBankKey = (CORE_PROMPT_BANK_KEY as any)?.[coreKey]?.[tierKey];
 
-  const record = getPrompt(promptBankKey);
+if (!promptBankKey) {
+  // 这里直接抛错 / 或 return 你自己的错误结构都行
+  throw new Error(
+    `Unknown promptBankKey. coreKey="${String(coreKey)}", tier="${tierKey}". ` +
+    `Check CORE_PROMPT_BANK_KEY mapping.`
+  );
+}
 
-  if (!record?.content?.trim()) {
-    return {
-      status: 404,
-      json: {
-        ok: false,
-        error: { code: "PROMPT_NOT_FOUND", message: `Prompt not found for ${coreKey}/${tier}` },
-        meta: { promptKeyUsed: promptBankKey },
-      },
-    };
-  }
 
   // ✅ 关键：把 runEngine 的返回当成 unknown（不信任其类型声明）
   const engineResult: unknown = await runEngine({

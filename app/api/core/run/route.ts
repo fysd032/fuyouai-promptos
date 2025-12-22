@@ -56,18 +56,18 @@ function  json(
     runReal: process.env.CORE_RUN_REAL === "on",
   };
 
-  return NextResponse.json(
-    {
-      ...payload,
-      keys, // 👈 新增字段
-      meta: {
-        requestId,
-        ...(payload?.meta ?? {}),
-      },
-    },
-    { status }
-  );
-}
+return NextResponse.json({
+  ok: true,
+  output,
+  meta: {
+    requestId,
+    coreKey,
+    tier,
+    useRealCore: true,
+    promptKey: resolved.promptKey,
+    keys: { coreKey, tier, engineType }, // ✅ 你要的 keys
+  },
+});
 
 
 function serializeError(err: unknown) {
