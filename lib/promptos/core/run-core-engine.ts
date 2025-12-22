@@ -24,16 +24,14 @@ function normalizeTier(raw: unknown): Tier {
 }
 
 export type RunCoreEngineParams = {
-  // ✅ 新要求（你现在的 /api/core/run 需要它）
   coreKey: string;
   tier: Tier;
   promptKey: string;
   userInput: string;
 
-  // ✅ 兼容老/现有调用（route.ts 可能还在传这些）
   moduleId?: string;
   engineType?: EngineType | string;
-  mode?: Tier | string; // 一般等同 tier
+  mode?: Tier | string;
   industryId?: string | null;
 };
 
@@ -63,7 +61,14 @@ export type RunCoreEngineResult =
       raw?: unknown;
     };
 
-export async function runCoreEngine(opts: RunCoreEngineParams): Promise<RunCoreEngineResult> {
+function hasPromptKey(pk: string): boolean {
+  // ✅ 关键：判断 key 是否存在，而不是值是否 truthy
+  return Object.prototype.hasOwnProperty.call(PROMPT_BANK as any, pk);
+}
+
+export async function runCoreEngine(
+  opts: RunCoreEngineParams
+): Promise<RunCoreEngineResult> {
   const requestId = rid();
 
   const coreKey = String(opts.coreKey ?? "").trim();
@@ -76,15 +81,26 @@ export async function runCoreEngine(opts: RunCoreEngineParams): Promise<RunCoreE
   const engineType = normalizeEngineType(opts.engineType);
   const mode = normalizeTier(opts.mode ?? tier);
 
-  const pk = String(opts.promptKey ?? "") as keyof typeof PROMPT_BANK;
-  if (!pk || !PROMPT_BANK[pk]) {
+  const pk = String(opts.promptKey ?? "").trim();
+  if (!pk) {
     return {
       ok: false,
       requestId,
       coreKey,
       tier,
-      promptKey: String(opts.promptKey ?? ""),
-      error: `promptKey not found in PROMPT_BANK: ${String(pk)}`,
+      promptKey: "",
+      error: "Missing promptKey",
+    };
+  }
+
+  if (!hasPromptKey(pk)) {
+    return {
+      ok: false,
+      requestId,
+      coreKey,
+      tier,
+      promptKey: pk,
+      error: `promptKey not found in PROMPT_BANK: ${pk} (keys=${Object.keys(PROMPT_BANK as any).length})`,
     };
   }
 
@@ -93,13 +109,13 @@ export async function runCoreEngine(opts: RunCoreEngineParams): Promise<RunCoreE
       ? opts.userInput
       : JSON.stringify(opts.userInput ?? {}, null, 2);
 
-  const moduleId = String(opts.moduleId ?? coreKey); // ✅ 默认用 coreKey 当 moduleId
+  const moduleId = String(opts.moduleId ?? coreKey);
   const industryId = opts.industryId ?? null;
 
   try {
     const result = await runEngine({
       moduleId,
-      promptKey: String(pk),
+      promptKey: pk,
       userInput: userInputStr,
       engineType,
       mode,
@@ -112,7 +128,7 @@ export async function runCoreEngine(opts: RunCoreEngineParams): Promise<RunCoreE
         requestId,
         coreKey,
         tier,
-        promptKey: String(pk),
+        promptKey: pk,
         error: (result as any)?.error ?? "Unknown engine error",
         raw: result,
       };
@@ -124,7 +140,7 @@ export async function runCoreEngine(opts: RunCoreEngineParams): Promise<RunCoreE
       coreKey,
       tier,
       moduleId,
-      promptKey: String(pk),
+      promptKey: pk,
       engineTypeRequested: engineType,
       engineTypeUsed: (result as any)?.engineType ?? engineType,
       mode,
@@ -139,7 +155,7 @@ export async function runCoreEngine(opts: RunCoreEngineParams): Promise<RunCoreE
       requestId,
       coreKey,
       tier,
-      promptKey: String(pk),
+      promptKey: pk,
       error: e?.message ?? String(e),
     };
   }

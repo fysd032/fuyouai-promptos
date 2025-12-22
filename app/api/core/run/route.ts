@@ -88,9 +88,9 @@ export async function POST(req: NextRequest) {
           error: {
             code: "CORE_RESOLVE_FAILED",
             message: resolved.error,
-            hint: "检查 core-map / resolve-core / PROMPT_INDEX 是否一致",
+            hint: "检查 core-map / resolve-core / PROMPT_BANK 是否一致",
           },
-          meta: { coreKey, tier },
+          meta: { coreKey, tier, tried: resolved.tried },
         },
         requestId
       );
@@ -98,32 +98,38 @@ export async function POST(req: NextRequest) {
 
     const record = getPrompt(resolved.promptKey);
     if (!record) {
+      // ✅ 关键修复：这属于配置/资源缺失，返回 400 更合理，且带 tried 方便你定位
       return json(
-        500,
+        400,
         {
           ok: false,
           error: {
             code: "PROMPT_NOT_FOUND",
             message: `Prompt not found in PROMPT_BANK: ${resolved.promptKey}`,
-            hint: "请重新生成 prompt-bank.generated.ts，并确认 slug 规则与 engineId 对齐",
+            hint: "请重新生成 prompt-bank.generated.ts，并确认 key 命名规则与 resolve-core/core-map 对齐",
           },
-          meta: { coreKey, tier, promptKeyResolved: resolved.promptKey },
+          meta: {
+            coreKey,
+            tier,
+            promptKeyResolved: resolved.promptKey,
+            tried: resolved.tried,
+            useRealCore: true,
+          },
         },
         requestId
       );
     }
 
     const result = await runCoreEngine({
-  coreKey: resolved.coreKey,
-  tier: resolved.tier,              // ✅ 关键：补上
-  moduleId: resolved.coreKey,       // 可选：你之前就是这么干的
-  promptKey: resolved.promptKey,
-  engineType,
-  mode: resolved.tier,              // 可选：不写也行，默认用 tier
-  industryId,
-  userInput,
-});
-
+      coreKey: resolved.coreKey,
+      tier: resolved.tier,
+      moduleId: resolved.coreKey, // 可选：你之前就是这么干的
+      promptKey: resolved.promptKey,
+      engineType,
+      mode: resolved.tier, // 可选：不写也行，默认用 tier
+      industryId,
+      userInput,
+    });
 
     const output = (result as any)?.modelOutput ?? (result as any)?.output ?? "";
 
@@ -142,6 +148,7 @@ export async function POST(req: NextRequest) {
             tier,
             engineTypeRequested: engineType,
             promptKeyResolved: resolved.promptKey,
+            tried: resolved.tried,
             useRealCore: true,
           },
         },
@@ -149,8 +156,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ 你说的 “返回 JSON 前拼一个 keys”
-    // 这里把关键字段统一塞 meta.keys，前端更好调试
     return json(
       200,
       {
@@ -163,6 +168,7 @@ export async function POST(req: NextRequest) {
           engineType,
           useRealCore: true,
           promptKey: resolved.promptKey,
+          tried: resolved.tried,
           keys: {
             coreKey,
             tier,
