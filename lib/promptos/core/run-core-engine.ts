@@ -1,35 +1,10 @@
 // lib/promptos/core/run-core-engine.ts
-
 import { PROMPT_BANK } from "@/lib/promptos/prompt-bank.generated";
-// ✅ 真正跑模型的函数
+// ✅ 正确：引入真正跑模型的函数
 import { runEngine } from "@/lib/promptos/run-engine";
 
 export type EngineType = "deepseek" | "gemini";
 export type Tier = "basic" | "pro";
-
-// ✅ 为了兼容你当前 /api/core/run 的调用：传的是 moduleId + mode
-export type RunCoreEngineParams = {
-  // 兼容字段（你 route.ts 里现在用的是 moduleId）
-  moduleId: string;
-
-  // 你想新增也可以传，但不是必填（不影响现有调用）
-  coreKey?: string;
-
-  // 兼容字段：route.ts 里传的是 promptKey（resolve 后的）
-  promptKey: string;
-
-  // 兼容字段：route.ts 里传 engineType
-  engineType?: EngineType | string;
-
-  // 兼容字段：route.ts 里传 mode: tier
-  mode?: Tier | string;
-
-  // 兼容字段：route.ts 里传 industryId
-  industryId?: any;
-
-  // 兼容字段：route.ts 里传 userInput（可能 string，也可能对象）
-  userInput: unknown;
-};
 
 function rid() {
   try {
@@ -49,39 +24,64 @@ function normalizeTier(raw: unknown): Tier {
   return t === "pro" ? "pro" : "basic";
 }
 
-export async function runCoreEngine(opts: RunCoreEngineParams) {
+export type RunCoreEngineParams = {
+  coreKey: string;        // ✅ route.ts 传入的 coreKey
+  tier: Tier;             // ✅ route.ts 传入的 tier
+  promptKey: string;      // ✅ 解析后的 promptKey
+  userInput: unknown;     // ✅ 可以是 string / object
+  engineType?: EngineType | string;
+  // 下面这几个如果你 route.ts 有就传；没有也不影响
+  moduleId?: string;      // 不传的话默认用 coreKey
+  industryId?: string | null;
+  mode?: string;          // 不传的话默认用 tier
+};
+
+export type RunCoreEngineOk = {
+  ok: true;
+  requestId: string;
+  coreKey: string;
+  tier: Tier;
+  moduleId: string;
+  promptKey: string;
+  engineTypeRequested: EngineType;
+  engineTypeUsed: EngineType;
+  mode: string;
+  industryId: string | null;
+  finalPrompt?: string;
+  modelOutput?: string;
+};
+
+export type RunCoreEngineFail = {
+  ok: false;
+  requestId: string;
+  error: string;
+};
+
+export type RunCoreEngineResult = RunCoreEngineOk | RunCoreEngineFail;
+
+export async function runCoreEngine(opts: RunCoreEngineParams): Promise<RunCoreEngineResult> {
   const requestId = rid();
 
-  const engineType = normalizeEngineType((opts as any)?.engineType);
-  const mode = normalizeTier((opts as any)?.mode);
+  const coreKey = String(opts.coreKey ?? "").trim();
+  const tier = normalizeTier(opts.tier);
+  const engineType = normalizeEngineType(opts.engineType);
+  const moduleId = String(opts.moduleId ?? coreKey).trim();
+  const mode = String(opts.mode ?? tier).toLowerCase().trim();
+  const industryId = opts.industryId ?? null;
 
-  const moduleId = String(opts?.moduleId ?? "").trim();
-  const promptKeyRaw = String(opts?.promptKey ?? "").trim();
-
+  if (!coreKey) {
+    return { ok: false, requestId, error: "Missing coreKey" };
+  }
   if (!moduleId) {
-    return {
-      ok: false as const,
-      requestId,
-      error: "Missing moduleId",
-    };
+    return { ok: false, requestId, error: "Missing moduleId" };
   }
 
-  if (!promptKeyRaw) {
-    return {
-      ok: false as const,
-      requestId,
-      error: "Missing promptKey",
-    };
+  const pk = String(opts.promptKey ?? "").trim() as keyof typeof PROMPT_BANK;
+  if (!pk) {
+    return { ok: false, requestId, error: "Missing promptKey" };
   }
-
-  // ✅ 验证 PROMPT_BANK 里是否存在该 promptKey
-  const pk = promptKeyRaw as keyof typeof PROMPT_BANK;
-  if (!(pk in PROMPT_BANK)) {
-    return {
-      ok: false as const,
-      requestId,
-      error: `promptKey not found in PROMPT_BANK: ${promptKeyRaw}`,
-    };
+  if (!PROMPT_BANK[pk]) {
+    return { ok: false, requestId, error: `promptKey not found in PROMPT_BANK: ${String(pk)}` };
   }
 
   const userInputStr =
@@ -89,35 +89,35 @@ export async function runCoreEngine(opts: RunCoreEngineParams) {
       ? opts.userInput
       : JSON.stringify(opts.userInput ?? {}, null, 2);
 
-  // ✅ 真正跑模型
+  // ✅ 真正跑模型（由 runEngine 决定具体调用 deepseek/gemini）
   const result = await runEngine({
     moduleId,
     promptKey: String(pk),
     userInput: userInputStr,
     engineType,
     mode,
-    industryId: (opts as any)?.industryId ?? null,
+    industryId,
   });
 
-  if (!result || (result as any)?.error || (result as any)?.ok === false) {
+  if (!result || (result as any).error) {
     return {
-      ok: false as const,
+      ok: false,
       requestId,
       error: (result as any)?.error ?? "Unknown engine error",
-      engineTypeRequested: engineType,
-      mode,
     };
   }
 
   return {
-    ok: true as const,
+    ok: true,
     requestId,
+    coreKey,
+    tier,
     moduleId,
     promptKey: String(pk),
     engineTypeRequested: engineType,
     engineTypeUsed: (result as any)?.engineType ?? engineType,
     mode,
-    industryId: (opts as any)?.industryId ?? null,
+    industryId,
     finalPrompt: (result as any)?.finalPrompt,
     modelOutput: (result as any)?.modelOutput ?? (result as any)?.output,
   };
