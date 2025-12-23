@@ -1,17 +1,15 @@
+// lib/promptos/core/validate-core.ts
 import { CORE_PROMPT_BANK_KEY, type CoreKey, type PlanTier } from "./core-map";
 import { PROMPT_BANK } from "@/lib/promptos/prompt-bank.generated";
 
-// 如果你没有 PROMPT_BANK，而是 getPrompt，也可以改成 getPrompt(promptKey) 判断
-
 export function validateCorePromptMap() {
-  const coreEntries = Object.entries(CORE_PROMPT_BANK_KEY) as Array<
-    [CoreKey, Record<PlanTier, string>]
-  >;
+  // ✅ 关键：不要用 for...in（会变 string）
+  for (const coreKey of Object.keys(CORE_PROMPT_BANK_KEY) as CoreKey[]) {
+    const tierMap = CORE_PROMPT_BANK_KEY[coreKey];
 
-  for (const [coreKey, tierMap] of coreEntries) {
-    const tierEntries = Object.entries(tierMap) as Array<[PlanTier, string]>;
+    for (const tier of Object.keys(tierMap) as PlanTier[]) {
+      const promptKey = tierMap[tier];
 
-    for (const [tier, promptKey] of tierEntries) {
       if (!PROMPT_BANK[promptKey]) {
         throw new Error(
           `Missing promptKey in PROMPT_BANK: coreKey=${coreKey}, tier=${tier}, promptKey=${promptKey}`
