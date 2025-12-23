@@ -1,122 +1,108 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runCoreEngine } from "@/lib/promptos/core/run-core-engine";
-import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
-import { bootstrapCore } from "@/lib/promptos/core/bootstrap";
+import { runEngine } from "@/lib/promptos/run-engine";
 
-type Tier = "basic" | "pro";
-type EngineType = "deepseek" | "gemini";
-
-function rid() {
-  try {
-    // @ts-ignore
-    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-      return crypto.randomUUID();
-    }
-  } catch {}
-  return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+function parseAllowedOrigins(): string[] {
+  // 你可以在 Vercel 设置：ALLOWED_ORIGINS=http://localhost:3000,https://xxx.vercel.app
+  const raw = process.env.ALLOWED_ORIGINS?.trim();
+  if (!raw) return ["http://localhost:3000"];
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
-function normalizeTier(raw: unknown): Tier {
-  const t = String(raw ?? "basic").toLowerCase().trim();
-  return t === "pro" ? "pro" : "basic";
+function getCorsHeaders(req: NextRequest): Record<string, string> {
+  const origin = req.headers.get("origin");
+  const allowed = parseAllowedOrigins();
+
+  const allowOrigin =
+    origin && allowed.includes(origin) ? origin : allowed[0] ?? "http://localhost:3000";
+
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Vary": "Origin",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    // ✅ 指纹：用来确认命中的是这份文件（Network 里能看到）
+    "x-api-impl": "app/api/run/route.ts:runEngine-only",
+  };
 }
 
-function normalizeEngineType(raw: unknown): EngineType {
-  const t = String(raw ?? "deepseek").toLowerCase().trim();
-  return t === "gemini" ? "gemini" : "deepseek";
+function safeString(v: unknown): string | undefined {
+  return typeof v === "string" ? v : undefined;
 }
 
-function json(status: number, payload: any, requestId: string) {
-  return NextResponse.json(
-    { ...payload, meta: { requestId, ...(payload?.meta ?? {}) } },
-    { status }
-  );
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: getCorsHeaders(req),
+  });
 }
 
 export async function POST(req: NextRequest) {
-  const requestId = rid();
+  const headers = getCorsHeaders(req);
 
+  // ✅ 生成 requestId，便于你对 log
+  const requestId =
+    typeof crypto !== "undefined" &&
+    "randomUUID" in crypto &&
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  let bodyUnknown: unknown;
   try {
-    const body = await req.json().catch(() => ({}));
-
-    const coreKey = String(body?.coreKey ?? "").trim();
-    const userInput = String(body?.userInput ?? "").trim();
-    const tier = normalizeTier(body?.tier);
-    const engineType = normalizeEngineType(body?.engineType);
-    const industryId = body?.industryId ?? null;
-
-    if (!coreKey) {
-      return json(
-        400,
-        { ok: false, error: { message: "Missing coreKey" } },
-        requestId
-      );
-    }
-
-    if (!userInput) {
-      return json(
-        400,
-        { ok: false, error: { message: "Missing userInput" } },
-        requestId
-      );
-    }
-
-    await bootstrapCore();
-
-    const resolved = resolveCorePromptKey(coreKey, tier);
-    if (!resolved.ok) {
-      return json(
-        400,
-        {
-          ok: false,
-          error: { message: resolved.error },
-          meta: { tried: resolved.tried },
-        },
-        requestId
-      );
-    }
-
-    const result = await runCoreEngine({
-      coreKey: resolved.coreKey,
-      tier,
-      promptKey: resolved.promptKey,
-      userInput,
-      engineType,
-      mode: tier,
-      industryId,
-    });
-
-    if (!result.ok) {
-      return json(
-        500,
-        {
-          ok: false,
-          error: { message: result.error },
-        },
-        requestId
-      );
-    }
-
-    // ✅ 正确：runCoreEngine 没有 output 字段
-    const output = result.modelOutput ?? "";
-
-    return json(
-      200,
-      {
-        ok: true,
-        output,
-        finalPrompt: result.finalPrompt,
-      },
-      requestId
-    );
-  } catch (e: any) {
-    return json(
-      500,
-      {
-        ok: false,
-        error: { message: e?.message ?? String(e) },
-      },
-      requestId
+    bodyUnknown = await req.json();
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: { message: "Invalid JSON body" }, meta: { requestId } },
+      { status: 400, headers }
     );
   }
+
+  const body =
+    typeof bodyUnknown === "object" && bodyUnknown !== null
+      ? (bodyUnknown as Record<string, unknown>)
+      : {};
+
+  // ✅ 通用模块只认这些字段：promptKey + userInput（coreKey/tier 一律不需要）
+  const moduleId = safeString(body.moduleId);
+  const promptKey = safeString(body.promptKey);
+  const engineType = safeString(body.engineType);
+  const mode = safeString(body.mode);
+  const industryId = safeString(body.industryId) ?? null;
+  const userInput = (safeString(body.userInput) ?? "").trim();
+
+  // ✅ userInput 必填：避免空请求
+  if (!userInput) {
+    return NextResponse.json(
+      { ok: false, error: { message: "Missing userInput" }, meta: { requestId } },
+      { status: 400, headers }
+    );
+  }
+
+  // ✅ 不强制 promptKey（你有些模块可能靠 moduleId+mode 解析），但建议前端都传
+  // 如果你想强制 promptKey，就把下面注释打开：
+  // if (!promptKey) {
+  //   return NextResponse.json(
+  //     { ok: false, error: { message: "Missing promptKey" }, meta: { requestId } },
+  //     { status: 400, headers }
+  //   );
+  // }
+
+  const result = await runEngine({
+    moduleId,
+    promptKey,
+    engineType: (engineType ?? "deepseek").toString(),
+    mode: (mode ?? "default").toString(),
+    industryId,
+    userInput,
+  } as any);
+
+  // ✅ 直接把 runEngine 的结果返回给前端（前端不用改）
+  // 关键：这里不会再出现 Missing coreKey（因为我们完全不读取 coreKey）
+  return NextResponse.json(
+    { ...result, meta: { ...(result as any)?.meta, requestId } },
+    { status: result?.ok ? 200 : 400, headers }
+  );
 }
