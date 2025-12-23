@@ -1,132 +1,204 @@
-// app/api/core/run/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { CORE_PROMPT_BANK_KEY, type CoreKey, type PlanTier } from "@/lib/promptos/core/core-map";
+
+// 真正跑模型
+import { runCoreEngine } from "@/lib/promptos/core/run-core-engine";
+
+// core 自检 + 映射
+import { bootstrapCore } from "@/lib/promptos/core/bootstrap";
+import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
+
+// 用于验证 PROMPT_BANK 是否存在该 promptKey
 import { getPrompt } from "@/lib/promptos/prompt-bank.generated";
-import { runEngine } from "@/lib/promptos/run-engine";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Cache-Control": "no-store",
-};
+type Tier = "basic" | "pro";
+type EngineType = "deepseek" | "gemini";
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: corsHeaders });
+function normalizeTier(raw: unknown): Tier {
+  const t = String(raw ?? "basic").toLowerCase().trim();
+  return t === "pro" ? "pro" : "basic";
 }
 
-function makeRequestId() {
+function normalizeEngineType(raw: unknown): EngineType {
+  const t = String(raw ?? "deepseek").toLowerCase().trim();
+  return t === "gemini" ? "gemini" : "deepseek";
+}
+
+function rid() {
   try {
-    // Edge/Node 兼容
     // @ts-ignore
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   } catch {}
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
-function isCoreKey(v: unknown): v is CoreKey {
-  return (
-    v === "task_breakdown" ||
-    v === "cot_reasoning" ||
-    v === "content_builder" ||
-    v === "analytical_engine" ||
-    v === "task_tree"
+function serializeError(err: unknown) {
+  if (err instanceof Error) {
+    return { name: err.name, message: err.message, stack: err.stack };
+  }
+  return { name: "UnknownError", message: String(err) };
+}
+
+// ✅ 强制永远 JSON（避免 Next 默认错误页 text/html）
+function json(status: number, payload: any, requestId: string) {
+  return NextResponse.json(
+    { ...payload, meta: { requestId, ...(payload?.meta ?? {}) } },
+    { status }
   );
 }
 
-function isTier(v: unknown): v is PlanTier {
-  return v === "basic" || v === "pro";
-}
-
-function json(status: number, body: any, extraHeaders?: Record<string, string>) {
-  return NextResponse.json(body, { status, headers: { ...corsHeaders, ...(extraHeaders ?? {}) } });
-}
-
 export async function POST(req: NextRequest) {
-  const requestId = makeRequestId();
-  const startedAt = Date.now();
+  const requestId = rid();
 
   try {
-    let body: any = null;
-    try {
-      body = await req.json();
-    } catch {
-      return json(400, { ok: false, requestId, error: { code: "INVALID_JSON", message: "Invalid JSON body" } });
+    const body = await req.json().catch(() => ({} as any));
+
+    const coreKey = String(body?.coreKey ?? "").trim();
+    const tier = normalizeTier(body?.tier);
+    const userInput = String(body?.userInput ?? "").trim();
+    const engineType = normalizeEngineType(body?.engineType);
+    const industryId = body?.industryId ?? null;
+
+    if (!coreKey) {
+      return json(
+        400,
+        { ok: false, error: { code: "INVALID_INPUT", message: "Missing coreKey" } },
+        requestId
+      );
+    }
+    if (!userInput) {
+      return json(
+        400,
+        { ok: false, error: { code: "INVALID_INPUT", message: "Missing userInput" } },
+        requestId
+      );
     }
 
-    const coreKey = body?.coreKey;
-    const tier = body?.tier;
-
-    // ✅ 兼容：input 或 userInput
-    const userInput =
-      typeof body?.userInput === "string"
-        ? body.userInput
-        : typeof body?.input === "string"
-          ? body.input
-          : "";
-
-    if (!isCoreKey(coreKey)) {
-      return json(400, { ok: false, requestId, error: { code: "INVALID_COREKEY", message: "Invalid coreKey" } });
-    }
-    if (!isTier(tier)) {
-      return json(400, { ok: false, requestId, error: { code: "INVALID_TIER", message: "Invalid tier" } });
-    }
-    if (!userInput.trim()) {
-      return json(400, { ok: false, requestId, error: { code: "INPUT_REQUIRED", message: "input/userInput required" } });
+    // ✅ 开关：只有 CORE_RUN_REAL=on 才走真实链路
+    const useRealCore = (process.env.CORE_RUN_REAL || "").toLowerCase() === "on";
+    if (!useRealCore) {
+      return json(
+        200,
+        {
+          ok: true,
+          output: `TEMP_CORE_OK: ${userInput}`,
+          meta: { coreKey, tier, useRealCore: false },
+        },
+        requestId
+      );
     }
 
-    const promptBankKey = CORE_PROMPT_BANK_KEY[coreKey][tier];
-    const record = getPrompt(promptBankKey);
+    await bootstrapCore();
 
-    if (!record?.content?.trim()) {
-      return json(404, {
-        ok: false,
-        requestId,
-        error: { code: "PROMPT_NOT_FOUND", message: `Prompt not found for ${coreKey}/${tier}` },
-        meta: { coreKey, tier, promptKeyUsed: promptBankKey },
-      });
+    const resolved = resolveCorePromptKey(coreKey, tier);
+    if (!resolved.ok) {
+      return json(
+        400,
+        {
+          ok: false,
+          error: {
+            code: "CORE_RESOLVE_FAILED",
+            message: resolved.error,
+            hint: "检查 core-map / resolve-core / PROMPT_BANK 是否一致",
+          },
+          meta: { coreKey, tier, tried: resolved.tried },
+        },
+        requestId
+      );
     }
 
-    // ✅ 执行（先固定 deepseek 最稳；后续再做路由/灰度）
-    const engineResult: any = await runEngine({
-      promptKey: promptBankKey,
+    // ✅ 先用 getPrompt 再校验一次（清晰返回 400 而不是 500）
+    const record = getPrompt(resolved.promptKey);
+    if (!record) {
+      return json(
+        400,
+        {
+          ok: false,
+          error: {
+            code: "PROMPT_NOT_FOUND",
+            message: `Prompt not found in PROMPT_BANK: ${resolved.promptKey}`,
+            hint: "请重新生成 prompt-bank.generated.ts，并确认 key 命名规则与 resolve-core/core-map 对齐",
+          },
+          meta: {
+            coreKey,
+            tier,
+            promptKeyResolved: resolved.promptKey,
+            tried: resolved.tried,
+            useRealCore: true,
+          },
+        },
+        requestId
+      );
+    }
+
+    const result = await runCoreEngine({
+      coreKey: resolved.coreKey,
+      tier: tier,
+      moduleId: resolved.coreKey,
+      promptKey: resolved.promptKey,
+      engineType,
+      mode: tier,
+      industryId,
       userInput,
-      engineType: "deepseek",
-      mode: "core",
-      moduleId: coreKey,
-    } as any);
+    });
 
-    // ✅ 强制统一 output 字段（兼容 runEngine 不同返回）
-    const output =
-      engineResult?.output ??
-      engineResult?.text ??
-      engineResult?.aiOutput ??
-      engineResult?.modelOutput ??
-      engineResult?.result ??
-      "";
+    if (!result.ok) {
+      return json(
+        500,
+        {
+          ok: false,
+          error: {
+            code: "CORE_RUNENGINE_FAILED",
+            message: result.error || "runEngine returned ok=false",
+            hint: "检查：API_KEY 环境变量、engineType、PROMPT_BANK 是否有该 promptKey",
+          },
+          meta: {
+            coreKey,
+            tier,
+            engineTypeRequested: engineType,
+            promptKeyResolved: resolved.promptKey,
+            tried: resolved.tried,
+            useRealCore: true,
+          },
+        },
+        requestId
+      );
+    }
 
-    const latencyMs = Date.now() - startedAt;
+    // ✅ 统一输出：前端只读 output
+    const output = result.modelOutput ?? "";
 
-    // ✅ 标准返回（前端永远只用 output）
-    return json(200, {
-      ok: true,
-      requestId,
-      output: String(output),
-      meta: {
-        coreKey,
-        tier,
-        promptKeyUsed: promptBankKey,
-        latencyMs,
+    return json(
+      200,
+      {
+        ok: true,
+        output,
+        finalPrompt: result.finalPrompt,
+        meta: {
+          coreKey,
+          tier,
+          engineType,
+          useRealCore: true,
+          promptKey: resolved.promptKey,
+          tried: resolved.tried,
+          engineTypeRequested: result.engineTypeRequested,
+          engineTypeUsed: result.engineTypeUsed,
+        },
+        raw: result.raw,
       },
-      // 如果你想保留调试信息可放这，但建议后续用环境变量控制
-      // debug: engineResult,
-    });
-  } catch (err: any) {
-    console.error("[/api/core/run] error:", err);
-    return json(500, {
-      ok: false,
-      requestId,
-      error: { code: "INTERNAL_ERROR", message: err?.message || "Unknown error" },
-    });
+      requestId
+    );
+  } catch (err) {
+    return json(
+      500,
+      {
+        ok: false,
+        error: {
+          code: "UNHANDLED_ERROR",
+          message: "Unhandled error in /api/core/run",
+          detail: serializeError(err),
+        },
+      },
+      requestId
+    );
   }
 }

@@ -1,4 +1,7 @@
 // lib/promptos/core/core-map.ts
+
+export type PlanTier = "basic" | "pro";
+
 export type CoreKey =
   | "task_breakdown"
   | "cot_reasoning"
@@ -6,31 +9,78 @@ export type CoreKey =
   | "analytical_engine"
   | "task_tree";
 
-export type PlanTier = "basic" | "pro";
+/**
+ * 每个 Core 的定义
+ * prompts 明确是：按 PlanTier 映射 promptKey
+ */
+export type CoreDefinition = {
+  id: CoreKey;
+  label: string;
+  description?: string;
+  prompts: Partial<Record<PlanTier, string>>;
+};
 
 /**
- * ✅ 这里的 value 必须等于 prompt-bank.generated.ts 里面的 key
- * 如果你生成出来的 key 不长这样，就把它改成 generated 文件里的真实 key
+ * coreKey -> engine 名称映射
  */
-export const CORE_PROMPT_BANK_KEY: Record<CoreKey, Record<PlanTier, string>> = {
+export const CORE_ENGINE_NAME: Record<CoreKey, string> = {
+  task_breakdown: "task_breakdown_engine",
+  cot_reasoning: "cot_reasoning_engine",
+  content_builder: "content_builder_engine",
+  analytical_engine: "analytical_engine",
+  task_tree: "task_tree_engine",
+};
+
+/**
+ * Core 定义表
+ */
+export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
   task_breakdown: {
-    basic: "core.task_breakdown.basic",
-    pro: "core.task_breakdown.pro",
+    id: "task_breakdown",
+    label: "任务拆解",
+    prompts: {
+      basic: "core.task_breakdown_engine.basic",
+      pro: "core.task_breakdown_engine.pro",
+    },
   },
+
   cot_reasoning: {
-    basic: "core.cot_reasoning.basic",
-    pro: "core.cot_reasoning.pro",
+    id: "cot_reasoning",
+    label: "CoT 推理",
+    prompts: {
+      basic: "core.cot_reasoning_engine.basic",
+    },
   },
+
   content_builder: {
-    basic: "core.content_builder.basic",
-    pro: "core.content_builder.pro",
+    id: "content_builder",
+    label: "内容生成",
+    prompts: {
+      basic: "core.content_builder_engine.basic",
+    },
   },
+
   analytical_engine: {
-    basic: "core.analytical_engine.basic",
-    pro: "core.analytical_engine.pro",
+    id: "analytical_engine",
+    label: "分析引擎",
+    prompts: {
+      basic: "core.analytical_engine.basic",
+    },
   },
+
   task_tree: {
-    basic: "core.task_tree.basic",
-    pro: "core.task_tree.pro",
+    id: "task_tree",
+    label: "任务树",
+    prompts: {
+      basic: "core.task_tree_engine.basic",
+    },
   },
 };
+// ✅ 兼容旧代码：coreRun.ts 还在 import CORE_PROMPT_BANK_KEY
+// 结构：coreKey -> tier -> promptKey
+export const CORE_PROMPT_BANK_KEY: Record<
+  CoreKey,
+  Partial<Record<PlanTier, string>>
+> = Object.fromEntries(
+  Object.entries(CORE_DEFINITIONS).map(([k, def]) => [k, def.prompts])
+) as Record<CoreKey, Partial<Record<PlanTier, string>>>;
