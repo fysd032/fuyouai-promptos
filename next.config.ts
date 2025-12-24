@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/app/:path*",
-        destination: "https://fuyouai-promtos.vercel.app/:path*",
+        destination: "https://fuyouai-promptos.vercel.app/:path*",
       },
     ];
   },
