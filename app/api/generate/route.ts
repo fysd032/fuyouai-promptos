@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runPromptModule } from "@/lib/promptos/engine";
+import type { RunEngineResult } from "@/lib/promptos/engine";
 
 export async function POST(req: Request) {
   try {
