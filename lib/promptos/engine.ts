@@ -43,7 +43,7 @@ ${(userInput ?? "").trim()}
  * - 保留用于兜底
  * - 只有当 ENGINE_PROVIDER_V2 != "on" 时才会走这里
  */
-async async function runPromptModuleLegacy(
+async  function runPromptModuleLegacy(
   promptKey: string,
   userInput: string,
   engineType: string = "deepseek"
