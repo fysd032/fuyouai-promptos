@@ -1,17 +1,39 @@
 import { NextResponse } from "next/server";
+import { runPromptModule } from "@/lib/promptos/engine";
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
+  try {
+    // 1️⃣ 读取前端传参
+    const body = await req.json();
+    const {
+      promptKey,
+      userInput,
+      engineType = "deepseek",
+    } = body || {};
 
-  // ✅ 兼容多种字段来源
-  const prompt =
-    body?.prompt ??
-    body?.userInput ??
-    body?.input?.text ??
-    "";
+    if (!promptKey || !userInput) {
+      return NextResponse.json(
+        { ok: false, error: "Missing promptKey or userInput" },
+        { status: 400 }
+      );
+    }
 
-  return NextResponse.json(
-    { ok: true, text: `收到prompt：${prompt}` },
-    { status: 200 }
-  );
+    // 2️⃣ 真正调用你已经写好的引擎
+    const result = await runPromptModule(
+      promptKey,
+      userInput,
+      engineType
+    );
+
+    // 3️⃣ 返回给前端
+    return NextResponse.json({
+      ok: !result.error,
+      ...result,
+    });
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: e?.message || "Server error" },
+      { status: 500 }
+    );
+  }
 }
