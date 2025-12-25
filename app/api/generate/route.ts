@@ -19,12 +19,33 @@ export async function POST(req: Request) {
     }
 
     // 2️⃣ 真正调用你已经写好的引擎
-    const result = await runPromptModule(
-      promptKey,
-      userInput,
-      engineType
-    );
+   const TIMEOUT_MS = 55_000;
 
+const result = await Promise.race([
+  runPromptModule(promptKey, userInput, engineType),
+  new Promise((resolve) =>
+    setTimeout(
+      () =>
+        resolve({
+          error: "TIMEOUT",
+          promptKey,
+          engineType,
+          finalPrompt: "",
+          modelOutput: "",
+        }),
+      TIMEOUT_MS
+    )
+  ),
+]);
+if ((result as any)?.error === "TIMEOUT") {
+  return NextResponse.json({
+    ok: true,
+    degraded: true,
+    text: "正在生成，请耐心等待。",
+    promptKey,
+    engineType,
+  });
+}
     // 3️⃣ 返回给前端
     return NextResponse.json({
       ok: !result.error,
