@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     // 2️⃣ 真正调用你已经写好的引擎
    const TIMEOUT_MS = 55_000;
 
-const result: RunEngineResult = await Promise.race([
+const result = (await Promise.race([
   runPromptModule(promptKey, userInput, engineType),
   new Promise((resolve) =>
     setTimeout(
@@ -37,7 +37,8 @@ const result: RunEngineResult = await Promise.race([
       TIMEOUT_MS
     )
   ),
-]);
+])) as any;
+
 if ((result as any)?.error === "TIMEOUT") {
   return NextResponse.json({
     ok: true,
