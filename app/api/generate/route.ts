@@ -1,68 +1,55 @@
 import { NextResponse } from "next/server";
-import { runPromptModule } from "@/lib/promptos/engine";
+import { Redis } from "@upstash/redis";
+
+const redis = Redis.fromEnv();
+
+function uid() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export async function POST(req: Request) {
-  try {
-    // 1) 读取前端传参
-    const body = await req.json().catch(() => ({}));
-    const { promptKey, userInput, engineType = "deepseek" } = body || {};
+  const body = await req.json();
+  const { promptKey, userInput, engineType = "deepseek" } = body || {};
 
-    if (!promptKey || !userInput) {
-      return NextResponse.json(
-        { ok: false, error: "Missing promptKey or userInput" },
-        { status: 400 }
-      );
-    }
-
-    // 2) 真正调用引擎 + 超时保护
-    const TIMEOUT_MS = 55_000;
-
-    const result = (await Promise.race([
-      runPromptModule(promptKey, userInput, engineType),
-      new Promise((resolve) =>
-        setTimeout(() => {
-          resolve({
-            error: "TIMEOUT",
-            promptKey,
-            engineType,
-            finalPrompt: "",
-            modelOutput: "",
-          });
-        }, TIMEOUT_MS)
-      ),
-    ])) as any;
-
-    // 3) 超时降级（给旧前端 text，也给新前端 modelOutput）
-    if (result?.error === "TIMEOUT") {
-      const msg = "正在生成，请耐心等待。";
-      return NextResponse.json({
-        ok: true,
-        degraded: true,
-        promptKey,
-        engineType,
-        finalPrompt: "",
-        modelOutput: msg,
-        text: msg, // ✅ 关键：兼容旧前端
-      });
-    }
-
-    // 4) 统一输出：确保 text 永远存在（兼容旧系统）
-    const payload = {
-      ok: typeof result?.ok === "boolean" ? result.ok : true,
-      ...result,
-      // ✅ 旧系统读 text，新系统读 modelOutput
-      text:
-        (typeof result?.modelOutput === "string" && result.modelOutput) ||
-        (typeof result?.text === "string" && result.text) ||
-        "",
-    };
-
-    return NextResponse.json(payload);
-  } catch (e: any) {
-    console.error("[api/generate] failed:", e);
+  if (!promptKey || !userInput) {
     return NextResponse.json(
-      { ok: false, error: e?.message ?? "Internal Server Error" },
-      { status: 500 }
+      { ok: false, error: "Missing promptKey or userInput" },
+      { status: 400 }
     );
   }
+
+  const id = uid();
+  const key = `job:${id}`;
+
+  // 1️⃣ 写入 Redis：queued
+  await redis.set(
+    key,
+    {
+      id,
+      status: "queued",
+      promptKey,
+      engineType,
+      text: "",
+      modelOutput: "",
+      createdAt: Date.now(),
+    },
+    { ex: 60 * 60 }
+  );
+
+  // 2️⃣ 触发 Worker（不等待）
+  fetch(process.env.WORKER_RUN_URL!, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.WORKER_TOKEN}`,
+    },
+    body: JSON.stringify({ id, promptKey, userInput, engineType }),
+  }).catch(() => {});
+
+  // 3️⃣ 立刻返回
+  return NextResponse.json({
+    ok: true,
+    id,
+    status: "queued",
+  });
 }
