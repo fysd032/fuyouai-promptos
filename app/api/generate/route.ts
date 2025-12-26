@@ -44,6 +44,7 @@ if ((result as any)?.error === "TIMEOUT") {
     ok: true,
     degraded: true,
     text: "正在生成，请耐心等待。",
+    modelOutput: "正在生成，请耐心等待。", // ✅ 新增这一行
     promptKey,
     engineType,
   });
