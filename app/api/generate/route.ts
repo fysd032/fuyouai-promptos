@@ -3,53 +3,54 @@ import { Redis } from "@upstash/redis";
 
 const redis = Redis.fromEnv();
 
-function uid() {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
+const WORKER_URL = process.env.WORKER_URL!;
+const WORKER_TOKEN = process.env.WORKER_TOKEN!;
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const { promptKey, userInput, engineType = "deepseek" } = body || {};
 
   if (!promptKey || !userInput) {
-    return NextResponse.json(
-      { ok: false, error: "Missing promptKey or userInput" },
-      { status: 400 }
-    );
+    return NextResponse.json({ ok: false, error: "Missing promptKey or userInput" }, { status: 400 });
   }
 
-  const id = uid();
-  const key = `job:${id}`;
-
-  // 1️⃣ 写入 Redis：queued
-  await redis.set(
-    key,
-    {
-      id,
-      status: "queued",
-      promptKey,
-      engineType,
-      text: "",
-      modelOutput: "",
-      createdAt: Date.now(),
-    },
-    { ex: 60 * 60 }
-  );
-
-  // 2️⃣ 触发 Worker（不等待）
-  fetch(process.env.WORKER_RUN_URL!, {
+  // 1) 向 Railway worker 创建任务（立刻返回 jobId）
+  const r = await fetch(`${WORKER_URL}/run`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.WORKER_TOKEN}`,
+      "x-worker-token": WORKER_TOKEN,
     },
-    body: JSON.stringify({ id, promptKey, userInput, engineType }),
-  }).catch(() => {});
+    body: JSON.stringify({ promptKey, userInput, engineType }),
+  });
 
-  // 3️⃣ 立刻返回
+  if (!r.ok) {
+    const t = await r.text();
+    return NextResponse.json({ ok: false, error: `Worker failed: ${t}` }, { status: 500 });
+  }
+
+  const { jobId } = await r.json();
+
+  // 2) 立刻返回给前端：告诉它“正在生成”，并给 jobId
   return NextResponse.json({
     ok: true,
-    id,
-    status: "queued",
+    degraded: true,
+    jobId,
+    promptKey,
+    engineType,
+    text: "正在生成，请耐心等待…",
+    modelOutput: "正在生成，请耐心等待…",
   });
+}
+
+// 前端轮询用：GET /api/generate?jobId=xxx
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const jobId = searchParams.get("jobId");
+  if (!jobId) return NextResponse.json({ ok: false, error: "Missing jobId" }, { status: 400 });
+
+  const data = await redis.get(`job:${jobId}`);
+  if (!data) return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+
+  return NextResponse.json({ ok: true, ...(data as any) });
 }
