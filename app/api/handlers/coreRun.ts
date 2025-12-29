@@ -1,4 +1,3 @@
-import { getPrompt } from "@/lib/promptos/prompt-bank.generated";
 import { runEngine } from "@/lib/promptos/run-engine";
 import {
   CORE_PROMPT_BANK_KEY,
@@ -6,23 +5,29 @@ import {
   type PlanTier,
 } from "@/lib/promptos/core/core-map";
 
-function isCoreKey(v: any): v is CoreKey {
-  return ["task_breakdown", "cot_reasoning", "content_builder", "analytical_engine", "task_tree"].includes(v);
+/**
+ * 只允许的 CoreKey：按你工程里实际支持的 key 来写
+ * （你原来写的这几个我先保留）
+ */
+function isCoreKey(v: unknown): v is CoreKey {
+  return (
+    typeof v === "string" &&
+    ["task_breakdown", "cot_reasoning", "content_builder", "analytical_engine", "task_tree"].includes(v)
+  );
 }
-function isTier(v: any): v is PlanTier {
+
+function isTier(v: unknown): v is PlanTier {
   return v === "basic" || v === "pro";
 }
 
 /**
  * 安全提取模型输出：兼容 output/text/aiOutput/modelOutput/result/content
- * 关键点：入参是 unknown，内部用类型守卫 narrow，TS 构建必过
+ * 入参用 unknown，内部再做类型收窄，TS 更稳
  */
 function pickOutput(engineResult: unknown): string {
   if (!engineResult || typeof engineResult !== "object") return "";
-
   const r = engineResult as Record<string, unknown>;
 
-  // 1) 直接字段（你之前兜底的那几个）
   const direct =
     (typeof r.content === "string" ? r.content : undefined) ??
     (typeof r.output === "string" ? r.output : undefined) ??
@@ -32,9 +37,9 @@ function pickOutput(engineResult: unknown): string {
 
   if (direct != null) return String(direct);
 
-  // 2) result 可能是 string 或对象（常见于一些 engine 包装）
   const result = r.result;
   if (typeof result === "string") return result;
+
   if (result && typeof result === "object") {
     const rr = result as Record<string, unknown>;
     const nested =
@@ -47,67 +52,85 @@ function pickOutput(engineResult: unknown): string {
   return "";
 }
 
-export async function coreRun(body: any) {
-  const coreKey = body?.coreKey;
-  const tier = body?.tier;
-  const userInput = String(body?.userInput ?? body?.input ?? "").trim();
+/**
+ * coreRun：给 api route 调用的核心函数
+ * 返回统一结构：{ status, json }
+ */
+export async function coreRun(body: unknown) {
+  const b = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
+
+  const coreKey = b.coreKey;
+  const tier = b.tier;
+  const userInput = String(b.userInput ?? b.input ?? "").trim();
 
   if (!isCoreKey(coreKey)) {
     return {
       status: 400,
-      json: { ok: false, error: { code: "INVALID_COREKEY", message: "Invalid coreKey" } },
+      json: {
+        ok: false,
+        error: { code: "INVALID_COREKEY", message: "Invalid coreKey" },
+      },
     };
   }
+
   if (!isTier(tier)) {
     return {
       status: 400,
-      json: { ok: false, error: { code: "INVALID_TIER", message: "Invalid tier" } },
+      json: {
+        ok: false,
+        error: { code: "INVALID_TIER", message: "Invalid tier" },
+      },
     };
   }
+
   if (!userInput) {
     return {
       status: 400,
-      json: { ok: false, error: { code: "INPUT_REQUIRED", message: "input/userInput required" } },
+      json: {
+        ok: false,
+        error: { code: "INPUT_REQUIRED", message: "input/userInput required" },
+      },
     };
   }
 
-// ✅ 统一 tier，避免 TS/运行时不一致
-const tierKey: "basic" | "pro" = tier === "pro" ? "pro" : "basic";
+  // ✅ tier 统一成 basic/pro
+  const tierKey: "basic" | "pro" = tier === "pro" ? "pro" : "basic";
 
-// ✅ CORE_PROMPT_BANK_KEY 的真实结构在你工程里可能是 CoreDefinition（不是 Record）
-// 所以这里用 any 兜底，让 Vercel 先能编译通过
-const promptBankKey = (CORE_PROMPT_BANK_KEY as any)?.[coreKey]?.[tierKey];
+  // ✅ 从映射里取 promptKey（这里做了安全读取）
+  const mapping = CORE_PROMPT_BANK_KEY as unknown as Record<string, any>;
+  const promptKeyUsed: unknown = mapping?.[coreKey]?.[tierKey];
 
-if (!promptBankKey) {
-  // 这里直接抛错 / 或 return 你自己的错误结构都行
-  throw new Error(
-    `Unknown promptBankKey. coreKey="${String(coreKey)}", tier="${tierKey}". ` +
-    `Check CORE_PROMPT_BANK_KEY mapping.`
-  );
-}
+  if (typeof promptKeyUsed !== "string" || !promptKeyUsed.trim()) {
+    return {
+      status: 500,
+      json: {
+        ok: false,
+        error: {
+          code: "PROMPT_KEY_MISSING",
+          message: `Unknown prompt mapping for coreKey="${coreKey}" tier="${tierKey}"`,
+        },
+      },
+    };
+  }
 
-
-  // ✅ 关键：把 runEngine 的返回当成 unknown（不信任其类型声明）
+  // ✅ 调用引擎（runEngine 的类型声明可能不稳定，所以入参/返回都保守处理）
   const engineResult: unknown = await runEngine({
-    promptKey: promptBankKey,
+    promptKey: promptKeyUsed,
     userInput,
     engineType: "deepseek",
     mode: "core",
     moduleId: coreKey,
   } as any);
 
-  const output = pickOutput(engineResult);
+  const output = pickOutput(engineResult).trim();
 
   return {
     status: 200,
     json: {
       ok: true,
       output,
-      // 可选：把 content 也带上，方便你未来统一字段（不破坏旧前端）
-      content: output,
-      meta: { coreKey, tier, promptKeyUsed: promptBankKey },
-      // 可选：保留 raw 便于排查（稳定后可删）
-      // engineRaw: engineResult,
+      content: output, // 给前端兜底用
+      meta: { coreKey, tier: tierKey, promptKeyUsed },
     },
   };
 }
