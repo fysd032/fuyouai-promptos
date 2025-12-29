@@ -1,15 +1,10 @@
 // app/api/generate/route.ts  (vercel 后端 / nextjs)
+// ✅ 同步直出版本：不再依赖 Railway worker / 不再依赖 Redis / 不再 jobId 轮询
 
 import { NextResponse } from "next/server";
-import { Redis } from "@upstash/redis";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const redis = Redis.fromEnv();
-
-const worker_url = (process.env.WORKER_URL || "").replace(/\/$/, "");
-const worker_token = process.env.WORKER_TOKEN || "";
 
 // 如果你要支持 frontModuleId/variantId，就需要能拿到 mapping 数据：
 import mapping from "@/module_mapping.v2.json";
@@ -23,120 +18,119 @@ function find_prompt_key_by_mapping(frontModuleId: string, variantId: string): s
   return bm?.promptKey || bm?.moduleId || null;
 }
 
-export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
+/**
+ * ✅ 这里是“同步直出”的核心：直接在 Vercel 调模型
+ *
+ * 需要你在 Vercel 环境变量里配：
+ * - DEEPSEEK_API_KEY
+ * 可选：
+ * - DEEPSEEK_BASE_URL（默认 https://api.deepseek.com/v1/chat/completions）
+ * - DEEPSEEK_MODEL（默认 deepseek-chat）
+ */
+async function callDeepSeek({
+  promptKey,
+  userInput,
+}: {
+  promptKey: string;
+  userInput: string;
+}): Promise<string> {
+  const apiKey = process.env.DEEPSEEK_API_KEY || "";
+  if (!apiKey) throw new Error("Missing DEEPSEEK_API_KEY");
 
-  // ✅ 兼容两种输入
-  let { promptKey, userInput, engineType = "deepseek" } = body || {};
+  const baseUrl = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1").replace(/\/$/, "");
+  const url = `${baseUrl}/chat/completions`;
 
-  // mapping 模式：用 frontModuleId + variantId 反查 promptKey
-  if (!promptKey) {
-    const { frontModuleId, variantId } = body || {};
-    if (frontModuleId && variantId) {
-      promptKey = find_prompt_key_by_mapping(frontModuleId, variantId);
-    }
-  }
+  const model = process.env.DEEPSEEK_MODEL || "deepseek-chat";
 
-  if (!promptKey || !userInput) {
-    return NextResponse.json(
-      { ok: false, error: "missing promptKey or (frontModuleId+variantId) or userInput" },
-      { status: 400 }
-    );
-  }
+  // ⚠️ 先保证链路跑通：把 promptKey 放进 system
+  // 你如果后面要接“真实 prompt 模板内容”，我们再把 promptKey -> promptText 映射补上
+  const system = `You are a helpful assistant. promptKey=${promptKey}`;
 
-  // ✅ 环境变量缺失直接报错（避免悄悄 500）
-  if (!worker_url) {
-    return NextResponse.json({ ok: false, error: "Missing WORKER_URL" }, { status: 500 });
-  }
-  if (!worker_token) {
-    return NextResponse.json({ ok: false, error: "Missing WORKER_TOKEN" }, { status: 500 });
-  }
+  const payload = {
+    model,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: userInput },
+    ],
+    temperature: 0.7,
+  };
 
-  // 1) 向 worker 创建任务
-  const r = await fetch(`${worker_url}/run`, {
+  const r = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-worker-token": worker_token,
+      Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ promptKey, userInput, engineType }),
+    body: JSON.stringify(payload),
   });
 
-  const workerText = await r.text().catch(() => "");
-
+  const raw = await r.text().catch(() => "");
   if (!r.ok) {
-    return NextResponse.json(
-      { ok: false, error: `worker failed`, status: r.status, workerText },
-      { status: 500 }
-    );
+    // 把上游返回透出来，方便你在 Network 里直接看到原因
+    throw new Error(`DeepSeek failed: ${r.status} ${raw}`);
   }
 
-  let parsed: any = {};
+  let json: any = {};
   try {
-    parsed = JSON.parse(workerText);
+    json = JSON.parse(raw);
   } catch {
-    parsed = {};
+    json = {};
   }
 
-  const jobId = parsed?.jobId;
-
-  if (!jobId) {
-    return NextResponse.json(
-      { ok: false, error: "worker did not return jobId", workerText },
-      { status: 500 }
-    );
-  }
-
-  // ✅ 2) 关键：先写一条占位记录，避免 GET 立刻 not found
-  // （即便 worker 没 Redis，前端也不会因为 404 崩掉）
-  const ttlSec = 60 * 30;
-  await redis
-    .set(
-      `job:${jobId}`,
-      {
-        status: "queued",
-        ok: true,
-        promptKey,
-        engineType,
-        createdAt: Date.now(),
-        text: "正在生成，请耐心等待…",
-        modelOutput: "正在生成，请耐心等待…",
-      },
-      { ex: ttlSec }
-    )
-    .catch(() => {});
-
-  // 3) 立刻返回给前端
-  return NextResponse.json({
-    ok: true,
-    degraded: true,
-    jobId,
-    promptKey,
-    engineType,
-    text: "正在生成，请耐心等待…",
-    modelOutput: "正在生成，请耐心等待…",
-  });
+  const text = json?.choices?.[0]?.message?.content ?? "";
+  return String(text || "");
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const jobId = searchParams.get("jobId");
-  if (!jobId) return NextResponse.json({ ok: false, error: "missing jobId" }, { status: 400 });
+export async function POST(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}));
 
-  const data = await redis.get(`job:${jobId}`).catch(() => null);
+    // ✅ 兼容两种输入
+    let { promptKey, userInput, engineType = "deepseek" } = body || {};
 
-  // ✅ 关键改动：不要再返回 404 not found
-  // 查不到就当作 still running（前端就不会报错）
-  if (!data) {
+    // mapping 模式：用 frontModuleId + variantId 反查 promptKey
+    if (!promptKey) {
+      const { frontModuleId, variantId } = body || {};
+      if (frontModuleId && variantId) {
+        promptKey = find_prompt_key_by_mapping(frontModuleId, variantId);
+      }
+    }
+
+    if (!promptKey || !userInput) {
+      return NextResponse.json(
+        { ok: false, error: "missing promptKey or (frontModuleId+variantId) or userInput" },
+        { status: 400 }
+      );
+    }
+
+    // ✅ 同步直出：不再创建 jobId，不再写 Redis
+    if (engineType !== "deepseek") {
+      // 先简单处理：都走 deepseek（你后面要接 Gemini/OpenAI 再扩展这里）
+      engineType = "deepseek";
+    }
+
+    const text = await callDeepSeek({ promptKey, userInput });
+
     return NextResponse.json({
       ok: true,
-      jobId,
-      status: "running",
-      text: "正在生成，请耐心等待…",
-      modelOutput: "正在生成，请耐心等待…",
-      hint: "No redis record yet. If it never becomes done, ensure worker writes job status to Redis.",
+      degraded: false,
+      promptKey,
+      engineType,
+      text,
+      modelOutput: text,
     });
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: e?.message || String(e) },
+      { status: 500 }
+    );
   }
+}
 
-  return NextResponse.json({ ok: true, ...(data as any) });
+export async function GET() {
+  // ✅ 同步版不支持轮询
+  return NextResponse.json(
+    { ok: false, error: "sync mode: GET(jobId) is disabled. Use POST /api/generate to get final output." },
+    { status: 400 }
+  );
 }
