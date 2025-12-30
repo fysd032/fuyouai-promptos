@@ -1,3 +1,5 @@
+// app/api/handlers/coreRun.ts
+
 import { runEngine } from "@/lib/promptos/run-engine";
 import {
   CORE_PROMPT_BANK_KEY,
@@ -5,10 +7,6 @@ import {
   type PlanTier,
 } from "@/lib/promptos/core/core-map";
 
-/**
- * 只允许的 CoreKey：按你工程里实际支持的 key 来写
- * （你原来写的这几个我先保留）
- */
 function isCoreKey(v: unknown): v is CoreKey {
   return (
     typeof v === "string" &&
@@ -20,10 +18,7 @@ function isTier(v: unknown): v is PlanTier {
   return v === "basic" || v === "pro";
 }
 
-/**
- * 安全提取模型输出：兼容 output/text/aiOutput/modelOutput/result/content
- * 入参用 unknown，内部再做类型收窄，TS 更稳
- */
+/** 安全提取模型输出：兼容 output/text/aiOutput/modelOutput/result/content */
 function pickOutput(engineResult: unknown): string {
   if (!engineResult || typeof engineResult !== "object") return "";
   const r = engineResult as Record<string, unknown>;
@@ -35,27 +30,21 @@ function pickOutput(engineResult: unknown): string {
     (typeof r.aiOutput === "string" ? r.aiOutput : undefined) ??
     (typeof r.modelOutput === "string" ? r.modelOutput : undefined);
 
-  if (direct != null) return String(direct);
+  if (direct != null) return String(direct).trim();
 
   const result = r.result;
-  if (typeof result === "string") return result;
-
+  if (typeof result === "string") return result.trim();
   if (result && typeof result === "object") {
     const rr = result as Record<string, unknown>;
     const nested =
       (typeof rr.content === "string" ? rr.content : undefined) ??
       (typeof rr.output === "string" ? rr.output : undefined) ??
       (typeof rr.text === "string" ? rr.text : undefined);
-    if (nested != null) return String(nested);
+    if (nested != null) return String(nested).trim();
   }
-
   return "";
 }
 
-/**
- * coreRun：给 api route 调用的核心函数
- * 返回统一结构：{ status, json }
- */
 export async function coreRun(body: unknown) {
   const b = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
 
@@ -66,40 +55,27 @@ export async function coreRun(body: unknown) {
   if (!isCoreKey(coreKey)) {
     return {
       status: 400,
-      json: {
-        ok: false,
-        error: { code: "INVALID_COREKEY", message: "Invalid coreKey" },
-      },
+      json: { ok: false, error: { code: "INVALID_COREKEY", message: "Invalid coreKey" } },
     };
   }
-
   if (!isTier(tier)) {
     return {
       status: 400,
-      json: {
-        ok: false,
-        error: { code: "INVALID_TIER", message: "Invalid tier" },
-      },
+      json: { ok: false, error: { code: "INVALID_TIER", message: "Invalid tier" } },
     };
   }
-
   if (!userInput) {
     return {
       status: 400,
-      json: {
-        ok: false,
-        error: { code: "INPUT_REQUIRED", message: "input/userInput required" },
-      },
+      json: { ok: false, error: { code: "INPUT_REQUIRED", message: "input/userInput required" } },
     };
   }
 
-  // ✅ tier 统一成 basic/pro
+  // ✅ 统一 tier
   const tierKey: "basic" | "pro" = tier === "pro" ? "pro" : "basic";
 
-  // ✅ 从映射里取 promptKey（这里做了安全读取）
-  const mapping = CORE_PROMPT_BANK_KEY as unknown as Record<string, any>;
-  const promptKeyUsed: unknown = mapping?.[coreKey]?.[tierKey];
-
+  // ✅ 从映射取 promptKey（5 大模块的 5 个提示词）
+  const promptKeyUsed = (CORE_PROMPT_BANK_KEY as any)?.[coreKey]?.[tierKey];
   if (typeof promptKeyUsed !== "string" || !promptKeyUsed.trim()) {
     return {
       status: 500,
@@ -107,13 +83,12 @@ export async function coreRun(body: unknown) {
         ok: false,
         error: {
           code: "PROMPT_KEY_MISSING",
-          message: `Unknown prompt mapping for coreKey="${coreKey}" tier="${tierKey}"`,
+          message: `Unknown promptBankKey. coreKey="${String(coreKey)}", tier="${tierKey}"`,
         },
       },
     };
   }
 
-  // ✅ 调用引擎（runEngine 的类型声明可能不稳定，所以入参/返回都保守处理）
   const engineResult: unknown = await runEngine({
     promptKey: promptKeyUsed,
     userInput,
@@ -122,14 +97,22 @@ export async function coreRun(body: unknown) {
     moduleId: coreKey,
   } as any);
 
-  const output = pickOutput(engineResult).trim();
+  const output = pickOutput(engineResult);
+
+  if (!output) {
+    return {
+      status: 500,
+      json: { ok: false, error: { code: "EMPTY_OUTPUT", message: "Engine returned empty output" } },
+    };
+  }
 
   return {
     status: 200,
     json: {
       ok: true,
       output,
-      content: output, // 给前端兜底用
+      text: output,     // ✅ 给前端更通用的字段
+      content: output,  // ✅ 兼容字段
       meta: { coreKey, tier: tierKey, promptKeyUsed },
     },
   };
