@@ -1,19 +1,25 @@
 import { NextResponse } from "next/server";
 import { runEngine } from "@/lib/promptos/run-engine";
-import {
-  resolveCorePlan,
-  type CoreKey,
-  type PlanTier,
-} from "@/lib/promptos/core/core-map";
+import { resolveCorePlan, type CoreKey, type PlanTier } from "@/lib/promptos/core/core-map";
+
+function pickOutput(engineResult: any) {
+  const out =
+    (typeof engineResult?.modelOutput === "string" && engineResult.modelOutput) ||
+    (typeof engineResult?.output === "string" && engineResult.output) ||
+    (typeof engineResult?.text === "string" && engineResult.text) ||
+    (typeof engineResult?.content === "string" && engineResult.content) ||
+    "";
+  return out.trim();
+}
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({} as any));
 
     const coreKey = body?.coreKey as CoreKey;
     const tierRequested = body?.tier as PlanTier;
     const userInput = String(body?.userInput ?? "").trim();
-    const engineType = body?.engineType ?? "deepseek";
+    const engineType = String(body?.engineType ?? "deepseek").trim();
 
     if (!coreKey || !userInput) {
       return NextResponse.json(
@@ -22,81 +28,63 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ 统一入口：自动降级在这里完成
     const plan = resolveCorePlan(coreKey, tierRequested ?? "basic");
 
-  const engineResult = await runEngine({
-  moduleId: coreKey,
-  promptKey: plan.promptKey,
-  engineType,
-  mode: "core",
-  userInput,
-});
+    const engineResult: any = await runEngine({
+      moduleId: coreKey,
+      promptKey: plan.promptKey,
+      engineType,
+      mode: "core",
+      userInput,
+    });
 
-// 🚨 核心：runEngine 只保证 modelOutput
-if (!engineResult.ok) {
-  return NextResponse.json(
-    {
-      ok: false,
-      error: engineResult.error || "Engine failed",
-      meta: {
-        coreKey,
-        tierRequested,
-        tierUsed: plan.tier,
-        promptKey: plan.promptKey,
-      },
-    },
-    { status: 500 }
-  );
-}
+    const output = pickOutput(engineResult);
+    const engineError =
+      (typeof engineResult?.error === "string" && engineResult.error.trim()) ? engineResult.error.trim() : "";
 
-if (!engineResult.modelOutput || engineResult.modelOutput.trim() === "") {
-  return NextResponse.json(
-    {
-      ok: false,
-      error: "Model returned empty output",
-      meta: {
-        coreKey,
-        tierRequested,
-        tierUsed: plan.tier,
-        degraded: plan.degraded,
-        promptKey: plan.promptKey,
-      },
-    },
-    { status: 500 }
-  );
-}
-
-// ✅ 成功返回：统一字段
-return NextResponse.json({
-  ok: true,
-  output: engineResult.modelOutput,
-  text: engineResult.modelOutput,
-  content: engineResult.modelOutput,
-  modelOutput: engineResult.modelOutput,
-  meta: {
-    coreKey,
-    tierRequested,
-    tierUsed: plan.tier,
-    degraded: plan.degraded,
-    promptKey: plan.promptKey,
-  },
-});
-
+    if (engineResult?.ok === false || engineError || !output) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: engineError || "Model returned empty output",
+          meta: {
+            coreKey,
+            tierRequested: tierRequested ?? "basic",
+            tierUsed: plan.tier,
+            degraded: !!plan.degraded,
+            promptKey: plan.promptKey,
+            engineTypeRequested: engineType,
+            // ✅ 关键：让你不再盲查
+            debug: {
+              engineOk: engineResult?.ok,
+              engineError: engineResult?.error ?? null,
+              engineTypeUsed: engineResult?.engineTypeUsed ?? null,
+              promptKeyResolved: engineResult?.promptKey ?? engineResult?.promptKeyResolved ?? null,
+              requestId: engineResult?.requestId ?? null,
+              buildSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+              vercelEnv: process.env.VERCEL_ENV ?? null,
+            },
+          },
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       ok: true,
-      output: engineResult.modelOutput,
-      text: engineResult.modelOutput,
-      content: engineResult.modelOutput,
-      modelOutput: engineResult.modelOutput,
+      output,
+      text: output,
+      content: output,
+      modelOutput: output,
       meta: {
         coreKey,
-        tierRequested,
+        tierRequested: tierRequested ?? "basic",
         tierUsed: plan.tier,
-        degraded: plan.degraded,
+        degraded: !!plan.degraded,
         promptKey: plan.promptKey,
-        requestId: engineResult.requestId,
+        engineType,
+        requestId: engineResult?.requestId ?? null,
+        buildSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
       },
     });
   } catch (e: any) {
