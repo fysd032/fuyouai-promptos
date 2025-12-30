@@ -1,5 +1,3 @@
-// app/api/core/run/route.ts
-
 import { NextResponse } from "next/server";
 import { runEngine } from "@/lib/promptos/run-engine";
 import {
@@ -23,21 +21,23 @@ function isTier(v: any): v is PlanTier {
   return v === "basic" || v === "pro";
 }
 
-/** ===== 安全提取模型输出 ===== */
+/** ===== 安全提取模型输出（强兜底） ===== */
 function pickOutput(engineResult: unknown): string {
   if (!engineResult || typeof engineResult !== "object") return "";
 
   const r = engineResult as Record<string, any>;
 
-  return (
-    r.text ??
+  const v =
     r.output ??
+    r.text ??
     r.content ??
-    r.result ??
-    r.aiOutput ??
     r.modelOutput ??
-    ""
-  );
+    r.aiOutput ??
+    r.result;
+
+  if (typeof v === "string") return v;
+  if (v == null) return "";
+  return typeof v === "object" ? JSON.stringify(v, null, 2) : String(v);
 }
 
 /** ===== POST /api/core/run ===== */
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ 自动降级逻辑在 resolveCorePlan 内部完成
+    /** ✅ 统一入口：resolveCorePlan（内部自动降级） */
     const tierKey: PlanTier = tier === "pro" ? "pro" : "basic";
     const plan = resolveCorePlan(coreKey, tierKey);
 
@@ -94,20 +94,27 @@ export async function POST(req: Request) {
       moduleId: coreKey,
     } as any);
 
-    const output = pickOutput(engineResult);
+    const output = pickOutput(engineResult).trim();
 
+    /** 🚨 核心：同时返回 4 个字段，前端永远能读到 */
     return NextResponse.json({
       ok: true,
+
+      output,
       text: output,
+      content: output,
       modelOutput: output,
+
       meta: {
         coreKey,
-        tier: tierKey,
+        tierRequested: tierKey,
+        tierUsed: plan.tier,
+        degraded: plan.degraded,
         promptKey: plan.promptKey,
       },
     });
   } catch (e: any) {
-    console.error("[core/run]", e);
+    console.error("[api/core/run]", e);
     return NextResponse.json(
       { ok: false, error: e?.message ?? "Internal error" },
       { status: 500 }
