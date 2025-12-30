@@ -3,22 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts":{
-  "name": "fuyouai-prompts",
-  "version": "0.1.0",
-  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
 
-"scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "lint": "eslint",
-  "gen:mmap": "tsx scripts/gen-frontend-module-id-map.ts",
-  "check:mmap": "npm run gen:mmap && git diff --exit-code",
-  "gen:prompt-bank": "tsx scripts/generate-prompt-bank.ts",
-  "gen:prompts": "node scripts/generate-prompt-registry.js",
-  "prebuild": "npm run gen:prompt-bank && npm run gen:mmap && npm run gen:prompts"
-},
+    "gen:mmap": "tsx scripts/gen-frontend-module-id-map.ts",
+    "check:mmap": "npm run gen:mmap && git diff --exit-code",
+    "gen:prompt-bank": "tsx scripts/generate-prompt-bank.ts",
+
+    "gen:prompts": "node scripts/generate-prompt-registry.js",
+    "verify:core": "node -e \"const fs=require('fs');const p='lib/promptos/prompts.generated.ts';const s=fs.existsSync(p)?fs.readFileSync(p,'utf8'):''; if(!s.includes('core.task_breakdown_engine.basic')){console.error('Missing core prompt key in generated registry'); process.exit(1)}\"",
+
+    "prebuild": "npm run gen:prompt-bank && npm run gen:mmap && npm run gen:prompts && npm run verify:core"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
@@ -42,4 +41,3 @@
     "typescript": "^5"
   }
 }
-
