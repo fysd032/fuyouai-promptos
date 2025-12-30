@@ -10,14 +10,15 @@
 
 "scripts": {
   "dev": "next dev",
-  "build": "npm run gen:prompt-bank && npm run gen:mmap && next build",
+  "build": "next build",
   "start": "next start",
   "lint": "eslint",
   "gen:mmap": "tsx scripts/gen-frontend-module-id-map.ts",
-  "gen:prompt-bank": "tsx scripts/generate-prompt-bank.ts"
-}
-
-
+  "check:mmap": "npm run gen:mmap && git diff --exit-code",
+  "gen:prompt-bank": "tsx scripts/generate-prompt-bank.ts",
+  "gen:prompts": "node scripts/generate-prompt-registry.js",
+  "prebuild": "npm run gen:prompt-bank && npm run gen:mmap && npm run gen:prompts"
+},
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
