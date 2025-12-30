@@ -1,9 +1,9 @@
 /* AUTO-GENERATED FILE — DO NOT EDIT */
-/* Generated at: 2025-12-22T03:41:33.586Z */
+/* Generated at: 2025-12-30T10:54:18.874Z */
 
 export type PromptTier = "basic" | "pro";
 
-export interface PromptRecord {   
+export interface PromptRecord {
   key: string;
   tier: PromptTier;
   content: string;
@@ -76,4 +76,3 @@ export const PROMPT_BANK: Record<string, PromptRecord> = {
 export function getPrompt(key: string): PromptRecord | null {
   return PROMPT_BANK[key] ?? null;
 }
-
