@@ -30,23 +30,31 @@ export async function POST(req: Request) {
       userInput,
     });
 
-    if (!engineResult.ok) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: engineResult.error || "Engine failed",
-          meta: {
-            coreKey,
-            tierRequested,
-            tierUsed: plan.tier,
-            degraded: plan.degraded,
-            promptKey: plan.promptKey,
-            requestId: engineResult.requestId,
-          },
-        },
-        { status: 500 }
-      );
-    }
+   if (!engineResult.ok) {
+  console.error("[api/core/run] engine failed", {
+    requestId: engineResult.requestId,
+    promptKey: plan.promptKey,
+    engineType,
+    error: engineResult.error,
+  });
+
+  return NextResponse.json(
+    {
+      ok: false,
+      error: engineResult.error || "Engine failed",
+      meta: {
+        coreKey,
+        tierRequested,
+        tierUsed: plan.tier,
+        degraded: plan.degraded,
+        promptKey: plan.promptKey,
+        requestId: engineResult.requestId,
+      },
+    },
+    { status: 500 }
+  );
+}
+
 
     const out = String(engineResult.modelOutput ?? "").trim();
     if (!out) {

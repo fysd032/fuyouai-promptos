@@ -51,8 +51,11 @@ export async function runEngine({
 
   const result = await runPromptModule(realKey, userInputStr, finalEngineType);
 
+  const out = String(result.modelOutput ?? "").trim();
+  const ok = !result.error && out.length > 0;
+
   return {
-    ok: true,
+    ok,
     requestId,
     moduleId: normalizedModuleId,
     promptKey: realKey,
@@ -64,4 +67,5 @@ export async function runEngine({
     modelOutput: result.modelOutput,
     error: result.error ?? null,
   };
+
 }
