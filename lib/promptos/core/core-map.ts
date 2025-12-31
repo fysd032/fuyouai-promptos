@@ -36,7 +36,7 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     id: "task_breakdown",
     label: "任务拆解",
     prompts: {
-      basic: "core.task_breakdown_engine.basic",
+      basic: "core.task_breakdown_engine.pro",
       pro: "core.task_breakdown_engine.pro",
     },
   },
@@ -45,7 +45,7 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     id: "cot_reasoning",
     label: "CoT 推理",
     prompts: {
-      basic: "core.cot_reasoning_engine.basic",
+      basic: "core.cot_reasoning_engine.pro",
       // pro 未来再加
     },
   },
@@ -54,7 +54,7 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     id: "content_builder",
     label: "内容生成",
     prompts: {
-      basic: "core.content_builder_engine.basic",
+      basic: "core.content_builder_engine.pro",
     },
   },
 
@@ -62,7 +62,7 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     id: "analytical_engine",
     label: "分析引擎",
     prompts: {
-      basic: "core.analytical_engine.basic",
+      basic: "core.analytical_engine.pro",
     },
   },
 
@@ -70,7 +70,7 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     id: "task_tree",
     label: "任务树",
     prompts: {
-      basic: "core.task_tree_engine.basic",
+      basic: "core.task_tree_engine.pro",
     },
   },
 };
