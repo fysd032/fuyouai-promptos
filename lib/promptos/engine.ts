@@ -21,7 +21,8 @@ const isFinalPromptKey = (k: string) => {
     /^[A-Z]\d-\d{2}$/.test(key) || /^[A-Z]\d-\d{2}(\.\w+)?$/.test(key);
 
   // ✅ 2) 新体系：只要 PROMPT_BANK 里存在，就放行（包括 core.xxx）
-  const bankOk = Boolean((PROMPT_BANK as any)[key]);
+ const bankOk = Object.prototype.hasOwnProperty.call(PROMPT_BANK as any, key);
+
 
   return legacyOk || bankOk;
 };
@@ -146,16 +147,25 @@ async function runPromptModuleV2(
     };
   }
 
-  const baseTemplate = getModuleTemplate(promptKey);
-  if (!baseTemplate) {
-    return {
-      promptKey,
-      engineType: normalizedEngineType,
-      finalPrompt: "",
-      modelOutput: "",
-      error: `Unknown promptKey: ${promptKey}`,
-    };
-  }
+// ✅ 优先走 PROMPT_BANK（新体系：core.xxx / 等等）
+const bankTemplate =
+  Object.prototype.hasOwnProperty.call(PROMPT_BANK as any, (promptKey || "").trim())
+    ? String((PROMPT_BANK as any)[(promptKey || "").trim()] ?? "")
+    : "";
+
+// ✅ 兜底走老体系（A1-01 等）
+const baseTemplate = bankTemplate || getModuleTemplate(promptKey);
+
+if (!baseTemplate) {
+  return {
+    promptKey,
+    engineType: normalizedEngineType,
+    finalPrompt: "",
+    modelOutput: "",
+    error: `Unknown promptKey: ${promptKey}`,
+  };
+}
+
 
   const finalPrompt = buildFinalPrompt(baseTemplate, userInput);
 
