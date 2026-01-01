@@ -1,15 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
+  async redirects() {
     return [
       {
-        source: "/app",
-        destination: "/app/index.html",
-      },
-      {
-        source: "/app/:path*",
-        destination: "/app/:path*",
+        source: "/",
+        destination: "https://fuyouai-promptos.vercel.app/app",
+        permanent: false,
       },
     ];
   },
