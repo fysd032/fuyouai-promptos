@@ -1,10 +1,10 @@
 import express from "express";
 import cors from "cors";
 import type { Request, Response } from "express";
+import { resolveCorePromptKey } from "../lib/promptos/core/resolve-core";
 
 // ✅ 你贴出来的 Core 映射文件里有 CORE_PROMPT_BANK_KEY
 // 路径按你项目实际调整：如果 server.ts 在 scripts/ 里，通常是 ../lib/...
-import { CORE_PROMPT_BANK_KEY } from "../lib/promptos/core/core-map";
 
 // ✅ 引擎入口：你刚贴的 run-engine.ts
 // 路径按你项目实际调整：如果 run-engine.ts 在 lib/promptos/，通常是 ../lib/promptos/run-engine
@@ -34,8 +34,6 @@ app.post("/api/core/run", async (req: Request, res: Response) => {
         received: { coreKey, tier, input },
       });
     }
-
-    const promptKey = CORE_PROMPT_BANK_KEY[coreKey]?.[tier];
     if (!promptKey) {
       return res.status(400).json({
         error: "Invalid coreKey/tier mapping",
