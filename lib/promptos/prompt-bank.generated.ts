@@ -1,5 +1,5 @@
 /* AUTO-GENERATED FILE — DO NOT EDIT */
-/* Generated at: 2025-12-31T01:39:21.769Z */
+/* Generated at: 2026-01-02T13:42:46.653Z */
 
 export type PromptTier = "basic" | "pro";
 

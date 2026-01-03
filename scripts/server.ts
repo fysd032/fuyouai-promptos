@@ -1,66 +1,102 @@
+// scripts/server.ts
 import express from "express";
 import cors from "cors";
-import type { Request, Response } from "express";
-import { resolveCorePromptKey } from "../lib/promptos/core/resolve-core";
+import type { Request, Response, NextFunction } from "express";
+import { resolveCorePromptKey } from "../lib/promptos/core/resolve-core"; // ← 按项目调整
+import { runEngine } from "../lib/promptos/run-engine"; // ← 按项目调整
+import { CORE_PROMPT_BANK_KEY, resolveCorePlan } from "../lib/promptos/core/core-map";
+import { assertCorePromptMapping } from "../lib/promptos/core/core-map";
+import "dotenv/config";
 
-// ✅ 你贴出来的 Core 映射文件里有 CORE_PROMPT_BANK_KEY
-// 路径按你项目实际调整：如果 server.ts 在 scripts/ 里，通常是 ../lib/...
-
-// ✅ 引擎入口：你刚贴的 run-engine.ts
-// 路径按你项目实际调整：如果 run-engine.ts 在 lib/promptos/，通常是 ../lib/promptos/run-engine
-import { runEngine } from "../lib/promptos/run-engine";
+ // ← 按项目调整
 
 type CoreRunBody = {
   coreKey?: keyof typeof CORE_PROMPT_BANK_KEY;
   tier?: "basic" | "pro";
   input?: string;
 
-  // 可选：你以后想开放选择引擎/模式就传
+  // 可选参数
   engineType?: string;
   mode?: string;
 };
 
+// ============ App Setup ============
 const app = express();
-app.use(cors({ origin: true }));
-app.use(express.json());
 
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
+
+app.use(express.json({ limit: "2mb" }));
+
+// 简单 request log（可按需删）
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  // 避免日志爆炸：只打关键字段
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// ============ Health ============
+app.get("/healthz", (_req: Request, res: Response) => {
+  res.status(200).json({ ok: true });
+});
+
+// ============ Core Run API ============
 app.post("/api/core/run", async (req: Request, res: Response) => {
   try {
     const { coreKey, tier, input, engineType, mode } = (req.body ?? {}) as CoreRunBody;
 
+    // 1) 参数校验
     if (!coreKey || !tier || !input || !input.trim()) {
       return res.status(400).json({
+        ok: false,
         error: "Missing required fields: coreKey, tier, input",
         received: { coreKey, tier, input },
       });
     }
-    if (!promptKey) {
-      return res.status(400).json({
-        error: "Invalid coreKey/tier mapping",
-        received: { coreKey, tier },
-      });
-    }
 
-    // ✅ 关键：调用你的引擎
-    // 注意：runEngine 目前 userInput: any（后续可改类型），我们这里传 string
+    // 2) 映射解析：coreKey + tier -> promptKey
+const resolved = resolveCorePromptKey(coreKey, tier);
+const promptKey = (resolved as any)?.promptKey;
+
+
+// debug（临时用）
+console.log("[debug] typeof promptKey =", typeof promptKey);
+console.log("[debug] promptKey value =", promptKey);
+
+if (!promptKey) {
+  return res.status(400).json({
+    ok: false,
+    error: "Invalid coreKey/tier mapping (promptKey not found)",
+    received: { coreKey, tier },
+  });
+}
+
+    // 3) 调引擎
     const result = await runEngine({
-      promptKey,                 // 直接用 core prompt key
-      userInput: input,          // 用户输入
-      engineType: engineType ?? "deepseek", // 保持你引擎的默认值
+      promptKey,
+      userInput: input,
+      engineType: engineType ?? "deepseek",
       mode: mode ?? "default",
-      // moduleId 不传：我们是 Core 专用，不走通用 moduleId 体系
+      // moduleId: undefined // Core 专用，不走 moduleId
     });
 
+    // 4) 引擎失败
     if (!result.ok) {
       return res.status(400).json({
+        ok: false,
         error: result.error ?? "runEngine failed",
         requestId: result.requestId,
         promptKeyResolved: result.promptKey,
       });
     }
 
-    // ✅ 返回给前端：保持你前端现在用的字段名
+    // 5) 成功返回
     return res.status(200).json({
+      ok: true,
       output: result.modelOutput ?? "（模型未返回内容）",
       prompt: result.finalPrompt ?? "",
       meta: {
@@ -71,12 +107,33 @@ app.post("/api/core/run", async (req: Request, res: Response) => {
         engineTypeUsed: result.engineTypeUsed,
       },
     });
-  } catch (err: unknown) {
-    console.error("[Core API Error]", err);
-    return res.status(500).json({ error: "Internal Server Error" });
+} catch (err: unknown) {
+  console.error("[Core API Error]", err);
+  if (err instanceof Error) {
+    console.error("[Core API Error message]", err.message);
+    console.error("[Core API Error stack]", err.stack);
   }
-});
+  return res.status(500).json({ ok: false, error: "Internal Server Error" });
+}
 
-app.listen(3001, () => {
-  console.log("✅ Core API running at http://localhost:3001");
+});
+// ✅ 启动期校验开关：CORE_VERIFY=0 时跳过
+// 先打印出来，方便确认环境变量有没有生效
+console.log(
+  "[core] CORE_VERIFY=",
+  process.env.CORE_VERIFY,
+  "NODE_ENV=",
+  process.env.NODE_ENV
+);
+
+// 如果你 core-map.ts 里有 assertCorePromptMapping，就在这里调用
+// 没有的话先不要加这行（否则会报未定义）
+if (process.env.CORE_VERIFY !== "0" && process.env.NODE_ENV !== "production") {
+  // assertCorePromptMapping();
+}
+
+// ============ Start ============
+const port = Number(process.env.PORT ?? 3001);
+app.listen(port, () => {
+  console.log(`✅ Core API running at http://localhost:${port}`);
 });
