@@ -89,10 +89,8 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     label: "任务树",
     prompts: {
       /**
-       * ✅ 你注释说“当前没有 pro”，这里就不要硬写 pro。
-       * 否则你会：1) 假 key 难维护 2) 校验必炸 3) 上线容易踩坑
-       *
-       * 等未来真有了 pro，再加一行：
+       * ✅ 当前没有 pro，就不要写 pro，避免“假 key”造成校验/上线踩坑
+       * 未来真有了再加：
        * pro: "core.task_tree.pro",
        */
       basic: "core.task_tree.basic",
@@ -117,7 +115,7 @@ export const CORE_PROMPT_BANK_KEY: Record<
 export type ResolvedCorePlan = {
   coreKey: CoreKey;
   promptKey: PromptKey;
-  degraded: boolean; // 是否从 pro 降级到 basic（或 tier 未配置导致降级）
+  degraded: boolean; // 是否从 pro 降级到 basic
   tier: PlanTier; // 实际使用的 tier
   engineName: string; // 用于埋点/日志
   label: string; // 可用于 UI 或日志
@@ -127,8 +125,8 @@ export type ResolvedCorePlan = {
  * ✅ 统一入口：返回 promptKey + 是否降级 + 实际使用 tier
  * 规则：
  * - 优先 tier
- * - 若 tier 没配：降级到 basic
- * - 若 basic 也没配：抛错（这是配置错误，应该在 CI/启动期就被抓住）
+ * - tier 没配：降级到 basic
+ * - basic 也没配：抛错（配置错误，建议启动期/CI 抓出来）
  */
 export function resolveCorePlan(coreKey: CoreKey, tier: PlanTier): ResolvedCorePlan {
   const def = CORE_DEFINITIONS[coreKey];
@@ -159,10 +157,10 @@ export function resolveCorePlan(coreKey: CoreKey, tier: PlanTier): ResolvedCoreP
 }
 
 /**
- * ✅（建议）启动期校验：确保 CORE_DEFINITIONS 里的 key 都真实存在于 PROMPT_BANK
+ * ✅ 启动期校验：确保 CORE_DEFINITIONS 的 key 都真实存在于 PROMPT_BANK
  * 用法：
- *   - dev: app 启动时调用一次
- *   - CI: build 前跑一次，能第一时间抓出映射错误
+ * - dev：启动时调用一次
+ * - CI：build 前跑一次
  */
 export function assertCorePromptMapping() {
   const missing: Array<{ coreKey: CoreKey; tier: PlanTier; promptKey: string }> = [];
@@ -174,22 +172,19 @@ export function assertCorePromptMapping() {
       const key = prompts[tier];
       if (!key) return;
 
-      // 这里不需要 any：PROMPT_BANK 是对象，hasOwnProperty 足够
       if (!Object.prototype.hasOwnProperty.call(PROMPT_BANK, key)) {
         missing.push({ coreKey, tier, promptKey: String(key) });
       }
     });
 
-    // 强建议 basic 至少存在（避免 resolve 时无 fallback）
+    // 建议 basic 至少存在
     if (!prompts.basic) {
       missing.push({ coreKey, tier: "basic", promptKey: "(missing basic mapping)" });
     }
   });
 
   if (missing.length) {
-    const msg = missing
-      .map((m) => `${m.coreKey}.${m.tier} -> ${m.promptKey}`)
-      .join("\n");
+    const msg = missing.map((m) => `${m.coreKey}.${m.tier} -> ${m.promptKey}`).join("\n");
     throw new Error(
       `Invalid CORE_DEFINITIONS prompt mapping (not found in PROMPT_BANK or missing basic):\n${msg}`
     );
