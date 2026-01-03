@@ -44,7 +44,7 @@ export type CoreDefinition = {
 /**
  * ✅ 核心映射表（单一事实源）
  * 规则：
- * - basic 必填（推荐）
+ * - basic 必填（强烈建议）
  * - pro 可选；缺省时 resolve 会自动降级到 basic
  */
 export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
@@ -52,8 +52,9 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     id: "task_breakdown",
     label: "任务拆解",
     prompts: {
-      basic: "core.task_breakdown.basic",
-      pro: "core.task_breakdown.pro",
+      // ⚠️ 注意：必须与 PROMPT_BANK 的 key 完全一致
+      basic: "core.task_breakdown_engine.basic",
+      // pro: "core.task_breakdown_engine.pro", // 若你确实有 pro 再打开
     },
   },
 
@@ -62,7 +63,7 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     label: "CoT 推理",
     prompts: {
       basic: "core.cot_reasoning.basic",
-      pro: "core.cot_reasoning.pro",
+      // pro: "core.cot_reasoning.pro",
     },
   },
 
@@ -71,7 +72,7 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     label: "内容生成",
     prompts: {
       basic: "core.content_builder.basic",
-      pro: "core.content_builder.pro",
+      // pro: "core.content_builder.pro",
     },
   },
 
@@ -80,7 +81,7 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     label: "分析引擎",
     prompts: {
       basic: "core.analytical_engine.basic",
-      pro: "core.analytical_engine.pro",
+      // pro: "core.analytical_engine.pro",
     },
   },
 
@@ -89,8 +90,8 @@ export const CORE_DEFINITIONS: Record<CoreKey, CoreDefinition> = {
     label: "任务树",
     prompts: {
       /**
-       * ✅ 当前没有 pro，就不要写 pro，避免“假 key”造成校验/上线踩坑
-       * 未来真有了再加：
+       * ✅ 如果当前没有 pro，就不要硬写 pro。
+       * 等未来真有了 pro，再加：
        * pro: "core.task_tree.pro",
        */
       basic: "core.task_tree.basic",
@@ -115,7 +116,7 @@ export const CORE_PROMPT_BANK_KEY: Record<
 export type ResolvedCorePlan = {
   coreKey: CoreKey;
   promptKey: PromptKey;
-  degraded: boolean; // 是否从 pro 降级到 basic
+  degraded: boolean; // 是否从 pro 降级到 basic（或 tier 未配置导致降级）
   tier: PlanTier; // 实际使用的 tier
   engineName: string; // 用于埋点/日志
   label: string; // 可用于 UI 或日志
@@ -125,10 +126,13 @@ export type ResolvedCorePlan = {
  * ✅ 统一入口：返回 promptKey + 是否降级 + 实际使用 tier
  * 规则：
  * - 优先 tier
- * - tier 没配：降级到 basic
- * - basic 也没配：抛错（配置错误，建议启动期/CI 抓出来）
+ * - 若 tier 没配：降级到 basic
+ * - 若 basic 也没配：抛错（配置错误，应该在 CI/启动期就被抓住）
  */
-export function resolveCorePlan(coreKey: CoreKey, tier: PlanTier): ResolvedCorePlan {
+export function resolveCorePlan(
+  coreKey: CoreKey,
+  tier: PlanTier
+): ResolvedCorePlan {
   const def = CORE_DEFINITIONS[coreKey];
   const prompts = def?.prompts;
 
@@ -157,13 +161,14 @@ export function resolveCorePlan(coreKey: CoreKey, tier: PlanTier): ResolvedCoreP
 }
 
 /**
- * ✅ 启动期校验：确保 CORE_DEFINITIONS 的 key 都真实存在于 PROMPT_BANK
+ * ✅（强烈建议）启动期校验：确保 CORE_DEFINITIONS 里的 key 都真实存在于 PROMPT_BANK
  * 用法：
- * - dev：启动时调用一次
- * - CI：build 前跑一次
+ *   - dev：server 启动时调用一次
+ *   - CI：build 前跑一次，能第一时间抓出映射错误
  */
 export function assertCorePromptMapping() {
-  const missing: Array<{ coreKey: CoreKey; tier: PlanTier; promptKey: string }> = [];
+  const missing: Array<{ coreKey: CoreKey; tier: PlanTier; promptKey: string }> =
+    [];
 
   (Object.keys(CORE_DEFINITIONS) as CoreKey[]).forEach((coreKey) => {
     const prompts = CORE_DEFINITIONS[coreKey].prompts;
@@ -177,9 +182,13 @@ export function assertCorePromptMapping() {
       }
     });
 
-    // 建议 basic 至少存在
+    // 强建议 basic 至少存在（避免 resolve 时无 fallback）
     if (!prompts.basic) {
-      missing.push({ coreKey, tier: "basic", promptKey: "(missing basic mapping)" });
+      missing.push({
+        coreKey,
+        tier: "basic",
+        promptKey: "(missing basic mapping)",
+      });
     }
   });
 
