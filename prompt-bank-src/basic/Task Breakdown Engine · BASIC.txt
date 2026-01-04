@@ -66,6 +66,9 @@ Apply the same structural clarity rules regardless of language.
 
 The goal is structural clarity, not linguistic elegance.
 
+Section titles, labels, and fixed phrases must also be localized into the same language as the input.
+
+
 ==========================
 【FRAMEWORK OVERVIEW｜框架结构】
 ==========================
