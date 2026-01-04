@@ -105,7 +105,7 @@ audience + background + constraints 全为空，无法建立内容结构
 
 你必须 停止内容生成，并仅输出以下结构（使用输入语言）：
 
-[INSUFFICIENT INFORMATION HANDLING]
+
 
 If the required input information is insufficient:
 - Stop content generation immediately.

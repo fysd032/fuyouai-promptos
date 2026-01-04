@@ -131,7 +131,6 @@ problem_description 缺失
 
 problem_description 过于模糊，无法判断问题边界
 
-[INSUFFICIENT INFORMATION HANDLING]
 
 If the required input information is insufficient:
 - Stop the current process immediately.

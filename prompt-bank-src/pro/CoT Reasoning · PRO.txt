@@ -66,7 +66,7 @@ CoT PRO 必须严格遵循以下 7 段推理结构：
 7. Improved Version｜优化版本（仅当评分 < 9）
  
 ==========================
-[INSUFFICIENT INFORMATION HANDLING]
+
 
 If the required input information is insufficient:
 - Stop reasoning immediately.

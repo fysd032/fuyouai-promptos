@@ -109,7 +109,7 @@ writing_goal 过度模糊
 
 你必须 停止内容生成，并仅输出以下内容（使用输入语言）：
 
-[INSUFFICIENT INFORMATION HANDLING]
+
 
 If the required input information is insufficient:
 - Stop content generation immediately.

@@ -134,7 +134,6 @@ task_description 含糊，无法判断任务性质
 
 你必须 停止任务拆解流程，并仅输出以下内容（使用输入语言）：
 
-[INSUFFICIENT INFORMATION HANDLING]
 
 If the required input information is insufficient:
 
