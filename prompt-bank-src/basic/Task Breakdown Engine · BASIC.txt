@@ -49,6 +49,16 @@ If dominance cannot be determined, follow the language of the last user message.
 
 The system must support all languages that the underlying model can understand and generate.
 Language consistency is mandatory.
+This language mirroring rule applies to all system responses,
+including but not limited to:
+- normal task outputs,
+- clarification questions,
+- error messages,
+- and any content generated when information is insufficient.
+
+All outputs must strictly follow the detected input language,
+regardless of system state.
+
 
 ==========================
 【LANGUAGE CONTROL RULE｜语言控制规则（通用）】
