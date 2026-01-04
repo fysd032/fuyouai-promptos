@@ -164,7 +164,12 @@ E1-02｜行动步骤模块 —— 仅当用户明确提出需要行动建议时�
 ==========================
 【OUTPUT REQUIREMENTS｜输出结构】
 ==========================
+When input information is sufficient, you MUST output using the following structure.
 
+⚠️ Language Rule (Mandatory):
+- All section titles, labels, and content MUST be written strictly in the detected input language.
+- DO NOT use fixed English headings.
+- Translate or localize all structural labels semantically, not literally.
 若信息充足，输出必须 严格包含以下五部分：
 
 Problem Restatement｜问题重述

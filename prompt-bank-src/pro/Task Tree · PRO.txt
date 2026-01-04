@@ -166,7 +166,12 @@ E3 系列（Reflection / Error Check / Scoring） —— 仅内部执行
 ==========================
 【OUTPUT STRUCTURE｜输出结构（必须严格执行）】
 ==========================
+When input information is sufficient, you MUST output using the following structure.
 
+⚠️ Language Rule (Mandatory):
+- All section titles, labels, and content MUST be written strictly in the detected input language.
+- DO NOT use fixed English headings.
+- Translate or localize all structural labels semantically, not literally.
 当输入充分时，你必须 EXACTLY 输出以下区块：
 
 Task Definition

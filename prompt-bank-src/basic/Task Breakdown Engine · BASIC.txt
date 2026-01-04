@@ -172,13 +172,15 @@ Risks & Mitigations
 
 Final Action Plan
 
-在 Clarifying Questions 标题下，必须附加一句说明：
-
-Answering these will unlock a concrete execution plan.
-
 ==========================
 【OUTPUT STRUCTURE｜输入充分时】
 ==========================
+When input information is sufficient, you MUST output using the following structure.
+
+⚠️ Language Rule (Mandatory):
+- All section titles, labels, and content MUST be written strictly in the detected input language.
+- DO NOT use fixed English headings.
+- Translate or localize all structural labels semantically, not literally.
 
 当输入信息充分时，按以下顺序完整输出：
 

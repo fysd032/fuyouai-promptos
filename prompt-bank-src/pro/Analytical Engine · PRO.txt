@@ -183,7 +183,12 @@ E3-03｜Scoring（0–10）
 ==========================
 【OUTPUT STRUCTURE｜输出结构（必须严格执行）】
 ==========================
+When input information is sufficient, you MUST output using the following structure.
 
+⚠️ Language Rule (Mandatory):
+- All section titles, labels, and content MUST be written strictly in the detected input language.
+- DO NOT use fixed English headings.
+- Translate or localize all structural labels semantically, not literally.
 当输入充分时，你必须 EXACTLY 按以下结构输出：
 
 1. Problem Definition｜问题界定

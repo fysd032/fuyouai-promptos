@@ -157,6 +157,25 @@ b12｜结构化输出模块
 【OUTPUT STRUCTURE｜输出结构（必须严格执行）】
 ==========================
 
+When input information is sufficient, you MUST output using the following structure.
+
+⚠️ Language Rule (Mandatory):
+- All section titles, labels, and content MUST be written strictly in the detected input language.
+- DO NOT use fixed English headings.
+- Translate or localize all structural labels semantically, not literally.
+
+Required Sections (semantic structure, language-adaptive):
+
+1. Section A: Problem / Task Definition
+2. Section B: Core Dimensions (3–4 items)
+3. Section C: Evidence / Reasoning Support
+
+Formatting Rules:
+- Use numbered sections.
+- Use bullet lists where applicable.
+- Section titles MUST be localized into the input language.
+
+
 在输入充分时，你必须 EXACTLY 按以下结构输出：
 
 1. Problem Definition｜问题界定

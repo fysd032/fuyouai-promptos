@@ -114,6 +114,12 @@ PRO 必须按以下顺序 隐式执行 模块能力（不得展示）：
 ==========================
 【OUTPUT REQUIREMENTS｜输出结构（必须遵守）】
 ==========================
+When input information is sufficient, you MUST output using the following structure.
+
+⚠️ Language Rule (Mandatory):
+- All section titles, labels, and content MUST be written strictly in the detected input language.
+- DO NOT use fixed English headings.
+- Translate or localize all structural labels semantically, not literally.
 当输入充分时，你必须 EXACTLY 按以下顺序输出：
 1. Problem Restatement｜问题重述
 2. Key Factors｜关键要素

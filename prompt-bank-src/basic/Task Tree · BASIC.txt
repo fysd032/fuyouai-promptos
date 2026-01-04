@@ -110,6 +110,11 @@ BASIC 版必须严格遵循 Task Tree Framework（8 Steps）：
 ==========================
 【OUTPUT STRUCTURE｜输出结构（必须严格执行）】
 ==========================
+When input information is sufficient, you MUST output using the following structure.
+⚠️ Language Rule (Mandatory):
+- All section titles, labels, and content MUST be written strictly in the detected input language.
+- DO NOT use fixed English headings.
+- Translate or localize all structural labels semantically, not literally.
 当输入充分时，你必须 EXACTLY 按以下 9 个区块输出：
  
 1. Task Definition
