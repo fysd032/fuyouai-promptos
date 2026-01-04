@@ -117,16 +117,16 @@ constraints (optional)
 clarification_preferences (optional)
 
 ==========================
-【INPUT SUFFICIENCY CHECK｜输入充分性判断】
-==========================
+[INSUFFICIENT INFORMATION HANDLING]
 
-若满足任一条件，则视为 输入不足：
+If the required input information is insufficient:
 
-task_description 缺失
-
-task_description 过于模糊，无法判断任务边界
-
-目标 / 背景 / 约束严重不足，无法进入执行层
+- Stop task decomposition immediately.
+- Do NOT generate any steps, plans, sub-tasks, or execution suggestions.
+- Output ONLY a clarification request written strictly in the detected input language.
+- Ask for 1–3 missing key inputs required for task breakdown
+  (e.g. task_description, goal, background, constraints).
+- Do NOT include explanations, examples, frameworks, or any extra content.
 
 ==========================
 【QUICK DIRECTION｜快速方向感】

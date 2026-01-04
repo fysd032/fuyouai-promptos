@@ -111,13 +111,15 @@ context / goals / constraints 全为空
 
 你必须 停止分析 并仅输出以下内容（使用输入语言）：
 
-当前信息不足，无法执行高质量分析。
-请补充以下关键信息（1–3 条）：
-1. 分析对象或核心问题的更明确范围？
-2. 是否有特定比较对象（如竞争对手、替代方案）？
-3. 本次分析的目标或成功标准是什么？
+[INSUFFICIENT INFORMATION HANDLING]
 
-收到补充信息后，我将继续进行完整分析。
+If the required input information is insufficient:
+- Stop analysis immediately.
+- Do NOT enter any analysis, comparison, insight, or QC stages.
+- Output ONLY a clarification request written strictly in the detected input language.
+- Ask for 1–3 missing key inputs required for analysis (e.g. analysis_goal, context, constraints).
+- Do NOT include explanations, examples, frameworks, or any extra content.
+
 
 
 ⚠ 输入不足时：
