@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+
 
 const TRIAL_DAYS = 15;
 
@@ -8,6 +9,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+      const supabaseAdmin = getSupabaseAdmin(); // ✅ 在运行时创建
   const auth = req.headers.get("authorization") || "";
   const accessToken = auth.replace("Bearer ", "").trim();
 
@@ -51,4 +53,4 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, message: "created", trial_end: trialEnd.toISOString() });
 }
-console.log("SUPABASE_URL =", process.env.SUPABASE_URL);
+
