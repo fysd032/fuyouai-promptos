@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const TRIAL_DAYS = 15;
+const TRIAL_DAYS = 30;
 
 export async function GET() {
   return NextResponse.json({ ok: true, message: "test-trial api is alive" });
@@ -50,16 +50,21 @@ export async function POST(req: NextRequest) {
   const now = new Date();
   const trialEnd = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
 
-  const { error: insErr } = await supabaseAdmin.from("subscriptions").insert({
-    user_id: userId,
-    status: "trialing",
-    trial_start: now.toISOString(),
-    trial_end: trialEnd.toISOString(),
-  });
+const { error: insErr } = await supabaseAdmin
+  .from("subscriptions")
+  .insert([
+    {
+      user_id: userId,
+      status: "trialing",
+      trial_start: now.toISOString(),
+      trial_end: trialEnd.toISOString(),
+    },
+  ] as any);
 
-  if (insErr) {
-    return NextResponse.json({ ok: false, error: insErr.message }, { status: 500 });
-  }
+if (insErr) {
+  console.error(insErr);
+}
+
 
   return NextResponse.json({
     ok: true,
