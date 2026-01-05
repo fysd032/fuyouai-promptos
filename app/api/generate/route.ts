@@ -2,6 +2,7 @@
 // ✅ 同步直出版本：不再依赖 Railway worker / 不再依赖 Redis / 不再 jobId 轮询
 
 import { NextResponse } from "next/server";
+import { withSubscription } from "@/lib/billing/with-subscription";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,7 +82,8 @@ async function callDeepSeek({
   return String(text || "");
 }
 
-export async function POST(req: Request) {
+// ✅ 只改“函数名”，里面逻辑不动
+async function handler(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
 
@@ -126,6 +128,9 @@ export async function POST(req: Request) {
     );
   }
 }
+
+// ✅ 文件顶层导出：订阅拦截统一生效
+export const POST = withSubscription(handler, { scope: "generate" });
 
 export async function GET() {
   // ✅ 同步版不支持轮询

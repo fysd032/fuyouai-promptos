@@ -3,8 +3,10 @@ import { NextResponse } from "next/server";
 import { runEngine } from "@/lib/promptos/run-engine";
 import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
 import type { CoreKey, PlanTier } from "@/lib/promptos/core/core-map";
+import { withSubscription } from "@/lib/billing/with-subscription";
 
-export async function POST(req: Request) {
+// 把原来的 POST 内容改名为 handler（内容基本不动）
+async function handler(req: Request) {
   try {
     const body = await req.json();
 
@@ -51,7 +53,6 @@ export async function POST(req: Request) {
       userInput,
     });
 
-    // 引擎失败
     if (!engineResult.ok) {
       console.error("[api/core/run] engine failed", {
         requestId: engineResult.requestId,
@@ -82,7 +83,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 输出空
     const out = String(engineResult.modelOutput ?? "").trim();
     if (!out) {
       return NextResponse.json(
@@ -103,7 +103,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 成功
     return NextResponse.json({
       ok: true,
       output: out,
@@ -128,3 +127,6 @@ export async function POST(req: Request) {
     );
   }
 }
+
+// ✅ 只保留一个 POST 导出（文件顶层）
+export const POST = withSubscription(handler, { scope: "core" });
