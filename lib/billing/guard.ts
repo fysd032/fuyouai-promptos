@@ -13,7 +13,9 @@ type GateOk = {
   userId: string;
 };
 
-export async function requireSubscription(_opts?: { scope?: string }): Promise<GateOk | GateFail> {
+export async function requireSubscription(
+  _opts?: { scope?: string }
+): Promise<GateOk | GateFail> {
   const supabase = await createClient();
 
   const { data: authData, error: authErr } = await supabase.auth.getUser();
