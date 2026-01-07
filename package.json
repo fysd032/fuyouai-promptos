@@ -3,19 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": {
+    "scripts": {
     "dev": "next dev",
-    "build": "next build",
+
+   "build:vite":"npm --prefix ./fuyouai-frontend run build",
+    "sync:vite": "node scripts/sync-vite-to-next.mjs",
+
+    "build": "npm run build:vite && npm run sync:vite && next build",
+
     "start": "next start",
     "lint": "eslint",
+
     "gen:mmap": "tsx scripts/gen-frontend-module-id-map.ts",
     "check:mmap": "npm run gen:mmap && git diff --exit-code",
     "gen:prompt-bank": "tsx scripts/generate-prompt-bank.ts",
     "gen:prompts": "node scripts/generate-prompt-registry.cjs",
     "verify:core": "node scripts/verify-core.cjs",
+
     "prebuild": "npm run gen:prompt-bank && npm run gen:mmap && npm run gen:prompts && npm run verify:core",
+
     "core:dev": "tsx scripts/server.ts"
   },
+
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@supabase/ssr": "^0.8.0",
