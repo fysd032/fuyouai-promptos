@@ -3,10 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async redirects() {
     return [
-      // ✅ 主页进来就去 /app（同域名）
       {
         source: "/",
-        destination: "/app/",
+        destination: "/ui/",
         permanent: false,
       },
     ];
@@ -14,10 +13,12 @@ const nextConfig: NextConfig = {
 
   async rewrites() {
     return [
-      // ✅ 把 /app 下的访问交给 public/app/index.html（Vite build 输出）
-      { source: "/app", destination: "/app/index.html" },
-      { source: "/app/", destination: "/app/index.html" },
-      { source: "/app/:path*", destination: "/app/index.html" },
+      // 入口：/ui 与 /ui/ 都交给静态入口
+      { source: "/ui", destination: "/ui/index.html" },
+      { source: "/ui/", destination: "/ui/index.html" },
+
+      // SPA fallback：仅匹配 /ui/** 且不含 "."（排除 .js .css .png 等静态资源）
+      { source: "/ui/:path((?!.*\\..*).*)", destination: "/ui/index.html" },
     ];
   },
 };
