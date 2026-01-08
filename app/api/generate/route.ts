@@ -140,16 +140,19 @@ async function handler(req: Request) {
     const text = await callDeepSeek({ promptKey, userInput });
 
     return NextResponse.json(
-      {
-        ok: true,
-        degraded: false,
-        promptKey,
-        engineType,
-        text,
-        modelOutput: text,
-      },
-      { headers: corsHeaders }
-    );
+  {
+    ok: true,
+    degraded: false,
+    promptKey,
+    engineType,
+    output: text,          // ✅ 关键：统一字段
+    text,                  // 可留可不留
+    modelOutput: text,     // 可留可不留
+    // raw: json,          // ✅ 可选：如果你真想前端读 raw，就把解析后的 json 放出来
+  },
+  { headers: corsHeaders }
+);
+
   } catch (e: any) {
     return NextResponse.json(
       { ok: false, error: e?.message || String(e) },
