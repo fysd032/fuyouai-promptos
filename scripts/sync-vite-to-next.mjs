@@ -12,8 +12,10 @@ const frontendDir =
 
 const viteDist = path.join(frontendDir, "dist");
 
-// ✅ 改名：public/ui
-const targetDir = path.join(root, "public", "ui");
+// ✅ 部署到根目录：public/
+const targetDir = path.join(root, "public");
+const targetIndex = path.join(targetDir, "index.html");
+const targetAssets = path.join(targetDir, "assets");
 
 function ensureDir(p) {
   fs.mkdirSync(p, { recursive: true });
@@ -91,12 +93,30 @@ console.log(`[sync-vite] copy from  : ${viteDist}`);
 console.log(`[sync-vite] copy to    : ${targetDir}`);
 
 ensureDir(targetDir);
-emptyDir(targetDir);
-copyDir(viteDist, targetDir);
+
+const distIndex = path.join(viteDist, "index.html");
+const distAssets = path.join(viteDist, "assets");
+
+if (!fs.existsSync(distIndex)) {
+  console.error(`[sync-vite] missing dist index.html: ${distIndex}`);
+  process.exit(1);
+}
+if (!fs.existsSync(distAssets)) {
+  console.error(`[sync-vite] missing dist assets: ${distAssets}`);
+  process.exit(1);
+}
+
+// ✅ 只替换 index.html 与 assets，避免误删 public/modules 等目录
+if (fs.existsSync(targetAssets)) {
+  emptyDir(targetAssets);
+  fs.rmdirSync(targetAssets);
+}
+copyDir(distAssets, targetAssets);
+fs.copyFileSync(distIndex, targetIndex);
 
 // ✅ 同步后立刻校验，失败就直接退出（杜绝再白屏）
 try {
-  assertIndexHtmlOk(path.join(targetDir, "index.html"));
+  assertIndexHtmlOk(targetIndex);
 } catch (e) {
   console.error(String(e?.message || e));
   process.exit(1);
