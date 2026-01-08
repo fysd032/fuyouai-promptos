@@ -1,12 +1,6 @@
-export default function Page() {
-  return (
-    <iframe
-      src="/ui/index.html"
-      style={{
-        width: '100vw',
-        height: '100vh',
-        border: 'none'
-      }}
-    />
-  )
+import { redirect } from "next/navigation";
+
+// Force the root route to serve the static Vite UI.
+export default function Home() {
+  redirect("/ui/");
 }
