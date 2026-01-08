@@ -1,0 +1,23 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/ui/",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/ui",
+      "destination": "/ui/index.html"
+    },
+    {
+      "source": "/ui/",
+      "destination": "/ui/index.html"
+    },
+    {
+      "source": "/ui/:path((?!.*\\..*).*)",
+      "destination": "/ui/index.html"
+    }
+  ]
+}
