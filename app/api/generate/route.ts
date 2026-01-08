@@ -29,7 +29,7 @@ function getCorsHeaders(origin: string | null) {
     Vary: "Origin",
   };
   if (isAllowedOrigin(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin;
+    headers["Access-Control-Allow-Origin"] = origin as string;
   }
   return headers;
 }
