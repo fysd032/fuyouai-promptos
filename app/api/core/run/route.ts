@@ -5,8 +5,34 @@ import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
 import type { CoreKey, PlanTier } from "@/lib/promptos/core/core-map";
 import { withSubscription } from "@/lib/billing/with-subscription";
 
+const allowedOrigins = new Set([
+  "https://fuyouai-promptos.vercel.app",
+  "https://fuyouai.com",
+  "https://www.fuyouai.com",
+]);
+
+function isAllowedOrigin(origin: string | null) {
+  if (!origin) return false;
+  if (allowedOrigins.has(origin)) return true;
+  return /^https:\/\/fuyouai-promptos.*\.vercel\.app$/i.test(origin);
+}
+
+function getCorsHeaders(origin: string | null) {
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    Vary: "Origin",
+  };
+  if (isAllowedOrigin(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
+}
+
 // 把原来的 POST 内容改名为 handler（内容基本不动）
 async function handler(req: Request) {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
   try {
     const body = await req.json();
 
@@ -19,7 +45,7 @@ async function handler(req: Request) {
     if (!coreKey || !userInput) {
       return NextResponse.json(
         { ok: false, error: "Missing coreKey or userInput" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -37,7 +63,7 @@ async function handler(req: Request) {
             tried: resolved.tried,
           },
         },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -79,7 +105,7 @@ async function handler(req: Request) {
             requestId: engineResult.requestId,
           },
         },
-        { status: 500 }
+        { status: 500, headers: corsHeaders }
       );
     }
 
@@ -99,34 +125,43 @@ async function handler(req: Request) {
             requestId: engineResult.requestId,
           },
         },
-        { status: 500 }
+        { status: 500, headers: corsHeaders }
       );
     }
 
-    return NextResponse.json({
-      ok: true,
-      output: out,
-      text: out,
-      content: out,
-      modelOutput: out,
-      meta: {
-        coreKey,
-        tierRequested,
-        tierUsed,
-        degraded,
-        promptKey,
-        tried,
-        requestId: engineResult.requestId,
+    return NextResponse.json(
+      {
+        ok: true,
+        output: out,
+        text: out,
+        content: out,
+        modelOutput: out,
+        meta: {
+          coreKey,
+          tierRequested,
+          tierUsed,
+          degraded,
+          promptKey,
+          tried,
+          requestId: engineResult.requestId,
+        },
       },
-    });
+      { headers: corsHeaders }
+    );
   } catch (e: any) {
     console.error("[api/core/run]", e);
     return NextResponse.json(
       { ok: false, error: e?.message ?? "Internal error" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
 
 // ✅ 只保留一个 POST 导出（文件顶层）
 export const POST = withSubscription(handler, { scope: "core" });
+
+export async function OPTIONS(req: Request) {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}

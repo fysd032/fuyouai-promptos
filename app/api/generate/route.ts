@@ -10,6 +10,30 @@ export const dynamic = "force-dynamic";
 // 如果你要支持 frontModuleId/variantId，就需要能拿到 mapping 数据：
 import mapping from "@/module_mapping.v2.json";
 
+const allowedOrigins = new Set([
+  "https://fuyouai-promptos.vercel.app",
+  "https://fuyouai.com",
+  "https://www.fuyouai.com",
+]);
+
+function isAllowedOrigin(origin: string | null) {
+  if (!origin) return false;
+  if (allowedOrigins.has(origin)) return true;
+  return /^https:\/\/fuyouai-promptos.*\.vercel\.app$/i.test(origin);
+}
+
+function getCorsHeaders(origin: string | null) {
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    Vary: "Origin",
+  };
+  if (isAllowedOrigin(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
+}
+
 function find_prompt_key_by_mapping(frontModuleId: string, variantId: string): string | null {
   const fm = (mapping as any[]).find((x) => x.frontModuleId === frontModuleId);
   if (!fm) return null;
@@ -84,6 +108,8 @@ async function callDeepSeek({
 
 // ✅ 只改“函数名”，里面逻辑不动
 async function handler(req: Request) {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
   try {
     const body = await req.json().catch(() => ({}));
 
@@ -101,7 +127,7 @@ async function handler(req: Request) {
     if (!promptKey || !userInput) {
       return NextResponse.json(
         { ok: false, error: "missing promptKey or (frontModuleId+variantId) or userInput" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -113,18 +139,21 @@ async function handler(req: Request) {
 
     const text = await callDeepSeek({ promptKey, userInput });
 
-    return NextResponse.json({
-      ok: true,
-      degraded: false,
-      promptKey,
-      engineType,
-      text,
-      modelOutput: text,
-    });
+    return NextResponse.json(
+      {
+        ok: true,
+        degraded: false,
+        promptKey,
+        engineType,
+        text,
+        modelOutput: text,
+      },
+      { headers: corsHeaders }
+    );
   } catch (e: any) {
     return NextResponse.json(
       { ok: false, error: e?.message || String(e) },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -132,10 +161,18 @@ async function handler(req: Request) {
 // ✅ 文件顶层导出：订阅拦截统一生效
 export const POST = withSubscription(handler, { scope: "generate" });
 
-export async function GET() {
+export async function GET(req: Request) {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
   // ✅ 同步版不支持轮询
   return NextResponse.json(
     { ok: false, error: "sync mode: GET(jobId) is disabled. Use POST /api/generate to get final output." },
-    { status: 400 }
+    { status: 400, headers: corsHeaders }
   );
+}
+
+export async function OPTIONS(req: Request) {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
