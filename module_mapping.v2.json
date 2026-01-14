@@ -1,78 +1,78 @@
 [
   {
     "frontModuleId": "writing_master",
-    "frontModuleLabel": "写作大师（Writing Master）",
-    "group": "内容创作",
+    "frontModuleLabel": "Writing Master",
+    "group": "Content Creation",
     "variants": [
       {
         "variantId": "longform_article",
-        "label": "长篇文章 · 深度稿",
-        "description": "适合 1500–3000 字的结构化长文，如公众号专栏、深度解读与品牌长文。",
+        "label": "Long-form Article · Deep Dive",
+        "description": "Suitable for 1,500–3,000-word structured long-form pieces, such as newsletter columns, deep dives, and brand long-form articles.",
         "backendModules": [
           {
             "moduleId": "A1-01",
             "promptKey": "A1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "blog_post_standard",
-        "label": "标准文章 · 日常更新",
-        "description": "适合 800–1500 字的博客或公众号日更文章，强调可读性与信息密度平衡。",
+        "label": "Standard Article · Regular Update",
+        "description": "Suitable for 800–1,500-word blog or newsletter updates, balancing readability and information density.",
         "backendModules": [
           {
             "moduleId": "A1-01",
             "promptKey": "A1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "knowledge_explainer",
-        "label": "知识科普 / 教程文",
-        "description": "面向非专业读者的知识科普、产品教程与操作指南，结构清晰、举例充分。",
+        "label": "Explainer / How-to Guide",
+        "description": "Explainers, product tutorials, and how-to guides for non-expert readers, with clear structure and solid examples.",
         "backendModules": [
           {
             "moduleId": "A1-01",
             "promptKey": "A1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "weekly_report",
-        "label": "职场周报生成",
-        "description": "根据本周工作事项生成结构化周报，突出成果、问题与下周计划。",
+        "label": "Weekly Work Report",
+        "description": "Generate a structured weekly report based on this week’s work items, highlighting outcomes, issues, and next week’s plan.",
         "backendModules": [
           {
             "moduleId": "A5-01",
             "promptKey": "A5-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "work_summary",
-        "label": "工作总结 / 项目复盘",
-        "description": "面向月度、季度或项目结束的工作总结与复盘，强调成果、经验与反思。",
+        "label": "Work Summary / Project Retrospective",
+        "description": "Monthly/quarterly/end-of-project summaries and retrospectives, emphasizing outcomes, learnings, and reflections.",
         "backendModules": [
           {
             "moduleId": "A5-02",
             "promptKey": "A5-02",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "business_report",
-        "label": "业务汇报材料",
-        "description": "将复杂业务情况整理成可用于 PPT / 会议的结构化汇报文稿。",
+        "label": "Business Update Deck Notes",
+        "description": "Organize complex business context into a structured write-up for PPTs and meetings.",
         "backendModules": [
           {
             "moduleId": "E6-02",
             "promptKey": "E6-02",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -80,25 +80,25 @@
   },
   {
     "frontModuleId": "summarizer",
-    "frontModuleLabel": "信息压缩（Summarizer）",
-    "group": "内容创作",
+    "frontModuleLabel": "Summarizer",
+    "group": "Content Creation",
     "variants": [
       {
         "variantId": "brief_summary",
-        "label": "简要摘要",
-        "description": "将长文压缩为 3–5 段简要摘要，保留主要信息与结论。",
+        "label": "Brief Summary",
+        "description": "将长文压缩为 3–5 段Brief Summary，保留主要信息与结论。",
         "backendModules": [
           {
             "moduleId": "B2-03",
             "promptKey": "B2-03",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "structured_outline",
-        "label": "结构化要点笔记",
-        "description": "输出分层结构化要点，适合做读书笔记或会议记录整理。",
+        "label": "Structured Bullet Notes",
+        "description": "Produce hierarchical bullet points for reading notes or meeting minutes.",
         "backendModules": [
           {
             "moduleId": "B2-03",
@@ -108,7 +108,7 @@
           {
             "moduleId": "B3-03",
             "promptKey": "B3-03",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -116,42 +116,42 @@
   },
   {
     "frontModuleId": "copywriter",
-    "frontModuleLabel": "营销文案（Copywriter）",
-    "group": "内容创作",
+    "frontModuleLabel": "Copywriter",
+    "group": "Content Creation",
     "variants": [
       {
         "variantId": "ad_copy",
-        "label": "广告投放文案",
-        "description": "面向信息流、搜索等广告投放场景，生成多条高转化短文案。",
+        "label": "Ad Copy for Performance Marketing",
+        "description": "Generate multiple high-converting short copies for feed/search ad placements.",
         "backendModules": [
           {
             "moduleId": "A1-02",
             "promptKey": "A1-02",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "landing_page",
-        "label": "落地页主文案",
-        "description": "为产品/活动生成首页 Banner 与核心卖点区的主文案。",
+        "label": "Landing Page Hero Copy",
+        "description": "Create homepage banner copy and key selling-point section copy for products/campaigns.",
         "backendModules": [
           {
             "moduleId": "A1-02",
             "promptKey": "A1-02",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "social_post",
-        "label": "社交媒体短内容",
-        "description": "适合朋友圈、小红书、微博等平台的短内容与标题。",
+        "label": "Short Social Posts",
+        "description": "Short-form content and titles suitable for social platforms.",
         "backendModules": [
           {
             "moduleId": "A1-02",
             "promptKey": "A1-02",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -159,30 +159,30 @@
   },
   {
     "frontModuleId": "role_playing",
-    "frontModuleLabel": "角色扮演（Role-Playing）",
-    "group": "内容创作",
+    "frontModuleLabel": "Role-Playing",
+    "group": "Content Creation",
     "variants": [
       {
         "variantId": "sales_call",
-        "label": "销售对话演练",
-        "description": "生成销售场景下的多轮对话脚本与异议处理示例。",
+        "label": "Sales Conversation Practice",
+        "description": "Generate multi-turn sales dialogue scripts and objection-handling examples.",
         "backendModules": [
           {
             "moduleId": "E6-03",
             "promptKey": "E6-03",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "customer_support",
-        "label": "客服 / 服务对话",
-        "description": "适用于客服、售后、运营等场景的服务型对话脚本。",
+        "label": "Customer Support / Service Dialogue",
+        "description": "Service-oriented dialogue scripts for support, after-sales, and operations scenarios.",
         "backendModules": [
           {
             "moduleId": "E6-03",
             "promptKey": "E6-03",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -190,30 +190,30 @@
   },
   {
     "frontModuleId": "storyteller",
-    "frontModuleLabel": "故事生成（Storyteller）",
-    "group": "内容创作",
+    "frontModuleLabel": "Storyteller",
+    "group": "Content Creation",
     "variants": [
       {
         "variantId": "story_long",
-        "label": "长篇故事",
-        "description": "根据主题生成有起承转合的长篇故事文本或演讲故事线。",
+        "label": "Long Story",
+        "description": "根据主题生成有起承转合的Long Story文本或演讲故事线。",
         "backendModules": [
           {
             "moduleId": "A1-01",
             "promptKey": "A1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "story_short",
-        "label": "短故事 / 段子",
-        "description": "适合社交媒体、开场破冰的短故事与故事化例子。",
+        "label": "Short Story / Anecdote",
+        "description": "Short stories and narrative examples for social media or icebreakers.",
         "backendModules": [
           {
             "moduleId": "A1-01",
             "promptKey": "A1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -221,30 +221,30 @@
   },
   {
     "frontModuleId": "rewriter",
-    "frontModuleLabel": "多风格重写（Rewriter）",
-    "group": "内容创作",
+    "frontModuleLabel": "Rewriter",
+    "group": "Content Creation",
     "variants": [
       {
         "variantId": "style_transfer",
-        "label": "风格迁移重写",
-        "description": "在保持原意的前提下，迁移到指定文风或品牌风格。",
+        "label": "Style Transfer Rewrite",
+        "description": "Rewrite while preserving meaning, transferring to a specified tone or brand voice.",
         "backendModules": [
           {
             "moduleId": "A4-06",
             "promptKey": "A4-06",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "simplify_explain",
-        "label": "通俗化解释",
-        "description": "将专业或晦涩内容改写为简单易懂的解释文本。",
+        "label": "Plain-language Explanation",
+        "description": "Rewrite technical/obscure content into clear, easy-to-understand explanations.",
         "backendModules": [
           {
             "moduleId": "A4-06",
             "promptKey": "A4-06",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "B2-03",
@@ -255,13 +255,13 @@
       },
       {
         "variantId": "formalize",
-        "label": "正式文书化",
-        "description": "将随意表达改写为正式、规范的书面语或公文风。",
+        "label": "Formalize into Written Form",
+        "description": "Rewrite casual language into formal, standard written style.",
         "backendModules": [
           {
             "moduleId": "A4-06",
             "promptKey": "A4-06",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -269,30 +269,30 @@
   },
   {
     "frontModuleId": "writing_editor_inspector",
-    "frontModuleLabel": "智能润色与自校验（Writing Editor + LLM Inspector）",
-    "group": "内容创作",
+    "frontModuleLabel": "Writing Editor + LLM Inspector",
+    "group": "Content Creation",
     "variants": [
       {
         "variantId": "polish_only",
-        "label": "智能润色",
-        "description": "针对已有文本进行语句优化、语法修正与表达自然化。",
+        "label": "Smart Polishing",
+        "description": "Improve wording, fix grammar, and make expressions more natural for existing text.",
         "backendModules": [
           {
             "moduleId": "A4-06",
             "promptKey": "A4-06",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "polish_and_score",
-        "label": "润色 + 质量评分",
-        "description": "先润色再按维度打分并给改进建议，适合重要稿件。",
+        "label": "Polish + Quality Scoring",
+        "description": "Polish first, then score by dimensions and provide improvement suggestions—ideal for important drafts.",
         "backendModules": [
           {
             "moduleId": "A4-06",
             "promptKey": "A4-06",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "E3-03",
@@ -303,21 +303,20 @@
       }
     ]
   },
-
   {
     "frontModuleId": "deep_analysis",
-    "frontModuleLabel": "深度分析（Deep Analysis）",
-    "group": "分析认知",
+    "frontModuleLabel": "Deep Analysis",
+    "group": "Analysis & Reasoning",
     "variants": [
       {
         "variantId": "business_analysis",
-        "label": "业务分析报告",
-        "description": "结合数据与背景，输出结构化业务分析与建议。",
+        "label": "Business Analysis Report",
+        "description": "Combine data and context to produce a structured business analysis and recommendations.",
         "backendModules": [
           {
             "moduleId": "C2-01",
             "promptKey": "C2-01",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "E6-02",
@@ -328,13 +327,13 @@
       },
       {
         "variantId": "scenario_compare",
-        "label": "方案 / 场景对比",
-        "description": "对多个备选方案进行优劣分析与适用场景比较。",
+        "label": "Option / Scenario Comparison",
+        "description": "Compare multiple alternatives by pros/cons and applicable scenarios.",
         "backendModules": [
           {
             "moduleId": "C2-01",
             "promptKey": "C2-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -342,30 +341,30 @@
   },
   {
     "frontModuleId": "researcher",
-    "frontModuleLabel": "研究员（Researcher）",
-    "group": "分析认知",
+    "frontModuleLabel": "Researcher",
+    "group": "Analysis & Reasoning",
     "variants": [
       {
         "variantId": "single_paper",
-        "label": "单篇论文精读",
-        "description": "对单篇文献生成学术规范摘要与要点解析。",
+        "label": "Single Paper Deep Read",
+        "description": "Produce an academic-style summary and key-point analysis for a single paper.",
         "backendModules": [
           {
             "moduleId": "E5-01",
             "promptKey": "E5-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "multi_paper_review",
-        "label": "多文献综述",
-        "description": "在多篇文献基础上生成结构化文献综述与研究脉络。",
+        "label": "Multi-paper Literature Review",
+        "description": "Create a structured literature review and research thread based on multiple papers.",
         "backendModules": [
           {
             "moduleId": "E5-04",
             "promptKey": "E5-04",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "E5-01",
@@ -378,30 +377,30 @@
   },
   {
     "frontModuleId": "data_interpreter",
-    "frontModuleLabel": "数据解释（Data Interpreter）",
-    "group": "分析认知",
+    "frontModuleLabel": "Data Interpreter",
+    "group": "Analysis & Reasoning",
     "variants": [
       {
         "variantId": "table_insight",
-        "label": "表格数据解读",
-        "description": "解析表格字段与结构，输出关键指标与趋势说明。",
+        "label": "Table Data Interpretation",
+        "description": "Parse table fields and structure to output key metrics and trend insights.",
         "backendModules": [
           {
             "moduleId": "C2-01",
             "promptKey": "C2-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "metric_explainer",
-        "label": "指标口径解释",
-        "description": "针对业务指标给出口径解释、计算方式与解读注意点。",
+        "label": "Metric Definition & Methodology",
+        "description": "Explain metric definitions, calculation methods, and interpretation caveats.",
         "backendModules": [
           {
             "moduleId": "C2-01",
             "promptKey": "C2-01",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "B3-03",
@@ -412,21 +411,20 @@
       }
     ]
   },
-
   {
     "frontModuleId": "market_insights",
-    "frontModuleLabel": "市场洞察（Market Insights）",
-    "group": "商业职场",
+    "frontModuleLabel": "Market Insights",
+    "group": "Business & Workplace",
     "variants": [
       {
         "variantId": "market_brief",
-        "label": "市场洞察简报",
-        "description": "生成一页纸市场洞察简报，涵盖现状、趋势与机会。",
+        "label": "Market Insights One-pager",
+        "description": "生成一页纸Market Insights One-pager，涵盖现状、趋势与机会。",
         "backendModules": [
           {
             "moduleId": "E6-02",
             "promptKey": "E6-02",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "C2-01",
@@ -437,13 +435,13 @@
       },
       {
         "variantId": "competitor_compare",
-        "label": "竞品对比分析",
-        "description": "对多个竞品进行特性、定价与策略层面的分析对比。",
+        "label": "Competitive Landscape Comparison",
+        "description": "Compare multiple competitors across features, pricing, and strategy.",
         "backendModules": [
           {
             "moduleId": "E6-02",
             "promptKey": "E6-02",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -451,30 +449,30 @@
   },
   {
     "frontModuleId": "interview_gen",
-    "frontModuleLabel": "访谈生成（Interview Gen）",
-    "group": "商业职场",
+    "frontModuleLabel": "Interview Gen",
+    "group": "Business & Workplace",
     "variants": [
       {
         "variantId": "interview_script",
-        "label": "访谈提纲 / 脚本",
-        "description": "根据主题与受访者生成结构化访谈提纲与问题清单。",
+        "label": "Interview Outline / Script",
+        "description": "Generate a structured interview outline and question list based on topic and interviewee.",
         "backendModules": [
           {
             "moduleId": "E6-03",
             "promptKey": "E6-03",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "interview_minutes",
-        "label": "访谈纪要",
-        "description": "将访谈记录整理成纪要与要点列表，突出结论与行动项。",
+        "label": "Interview Minutes",
+        "description": "Turn interview notes into minutes and bullet points, highlighting conclusions and action items.",
         "backendModules": [
           {
             "moduleId": "E6-01",
             "promptKey": "E6-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -482,30 +480,30 @@
   },
   {
     "frontModuleId": "email_pro",
-    "frontModuleLabel": "邮件专家（Email Pro）",
-    "group": "商业职场",
+    "frontModuleLabel": "Email Pro",
+    "group": "Business & Workplace",
     "variants": [
       {
         "variantId": "email_draft",
-        "label": "邮件撰写",
-        "description": "根据场景生成结构清晰、语气得体的中英文邮件草稿。",
+        "label": "Email Drafting",
+        "description": "Generate well-structured, properly toned email drafts in Chinese and English.",
         "backendModules": [
           {
             "moduleId": "A1-01",
             "promptKey": "A1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "email_review",
-        "label": "邮件审阅与修改建议",
-        "description": "对用户邮件草稿进行改写、优化并给出简要建议。",
+        "label": "Email Review & Edits",
+        "description": "Rewrite and improve the user’s draft email and provide brief suggestions.",
         "backendModules": [
           {
             "moduleId": "A1-01",
             "promptKey": "A1-01",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "E3-03",
@@ -516,8 +514,8 @@
       },
       {
         "variantId": "bilingual_email",
-        "label": "中英文双语邮件",
-        "description": "生成中英文对照版商务邮件，保证两种语言信息一致。",
+        "label": "Bilingual (CN/EN) Email",
+        "description": "Generate bilingual business emails with aligned information in both languages.",
         "backendModules": [
           {
             "moduleId": "A1-01",
@@ -527,7 +525,7 @@
           {
             "moduleId": "A6-02",
             "promptKey": "A6-02",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -535,30 +533,30 @@
   },
   {
     "frontModuleId": "pitch_deck",
-    "frontModuleLabel": "提案 Pitch（Pitch Deck）",
-    "group": "商业职场",
+    "frontModuleLabel": "Pitch Deck",
+    "group": "Business & Workplace",
     "variants": [
       {
         "variantId": "pitch_script",
-        "label": "路演讲稿",
-        "description": "生成适合现场路演的故事化讲稿与话术结构。",
+        "label": "Pitch Script",
+        "description": "Generate a story-driven pitch script and speaking structure for live presentations.",
         "backendModules": [
           {
             "moduleId": "E6-02",
             "promptKey": "E6-02",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "pitch_slides_outline",
-        "label": "Pitch PPT 结构与文案",
-        "description": "输出标准 Pitch Deck 页结构与每页文案要点。",
+        "label": "Pitch Deck Structure & Slide Copy",
+        "description": "Output a standard pitch deck slide structure and key copy points for each slide.",
         "backendModules": [
           {
             "moduleId": "E6-02",
             "promptKey": "E6-02",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "A4-06",
@@ -569,21 +567,20 @@
       }
     ]
   },
-
   {
     "frontModuleId": "decision_maker",
-    "frontModuleLabel": "决策建议（Decision Maker）",
-    "group": "策略执行",
+    "frontModuleLabel": "Decision Maker",
+    "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "decision_brief",
-        "label": "决策 Brief",
-        "description": "整理背景、选项、利弊与建议动作，生成决策简报。",
+        "label": "Decision Brief",
+        "description": "Organize background, options, pros/cons, and recommended actions into a decision brief.",
         "backendModules": [
           {
             "moduleId": "E6-02",
             "promptKey": "E6-02",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "C2-01",
@@ -594,13 +591,13 @@
       },
       {
         "variantId": "option_matrix",
-        "label": "方案对比矩阵",
-        "description": "将多个方案按维度进行对比，生成结构化对比矩阵说明。",
+        "label": "Option Comparison Matrix",
+        "description": "Compare options by dimensions and generate a structured matrix explanation.",
         "backendModules": [
           {
             "moduleId": "C2-01",
             "promptKey": "C2-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -608,30 +605,30 @@
   },
   {
     "frontModuleId": "sop_engine",
-    "frontModuleLabel": "流程优化（SOP Engine）",
-    "group": "策略执行",
+    "frontModuleLabel": "SOP Engine",
+    "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "sop_design",
-        "label": "流程梳理与 SOP 设计",
-        "description": "从业务目标出发梳理流程步骤，形成 SOP 文档。",
+        "label": "Process Mapping & SOP Design",
+        "description": "Map process steps from business goals and produce an SOP document.",
         "backendModules": [
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
       {
         "variantId": "sop_checklist",
-        "label": "执行清单",
-        "description": "将流程抽象为可勾选的任务清单，便于实际执行。",
+        "label": "Execution Checklist",
+        "description": "Convert a process into a checklist of actionable tasks for execution.",
         "backendModules": [
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -639,18 +636,18 @@
   },
   {
     "frontModuleId": "pm_okr",
-    "frontModuleLabel": "项目规划（PM/OKR）",
-    "group": "策略执行",
+    "frontModuleLabel": "PM/OKR",
+    "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "okr_planning",
-        "label": "OKR 设计",
-        "description": "围绕目标拆解 KR、关键任务与衡量指标。",
+        "label": "OKR Design",
+        "description": "Break down KRs, key tasks, and measurement metrics around a goal.",
         "backendModules": [
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "A5-02",
@@ -661,13 +658,13 @@
       },
       {
         "variantId": "project_plan",
-        "label": "项目计划",
-        "description": "生成包含里程碑、任务列表与时间安排的项目计划。",
+        "label": "Project Plan",
+        "description": "生成包含里程碑、任务列表与时间安排的Project Plan。",
         "backendModules": [
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -676,7 +673,7 @@
   {
     "frontModuleId": "biz_model",
     "frontModuleLabel": "商业模型（Biz Model）",
-    "group": "策略执行",
+    "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "biz_canvas",
@@ -686,7 +683,7 @@
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
@@ -698,7 +695,7 @@
           {
             "moduleId": "E6-02",
             "promptKey": "E6-02",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -707,7 +704,7 @@
   {
     "frontModuleId": "meta_prompt",
     "frontModuleLabel": "Prompt 优化（Meta-Prompt）",
-    "group": "策略执行",
+    "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "prompt_review",
@@ -717,7 +714,7 @@
           {
             "moduleId": "E3-03",
             "promptKey": "E3-03",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
@@ -729,7 +726,7 @@
           {
             "moduleId": "E4-01",
             "promptKey": "E4-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -738,7 +735,7 @@
   {
     "frontModuleId": "multi_agent",
     "frontModuleLabel": "Agent 拆解（Multi-Agent）",
-    "group": "策略执行",
+    "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "agent_decomposition",
@@ -748,7 +745,7 @@
           {
             "moduleId": "E4-01",
             "promptKey": "E4-01",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "E1-01",
@@ -765,7 +762,7 @@
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -774,7 +771,7 @@
   {
     "frontModuleId": "nocode_automation",
     "frontModuleLabel": "No-Code 自动化（n8n / Zapier）",
-    "group": "策略执行",
+    "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "workflow_blueprint",
@@ -784,7 +781,7 @@
           {
             "moduleId": "E4-01",
             "promptKey": "E4-01",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "E1-01",
@@ -801,7 +798,7 @@
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -810,7 +807,7 @@
   {
     "frontModuleId": "risk_control",
     "frontModuleLabel": "内容审核（Risk Control）",
-    "group": "策略执行",
+    "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "quality_check",
@@ -820,7 +817,7 @@
           {
             "moduleId": "E3-03",
             "promptKey": "E3-03",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
@@ -832,7 +829,7 @@
           {
             "moduleId": "E3-03",
             "promptKey": "E3-03",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -841,7 +838,7 @@
   {
     "frontModuleId": "knowledge_base",
     "frontModuleLabel": "知识库构建（Knowledge Base）",
-    "group": "策略执行",
+    "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "faq_from_docs",
@@ -851,7 +848,7 @@
           {
             "moduleId": "B4-04",
             "promptKey": "B4-04",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
@@ -863,7 +860,7 @@
           {
             "moduleId": "B4-04",
             "promptKey": "B4-04",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "E1-01",
@@ -874,7 +871,6 @@
       }
     ]
   },
-
   {
     "frontModuleId": "ppt_architect",
     "frontModuleLabel": "PPT 架构师（PPT Architect）",
@@ -888,7 +884,7 @@
           {
             "moduleId": "A4-06",
             "promptKey": "A4-06",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "B3-03",
@@ -905,7 +901,7 @@
           {
             "moduleId": "A4-06",
             "promptKey": "A4-06",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -924,7 +920,7 @@
           {
             "moduleId": "B3-01",
             "promptKey": "B3-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
@@ -936,13 +932,12 @@
           {
             "moduleId": "A1-01",
             "promptKey": "A1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
     ]
   },
-
   {
     "frontModuleId": "paper_reader",
     "frontModuleLabel": "文献阅读（Paper Reader）",
@@ -956,7 +951,7 @@
           {
             "moduleId": "E5-01",
             "promptKey": "E5-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
@@ -968,7 +963,7 @@
           {
             "moduleId": "E5-01",
             "promptKey": "E5-01",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "B2-03",
@@ -986,13 +981,13 @@
     "variants": [
       {
         "variantId": "literature_review",
-        "label": "多文献综述",
+        "label": "Multi-paper Literature Review",
         "description": "根据多篇文献生成结构化文献综述与研究脉络。",
         "backendModules": [
           {
             "moduleId": "E5-04",
             "promptKey": "E5-04",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "E5-01",
@@ -1009,7 +1004,7 @@
           {
             "moduleId": "E5-03",
             "promptKey": "E5-03",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "E1-01",
@@ -1033,7 +1028,7 @@
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
@@ -1045,7 +1040,7 @@
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "B4-04",
@@ -1069,7 +1064,7 @@
           {
             "moduleId": "E5-03",
             "promptKey": "E5-03",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       },
@@ -1081,7 +1076,7 @@
           {
             "moduleId": "E5-03",
             "promptKey": "E5-03",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "B4-04",
@@ -1092,7 +1087,6 @@
       }
     ]
   },
-
   {
     "frontModuleId": "tech_stack",
     "frontModuleLabel": "技术栈构（Tech Stack）",
@@ -1106,7 +1100,7 @@
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "C2-01",
@@ -1123,7 +1117,7 @@
           {
             "moduleId": "E1-01",
             "promptKey": "E1-01",
-            "weight": 1.0
+            "weight": 1
           }
         ]
       }
@@ -1142,7 +1136,7 @@
           {
             "moduleId": "C2-01",
             "promptKey": "C2-01",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "E6-02",
@@ -1159,7 +1153,7 @@
           {
             "moduleId": "E6-02",
             "promptKey": "E6-02",
-            "weight": 1.0
+            "weight": 1
           },
           {
             "moduleId": "A5-02",
