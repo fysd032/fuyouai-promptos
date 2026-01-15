@@ -86,7 +86,7 @@
       {
         "variantId": "brief_summary",
         "label": "Brief Summary",
-        "description": "将长文压缩为 3–5 段Brief Summary，保留主要信息与结论。",
+        "description": "Condense long-form content into a 3–5 paragraph summary with key points and conclusions.",
         "backendModules": [
           {
             "moduleId": "B2-03",
@@ -196,7 +196,7 @@
       {
         "variantId": "story_long",
         "label": "Long Story",
-        "description": "根据主题生成有起承转合的Long Story文本或演讲故事线。",
+        "description": "Generate a structured long-form story or speech outline based on a given theme.",
         "backendModules": [
           {
             "moduleId": "A1-01",
@@ -419,7 +419,7 @@
       {
         "variantId": "market_brief",
         "label": "Market Insights One-pager",
-        "description": "生成一页纸Market Insights One-pager，涵盖现状、趋势与机会。",
+        "description": "Generate a one-page Market Insights summary covering the current state, key trends, and opportunities.",
         "backendModules": [
           {
             "moduleId": "E6-02",
@@ -656,15 +656,17 @@
           }
         ]
       },
-  {
-    "variantId": "project_plan",
-    "label": "Project Plan",
-    "description": "Generate a project plan with milestones, task list, and timeline.",
-    "backendModules": [
       {
-        "moduleId": "E1-01",
-        "promptKey": "E1-01",
-        "weight": 1
+        "variantId": "project_plan",
+        "label": "Project Plan",
+        "description": "Generate a project plan with milestones, task list, and timeline.",
+        "backendModules": [
+          {
+            "moduleId": "E1-01",
+            "promptKey": "E1-01",
+            "weight": 1
+          }
+        ]
       }
     ]
   },
@@ -980,7 +982,7 @@
       {
         "variantId": "literature_review",
         "label": "Multi-paper Literature Review",
-        "description": "根据多篇文献生成结构化文献综述与研究脉络。",
+        "description": "Generate a structured literature review and research landscape from multiple papers.",
         "backendModules": [
           {
             "moduleId": "E5-04",
