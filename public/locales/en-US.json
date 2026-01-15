@@ -1,0 +1,521 @@
+{
+  "locale": "en-US",
+  "groups": {
+    "content_creation": {
+      "title": "Content Creation"
+    },
+    "analysis_and_reasoning": {
+      "title": "Analysis & Reasoning"
+    },
+    "business_and_workplace": {
+      "title": "Business & Workplace"
+    },
+    "strategy_and_execution": {
+      "title": "Strategy & Execution"
+    },
+    "group_e4baa7e5": {
+      "title": "产品设计"
+    },
+    "academic_research": {
+      "title": "Academic Research"
+    },
+    "group_e68a80e6": {
+      "title": "技术开发"
+    }
+  },
+  "modules": {
+    "writing_master": {
+      "groupKey": "content_creation",
+      "title": "Writing Master",
+      "description": "",
+      "variants": {
+        "longform_article": {
+          "title": "Long-form Article · Deep Dive",
+          "description": "Suitable for 1,500–3,000-word structured long-form pieces, such as newsletter columns, deep dives, and brand long-form articles."
+        },
+        "blog_post_standard": {
+          "title": "Standard Article · Regular Update",
+          "description": "Suitable for 800–1,500-word blog or newsletter updates, balancing readability and information density."
+        },
+        "knowledge_explainer": {
+          "title": "Explainer / How-to Guide",
+          "description": "Explainers, product tutorials, and how-to guides for non-expert readers, with clear structure and solid examples."
+        },
+        "weekly_report": {
+          "title": "Weekly Work Report",
+          "description": "Generate a structured weekly report based on this week’s work items, highlighting outcomes, issues, and next week’s plan."
+        },
+        "work_summary": {
+          "title": "Work Summary / Project Retrospective",
+          "description": "Monthly/quarterly/end-of-project summaries and retrospectives, emphasizing outcomes, learnings, and reflections."
+        },
+        "business_report": {
+          "title": "Business Update Deck Notes",
+          "description": "Organize complex business context into a structured write-up for PPTs and meetings."
+        }
+      }
+    },
+    "summarizer": {
+      "groupKey": "content_creation",
+      "title": "Summarizer",
+      "description": "",
+      "variants": {
+        "brief_summary": {
+          "title": "Brief Summary",
+          "description": "将长文压缩为 3–5 段Brief Summary，保留主要信息与结论。"
+        },
+        "structured_outline": {
+          "title": "Structured Bullet Notes",
+          "description": "Produce hierarchical bullet points for reading notes or meeting minutes."
+        }
+      }
+    },
+    "copywriter": {
+      "groupKey": "content_creation",
+      "title": "Copywriter",
+      "description": "",
+      "variants": {
+        "ad_copy": {
+          "title": "Ad Copy for Performance Marketing",
+          "description": "Generate multiple high-converting short copies for feed/search ad placements."
+        },
+        "landing_page": {
+          "title": "Landing Page Hero Copy",
+          "description": "Create homepage banner copy and key selling-point section copy for products/campaigns."
+        },
+        "social_post": {
+          "title": "Short Social Posts",
+          "description": "Short-form content and titles suitable for social platforms."
+        }
+      }
+    },
+    "role_playing": {
+      "groupKey": "content_creation",
+      "title": "Role-Playing",
+      "description": "",
+      "variants": {
+        "sales_call": {
+          "title": "Sales Conversation Practice",
+          "description": "Generate multi-turn sales dialogue scripts and objection-handling examples."
+        },
+        "customer_support": {
+          "title": "Customer Support / Service Dialogue",
+          "description": "Service-oriented dialogue scripts for support, after-sales, and operations scenarios."
+        }
+      }
+    },
+    "storyteller": {
+      "groupKey": "content_creation",
+      "title": "Storyteller",
+      "description": "",
+      "variants": {
+        "story_long": {
+          "title": "Long Story",
+          "description": "根据主题生成有起承转合的Long Story文本或演讲故事线。"
+        },
+        "story_short": {
+          "title": "Short Story / Anecdote",
+          "description": "Short stories and narrative examples for social media or icebreakers."
+        }
+      }
+    },
+    "rewriter": {
+      "groupKey": "content_creation",
+      "title": "Rewriter",
+      "description": "",
+      "variants": {
+        "style_transfer": {
+          "title": "Style Transfer Rewrite",
+          "description": "Rewrite while preserving meaning, transferring to a specified tone or brand voice."
+        },
+        "simplify_explain": {
+          "title": "Plain-language Explanation",
+          "description": "Rewrite technical/obscure content into clear, easy-to-understand explanations."
+        },
+        "formalize": {
+          "title": "Formalize into Written Form",
+          "description": "Rewrite casual language into formal, standard written style."
+        }
+      }
+    },
+    "writing_editor_inspector": {
+      "groupKey": "content_creation",
+      "title": "Writing Editor + LLM Inspector",
+      "description": "",
+      "variants": {
+        "polish_only": {
+          "title": "Smart Polishing",
+          "description": "Improve wording, fix grammar, and make expressions more natural for existing text."
+        },
+        "polish_and_score": {
+          "title": "Polish + Quality Scoring",
+          "description": "Polish first, then score by dimensions and provide improvement suggestions—ideal for important drafts."
+        }
+      }
+    },
+    "deep_analysis": {
+      "groupKey": "analysis_and_reasoning",
+      "title": "Deep Analysis",
+      "description": "",
+      "variants": {
+        "business_analysis": {
+          "title": "Business Analysis Report",
+          "description": "Combine data and context to produce a structured business analysis and recommendations."
+        },
+        "scenario_compare": {
+          "title": "Option / Scenario Comparison",
+          "description": "Compare multiple alternatives by pros/cons and applicable scenarios."
+        }
+      }
+    },
+    "researcher": {
+      "groupKey": "analysis_and_reasoning",
+      "title": "Researcher",
+      "description": "",
+      "variants": {
+        "single_paper": {
+          "title": "Single Paper Deep Read",
+          "description": "Produce an academic-style summary and key-point analysis for a single paper."
+        },
+        "multi_paper_review": {
+          "title": "Multi-paper Literature Review",
+          "description": "Create a structured literature review and research thread based on multiple papers."
+        }
+      }
+    },
+    "data_interpreter": {
+      "groupKey": "analysis_and_reasoning",
+      "title": "Data Interpreter",
+      "description": "",
+      "variants": {
+        "table_insight": {
+          "title": "Table Data Interpretation",
+          "description": "Parse table fields and structure to output key metrics and trend insights."
+        },
+        "metric_explainer": {
+          "title": "Metric Definition & Methodology",
+          "description": "Explain metric definitions, calculation methods, and interpretation caveats."
+        }
+      }
+    },
+    "market_insights": {
+      "groupKey": "business_and_workplace",
+      "title": "Market Insights",
+      "description": "",
+      "variants": {
+        "market_brief": {
+          "title": "Market Insights One-pager",
+          "description": "生成一页纸Market Insights One-pager，涵盖现状、趋势与机会。"
+        },
+        "competitor_compare": {
+          "title": "Competitive Landscape Comparison",
+          "description": "Compare multiple competitors across features, pricing, and strategy."
+        }
+      }
+    },
+    "interview_gen": {
+      "groupKey": "business_and_workplace",
+      "title": "Interview Gen",
+      "description": "",
+      "variants": {
+        "interview_script": {
+          "title": "Interview Outline / Script",
+          "description": "Generate a structured interview outline and question list based on topic and interviewee."
+        },
+        "interview_minutes": {
+          "title": "Interview Minutes",
+          "description": "Turn interview notes into minutes and bullet points, highlighting conclusions and action items."
+        }
+      }
+    },
+    "email_pro": {
+      "groupKey": "business_and_workplace",
+      "title": "Email Pro",
+      "description": "",
+      "variants": {
+        "email_draft": {
+          "title": "Email Drafting",
+          "description": "Generate well-structured, properly toned email drafts in Chinese and English."
+        },
+        "email_review": {
+          "title": "Email Review & Edits",
+          "description": "Rewrite and improve the user’s draft email and provide brief suggestions."
+        },
+        "bilingual_email": {
+          "title": "Bilingual (CN/EN) Email",
+          "description": "Generate bilingual business emails with aligned information in both languages."
+        }
+      }
+    },
+    "pitch_deck": {
+      "groupKey": "business_and_workplace",
+      "title": "Pitch Deck",
+      "description": "",
+      "variants": {
+        "pitch_script": {
+          "title": "Pitch Script",
+          "description": "Generate a story-driven pitch script and speaking structure for live presentations."
+        },
+        "pitch_slides_outline": {
+          "title": "Pitch Deck Structure & Slide Copy",
+          "description": "Output a standard pitch deck slide structure and key copy points for each slide."
+        }
+      }
+    },
+    "decision_maker": {
+      "groupKey": "strategy_and_execution",
+      "title": "Decision Maker",
+      "description": "",
+      "variants": {
+        "decision_brief": {
+          "title": "Decision Brief",
+          "description": "Organize background, options, pros/cons, and recommended actions into a decision brief."
+        },
+        "option_matrix": {
+          "title": "Option Comparison Matrix",
+          "description": "Compare options by dimensions and generate a structured matrix explanation."
+        }
+      }
+    },
+    "sop_engine": {
+      "groupKey": "strategy_and_execution",
+      "title": "SOP Engine",
+      "description": "",
+      "variants": {
+        "sop_design": {
+          "title": "Process Mapping & SOP Design",
+          "description": "Map process steps from business goals and produce an SOP document."
+        },
+        "sop_checklist": {
+          "title": "Execution Checklist",
+          "description": "Convert a process into a checklist of actionable tasks for execution."
+        }
+      }
+    },
+    "pm_okr": {
+      "groupKey": "strategy_and_execution",
+      "title": "PM/OKR",
+      "description": "",
+      "variants": {
+        "okr_planning": {
+          "title": "OKR Design",
+          "description": "Break down KRs, key tasks, and measurement metrics around a goal."
+        },
+        "project_plan": {
+          "title": "Project Plan",
+          "description": "生成包含里程碑、任务列表与时间安排的Project Plan。"
+        }
+      }
+    },
+    "biz_model": {
+      "groupKey": "strategy_and_execution",
+      "title": "商业模型（Biz Model）",
+      "description": "",
+      "variants": {
+        "biz_canvas": {
+          "title": "商业画布",
+          "description": "基于项目说明生成商业画布要素与核心逻辑。"
+        },
+        "biz_narrative": {
+          "title": "商业故事线",
+          "description": "围绕 Problem-Solution 等框架生成商业叙事文案。"
+        }
+      }
+    },
+    "meta_prompt": {
+      "groupKey": "strategy_and_execution",
+      "title": "Prompt 优化（Meta-Prompt）",
+      "description": "",
+      "variants": {
+        "prompt_review": {
+          "title": "单 Prompt 质量评估",
+          "description": "对单条 Prompt 或提示体系进行评分与改进建议。"
+        },
+        "chain_design": {
+          "title": "任务链设计",
+          "description": "将复杂任务拆解成多步工作流，可映射为 Agent 链。"
+        }
+      }
+    },
+    "multi_agent": {
+      "groupKey": "strategy_and_execution",
+      "title": "Agent 拆解（Multi-Agent）",
+      "description": "",
+      "variants": {
+        "agent_decomposition": {
+          "title": "多 Agent 任务拆解",
+          "description": "围绕目标拆解角色、职责与任务链，适合多智能体协作。"
+        },
+        "role_spec": {
+          "title": "角色说明书",
+          "description": "为每个 Agent 输出角色说明、输入输出与边界约束。"
+        }
+      }
+    },
+    "nocode_automation": {
+      "groupKey": "strategy_and_execution",
+      "title": "No-Code 自动化（n8n / Zapier）",
+      "description": "",
+      "variants": {
+        "workflow_blueprint": {
+          "title": "自动化流程蓝图",
+          "description": "将业务流程拆为可配置的触发器、动作与条件步骤。"
+        },
+        "integration_spec": {
+          "title": "系统集成说明",
+          "description": "生成跨系统集成方案与字段映射/触发条件说明。"
+        }
+      }
+    },
+    "risk_control": {
+      "groupKey": "strategy_and_execution",
+      "title": "内容审核（Risk Control）",
+      "description": "",
+      "variants": {
+        "quality_check": {
+          "title": "质量与风险检查",
+          "description": "按既定维度对内容质量、人设、风险点进行评分与提示。"
+        },
+        "policy_alignment": {
+          "title": "合规对齐检查",
+          "description": "检查内容是否触碰敏感领域或违反平台/企业规范。"
+        }
+      }
+    },
+    "knowledge_base": {
+      "groupKey": "strategy_and_execution",
+      "title": "知识库构建（Knowledge Base）",
+      "description": "",
+      "variants": {
+        "faq_from_docs": {
+          "title": "文档转 FAQ",
+          "description": "从说明文档或知识卡片生成 FAQ 问答条目。"
+        },
+        "bot_knowledge": {
+          "title": "Bot 知识底座",
+          "description": "为机器人构建问答库结构与分类标签。"
+        }
+      }
+    },
+    "ppt_architect": {
+      "groupKey": "group_e4baa7e5",
+      "title": "PPT 架构师（PPT Architect）",
+      "description": "",
+      "variants": {
+        "ppt_from_doc": {
+          "title": "长文转 PPT",
+          "description": "从长文或报告生成 PPT 页结构与每页要点。"
+        },
+        "ppt_outline": {
+          "title": "PPT 大纲设计",
+          "description": "仅输出 PPT 章节与页面大纲，供设计师后续填充。"
+        }
+      }
+    },
+    "product_spec": {
+      "groupKey": "group_e4baa7e5",
+      "title": "产品说明（Product Spec）",
+      "description": "",
+      "variants": {
+        "prd_from_table": {
+          "title": "表格转 PRD",
+          "description": "将功能/需求表格转为结构化 PRD 或产品说明书。"
+        },
+        "prd_from_brief": {
+          "title": "需求说明转 PRD",
+          "description": "根据自然语言需求说明生成标准 PRD 结构。"
+        }
+      }
+    },
+    "paper_reader": {
+      "groupKey": "academic_research",
+      "title": "文献阅读（Paper Reader）",
+      "description": "",
+      "variants": {
+        "paper_abstract": {
+          "title": "论文摘要生成",
+          "description": "对单篇文献生成符合学术规范的摘要。"
+        },
+        "paper_notes": {
+          "title": "论文读书笔记",
+          "description": "生成包含研究问题、方法、结论与局限的读书笔记。"
+        }
+      }
+    },
+    "academic_study": {
+      "groupKey": "academic_research",
+      "title": "学术研究（Academic Study）",
+      "description": "",
+      "variants": {
+        "literature_review": {
+          "title": "Multi-paper Literature Review",
+          "description": "根据多篇文献生成结构化文献综述与研究脉络。"
+        },
+        "research_design_brief": {
+          "title": "研究设计简报",
+          "description": "围绕研究问题输出变量框架与研究设计建议。"
+        }
+      }
+    },
+    "course_design": {
+      "groupKey": "academic_research",
+      "title": "课程设计（Course Design）",
+      "description": "",
+      "variants": {
+        "course_outline": {
+          "title": "课程大纲",
+          "description": "根据目标与知识点生成课程整体结构与单元安排。"
+        },
+        "lesson_plan": {
+          "title": "单节课教案",
+          "description": "为单节课程生成教学目标、流程与活动设计。"
+        }
+      }
+    },
+    "explainer": {
+      "groupKey": "academic_research",
+      "title": "教学解释（Explainer）",
+      "description": "",
+      "variants": {
+        "concept_explainer": {
+          "title": "概念/理论讲解",
+          "description": "对某个概念或理论进行系统化定义与结构化解释。"
+        },
+        "faq_explainer": {
+          "title": "教学问答",
+          "description": "基于核心概念生成典型问题与答案，适合课后问答。"
+        }
+      }
+    },
+    "tech_stack": {
+      "groupKey": "group_e68a80e6",
+      "title": "技术栈构（Tech Stack）",
+      "description": "",
+      "variants": {
+        "tech_plan": {
+          "title": "技术方案规划",
+          "description": "围绕业务需求设计技术栈、组件选择与简单架构方案。"
+        },
+        "architecture_overview": {
+          "title": "架构总览说明",
+          "description": "生成系统架构的文字说明，适合分享与评审。"
+        }
+      }
+    },
+    "debugger": {
+      "groupKey": "group_e68a80e6",
+      "title": "故障诊断（Debugger）",
+      "description": "",
+      "variants": {
+        "issue_diagnosis": {
+          "title": "问题诊断",
+          "description": "根据现象与日志梳理可能原因与排查路径。"
+        },
+        "postmortem_report": {
+          "title": "事故复盘报告",
+          "description": "围绕一次故障生成复盘报告与改进建议。"
+        }
+      }
+    }
+  }
+}
