@@ -656,29 +656,28 @@
           }
         ]
       },
+     [
+  {
+    "variantId": "project_plan",
+    "label": "Project Plan",
+    "description": "Generate a project plan with milestones, task list, and timeline.",
+    "backendModules": [
       {
-        "variantId": "project_plan",
-        "label": "Project Plan",
-        "description": "生成包含里程碑、任务列表与时间安排的Project Plan。",
-        "backendModules": [
-          {
-            "moduleId": "E1-01",
-            "promptKey": "E1-01",
-            "weight": 1
-          }
-        ]
+        "moduleId": "E1-01",
+        "promptKey": "E1-01",
+        "weight": 1
       }
     ]
   },
   {
     "frontModuleId": "biz_model",
-    "frontModuleLabel": "商业模型（Biz Model）",
+    "frontModuleLabel": "Biz Model",
     "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "biz_canvas",
-        "label": "商业画布",
-        "description": "基于项目说明生成商业画布要素与核心逻辑。",
+        "label": "Business Model Canvas",
+        "description": "Generate key elements and core logic of a business model canvas based on the project brief.",
         "backendModules": [
           {
             "moduleId": "E1-01",
@@ -689,8 +688,8 @@
       },
       {
         "variantId": "biz_narrative",
-        "label": "商业故事线",
-        "description": "围绕 Problem-Solution 等框架生成商业叙事文案。",
+        "label": "Business Narrative",
+        "description": "Generate a business narrative based on frameworks like Problem–Solution.",
         "backendModules": [
           {
             "moduleId": "E6-02",
@@ -703,13 +702,13 @@
   },
   {
     "frontModuleId": "meta_prompt",
-    "frontModuleLabel": "Prompt 优化（Meta-Prompt）",
+    "frontModuleLabel": "Meta-Prompt Optimization",
     "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "prompt_review",
-        "label": "单 Prompt 质量评估",
-        "description": "对单条 Prompt 或提示体系进行评分与改进建议。",
+        "label": "Prompt Quality Evaluation",
+        "description": "Evaluate a single prompt or prompt system and provide improvement suggestions.",
         "backendModules": [
           {
             "moduleId": "E3-03",
@@ -720,8 +719,8 @@
       },
       {
         "variantId": "chain_design",
-        "label": "任务链设计",
-        "description": "将复杂任务拆解成多步工作流，可映射为 Agent 链。",
+        "label": "Task Chain Design",
+        "description": "Break down complex tasks into multi-step workflows that can map to agent chains.",
         "backendModules": [
           {
             "moduleId": "E4-01",
@@ -734,13 +733,13 @@
   },
   {
     "frontModuleId": "multi_agent",
-    "frontModuleLabel": "Agent 拆解（Multi-Agent）",
+    "frontModuleLabel": "Multi-Agent Decomposition",
     "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "agent_decomposition",
-        "label": "多 Agent 任务拆解",
-        "description": "围绕目标拆解角色、职责与任务链，适合多智能体协作。",
+        "label": "Multi-Agent Task Decomposition",
+        "description": "Decompose goals into roles, responsibilities, and task chains for multi-agent collaboration.",
         "backendModules": [
           {
             "moduleId": "E4-01",
@@ -756,8 +755,8 @@
       },
       {
         "variantId": "role_spec",
-        "label": "角色说明书",
-        "description": "为每个 Agent 输出角色说明、输入输出与边界约束。",
+        "label": "Role Specification",
+        "description": "Generate role definitions for each agent, including inputs/outputs and boundary constraints.",
         "backendModules": [
           {
             "moduleId": "E1-01",
@@ -770,13 +769,13 @@
   },
   {
     "frontModuleId": "nocode_automation",
-    "frontModuleLabel": "No-Code 自动化（n8n / Zapier）",
+    "frontModuleLabel": "No-Code Automation (n8n / Zapier)",
     "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "workflow_blueprint",
-        "label": "自动化流程蓝图",
-        "description": "将业务流程拆为可配置的触发器、动作与条件步骤。",
+        "label": "Automation Workflow Blueprint",
+        "description": "Break business processes into configurable triggers, actions, and conditional steps.",
         "backendModules": [
           {
             "moduleId": "E4-01",
@@ -792,8 +791,8 @@
       },
       {
         "variantId": "integration_spec",
-        "label": "系统集成说明",
-        "description": "生成跨系统集成方案与字段映射/触发条件说明。",
+        "label": "System Integration Guide",
+        "description": "Generate cross-system integration plans and field mappings, including trigger conditions.",
         "backendModules": [
           {
             "moduleId": "E1-01",
@@ -806,13 +805,13 @@
   },
   {
     "frontModuleId": "risk_control",
-    "frontModuleLabel": "内容审核（Risk Control）",
+    "frontModuleLabel": "Content Risk Control",
     "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "quality_check",
-        "label": "质量与风险检查",
-        "description": "按既定维度对内容质量、人设、风险点进行评分与提示。",
+        "label": "Quality & Risk Check",
+        "description": "Score and flag content quality, persona consistency, and potential risk points based on predefined criteria.",
         "backendModules": [
           {
             "moduleId": "E3-03",
@@ -823,8 +822,8 @@
       },
       {
         "variantId": "policy_alignment",
-        "label": "合规对齐检查",
-        "description": "检查内容是否触碰敏感领域或违反平台/企业规范。",
+        "label": "Compliance Alignment Check",
+        "description": "Check whether content touches sensitive areas or violates platform/company policies.",
         "backendModules": [
           {
             "moduleId": "E3-03",
@@ -837,13 +836,13 @@
   },
   {
     "frontModuleId": "knowledge_base",
-    "frontModuleLabel": "知识库构建（Knowledge Base）",
+    "frontModuleLabel": "Knowledge Base",
     "group": "Strategy & Execution",
     "variants": [
       {
         "variantId": "faq_from_docs",
-        "label": "文档转 FAQ",
-        "description": "从说明文档或知识卡片生成 FAQ 问答条目。",
+        "label": "Docs to FAQ",
+        "description": "Generate FAQ entries from product docs or knowledge cards.",
         "backendModules": [
           {
             "moduleId": "B4-04",
@@ -854,8 +853,8 @@
       },
       {
         "variantId": "bot_knowledge",
-        "label": "Bot 知识底座",
-        "description": "为机器人构建问答库结构与分类标签。",
+        "label": "Bot Knowledge Base",
+        "description": "Build a Q&A knowledge base structure and taxonomy for bots.",
         "backendModules": [
           {
             "moduleId": "B4-04",
@@ -873,13 +872,13 @@
   },
   {
     "frontModuleId": "ppt_architect",
-    "frontModuleLabel": "PPT 架构师（PPT Architect）",
-    "group": "产品设计",
+    "frontModuleLabel": "PPT Architect",
+    "group": "Product Design",
     "variants": [
       {
         "variantId": "ppt_from_doc",
-        "label": "长文转 PPT",
-        "description": "从长文或报告生成 PPT 页结构与每页要点。",
+        "label": "Document to Slides",
+        "description": "Generate a slide structure and key points for each slide from long-form text or reports.",
         "backendModules": [
           {
             "moduleId": "A4-06",
@@ -895,8 +894,8 @@
       },
       {
         "variantId": "ppt_outline",
-        "label": "PPT 大纲设计",
-        "description": "仅输出 PPT 章节与页面大纲，供设计师后续填充。",
+        "label": "Slide Outline",
+        "description": "Output only the slide sections and page outline for designers to fill in later.",
         "backendModules": [
           {
             "moduleId": "A4-06",
@@ -909,13 +908,13 @@
   },
   {
     "frontModuleId": "product_spec",
-    "frontModuleLabel": "产品说明（Product Spec）",
-    "group": "产品设计",
+    "frontModuleLabel": "Product Spec",
+    "group": "Product Design",
     "variants": [
       {
         "variantId": "prd_from_table",
-        "label": "表格转 PRD",
-        "description": "将功能/需求表格转为结构化 PRD 或产品说明书。",
+        "label": "Table to PRD",
+        "description": "Convert a feature/requirements table into a structured PRD or product specification.",
         "backendModules": [
           {
             "moduleId": "B3-01",
@@ -926,8 +925,8 @@
       },
       {
         "variantId": "prd_from_brief",
-        "label": "需求说明转 PRD",
-        "description": "根据自然语言需求说明生成标准 PRD 结构。",
+        "label": "Brief to PRD",
+        "description": "Generate a standard PRD structure from a natural-language requirements brief.",
         "backendModules": [
           {
             "moduleId": "A1-01",
@@ -940,13 +939,13 @@
   },
   {
     "frontModuleId": "paper_reader",
-    "frontModuleLabel": "文献阅读（Paper Reader）",
-    "group": "学术研究",
+    "frontModuleLabel": "Paper Reader",
+    "group": "Academic Research",
     "variants": [
       {
         "variantId": "paper_abstract",
-        "label": "论文摘要生成",
-        "description": "对单篇文献生成符合学术规范的摘要。",
+        "label": "Paper Abstract",
+        "description": "Generate an academic-style abstract for a single paper.",
         "backendModules": [
           {
             "moduleId": "E5-01",
@@ -957,8 +956,8 @@
       },
       {
         "variantId": "paper_notes",
-        "label": "论文读书笔记",
-        "description": "生成包含研究问题、方法、结论与局限的读书笔记。",
+        "label": "Reading Notes",
+        "description": "Generate reading notes including research question, methods, conclusions, and limitations.",
         "backendModules": [
           {
             "moduleId": "E5-01",
@@ -976,8 +975,8 @@
   },
   {
     "frontModuleId": "academic_study",
-    "frontModuleLabel": "学术研究（Academic Study）",
-    "group": "学术研究",
+    "frontModuleLabel": "Academic Study",
+    "group": "Academic Research",
     "variants": [
       {
         "variantId": "literature_review",
@@ -998,8 +997,8 @@
       },
       {
         "variantId": "research_design_brief",
-        "label": "研究设计简报",
-        "description": "围绕研究问题输出变量框架与研究设计建议。",
+        "label": "Research Design Brief",
+        "description": "Provide a variable framework and research design suggestions based on the research question.",
         "backendModules": [
           {
             "moduleId": "E5-03",
@@ -1017,13 +1016,13 @@
   },
   {
     "frontModuleId": "course_design",
-    "frontModuleLabel": "课程设计（Course Design）",
-    "group": "学术研究",
+    "frontModuleLabel": "Course Design",
+    "group": "Academic Research",
     "variants": [
       {
         "variantId": "course_outline",
-        "label": "课程大纲",
-        "description": "根据目标与知识点生成课程整体结构与单元安排。",
+        "label": "Course Outline",
+        "description": "Generate a course structure and unit plan based on learning goals and key topics.",
         "backendModules": [
           {
             "moduleId": "E1-01",
@@ -1034,8 +1033,8 @@
       },
       {
         "variantId": "lesson_plan",
-        "label": "单节课教案",
-        "description": "为单节课程生成教学目标、流程与活动设计。",
+        "label": "Lesson Plan",
+        "description": "Generate learning objectives, lesson flow, and activity design for a single session.",
         "backendModules": [
           {
             "moduleId": "E1-01",
@@ -1053,13 +1052,13 @@
   },
   {
     "frontModuleId": "explainer",
-    "frontModuleLabel": "教学解释（Explainer）",
-    "group": "学术研究",
+    "frontModuleLabel": "Explainer",
+    "group": "Academic Research",
     "variants": [
       {
         "variantId": "concept_explainer",
-        "label": "概念/理论讲解",
-        "description": "对某个概念或理论进行系统化定义与结构化解释。",
+        "label": "Concept & Theory Explainer",
+        "description": "Provide a systematic definition and structured explanation of a concept or theory.",
         "backendModules": [
           {
             "moduleId": "E5-03",
@@ -1070,8 +1069,8 @@
       },
       {
         "variantId": "faq_explainer",
-        "label": "教学问答",
-        "description": "基于核心概念生成典型问题与答案，适合课后问答。",
+        "label": "Teaching Q&A",
+        "description": "Generate typical questions and answers based on core concepts for post-class Q&A.",
         "backendModules": [
           {
             "moduleId": "E5-03",
@@ -1089,13 +1088,13 @@
   },
   {
     "frontModuleId": "tech_stack",
-    "frontModuleLabel": "技术栈构（Tech Stack）",
-    "group": "技术开发",
+    "frontModuleLabel": "Tech Stack",
+    "group": "Technology",
     "variants": [
       {
         "variantId": "tech_plan",
-        "label": "技术方案规划",
-        "description": "围绕业务需求设计技术栈、组件选择与简单架构方案。",
+        "label": "Tech Solution Plan",
+        "description": "Design a tech stack, component choices, and a lightweight architecture plan based on business requirements.",
         "backendModules": [
           {
             "moduleId": "E1-01",
@@ -1111,8 +1110,8 @@
       },
       {
         "variantId": "architecture_overview",
-        "label": "架构总览说明",
-        "description": "生成系统架构的文字说明，适合分享与评审。",
+        "label": "Architecture Overview",
+        "description": "Generate a written overview of the system architecture for sharing and review.",
         "backendModules": [
           {
             "moduleId": "E1-01",
@@ -1125,13 +1124,13 @@
   },
   {
     "frontModuleId": "debugger",
-    "frontModuleLabel": "故障诊断（Debugger）",
-    "group": "技术开发",
+    "frontModuleLabel": "Debugger",
+    "group": "Technology",
     "variants": [
       {
         "variantId": "issue_diagnosis",
-        "label": "问题诊断",
-        "description": "根据现象与日志梳理可能原因与排查路径。",
+        "label": "Issue Diagnosis",
+        "description": "Identify likely causes and an investigation path based on symptoms and logs.",
         "backendModules": [
           {
             "moduleId": "C2-01",
@@ -1147,8 +1146,8 @@
       },
       {
         "variantId": "postmortem_report",
-        "label": "事故复盘报告",
-        "description": "围绕一次故障生成复盘报告与改进建议。",
+        "label": "Postmortem Report",
+        "description": "Generate a postmortem report and improvement recommendations for an incident.",
         "backendModules": [
           {
             "moduleId": "E6-02",
