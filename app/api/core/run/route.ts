@@ -1,5 +1,5 @@
 // app/api/core/run/route.ts
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { runEngine } from "@/lib/promptos/run-engine";
 import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
 import type { CoreKey, PlanTier } from "@/lib/promptos/core/core-map";
@@ -158,7 +158,10 @@ async function handler(req: Request) {
 }
 
 // ✅ 只保留一个 POST 导出（文件顶层）
-export const POST = withSubscription(handler, { scope: "core" });
+export async function POST(req: NextRequest) {
+  return withSubscription(handler, { scope: "core" })(req);
+}
+
 
 export async function OPTIONS(req: Request) {
   const origin = req.headers.get("origin");
