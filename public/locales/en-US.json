@@ -13,14 +13,14 @@
     "strategy_and_execution": {
       "title": "Strategy & Execution"
     },
-    "group_e4baa7e5": {
-      "title": "产品设计"
+    "product_design": {
+      "title": "Product Design"
     },
     "academic_research": {
       "title": "Academic Research"
     },
-    "group_e68a80e6": {
-      "title": "技术开发"
+    "technical_development": {
+      "title": "Technical Development"
     }
   },
   "modules": {
@@ -398,7 +398,7 @@
       }
     },
     "ppt_architect": {
-      "groupKey": "group_e4baa7e5",
+      "groupKey": "product_design",
       "title": "PPT 架构师（PPT Architect）",
       "description": "",
       "variants": {
@@ -413,7 +413,7 @@
       }
     },
     "product_spec": {
-      "groupKey": "group_e4baa7e5",
+      "groupKey": "product_design",
       "title": "产品说明（Product Spec）",
       "description": "",
       "variants": {
@@ -488,7 +488,7 @@
       }
     },
     "tech_stack": {
-      "groupKey": "group_e68a80e6",
+      "groupKey": "technical_development",
       "title": "技术栈构（Tech Stack）",
       "description": "",
       "variants": {
@@ -503,7 +503,7 @@
       }
     },
     "debugger": {
-      "groupKey": "group_e68a80e6",
+      "groupKey": "technical_development",
       "title": "故障诊断（Debugger）",
       "description": "",
       "variants": {
