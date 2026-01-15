@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+      "i18n:lint": "node scripts/i18n-lint.mjs public/locales/en-US.json",
     "gen:mmap": "tsx scripts/gen-frontend-module-id-map.ts",
     "check:mmap": "npm run gen:mmap && git diff --exit-code",
     "gen:prompt-bank": "tsx scripts/generate-prompt-bank.ts"
