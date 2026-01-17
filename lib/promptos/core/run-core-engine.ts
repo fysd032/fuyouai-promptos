@@ -1,4 +1,3 @@
-// lib/promptos/core/run-core-engine.ts
 import { PROMPT_BANK } from "@/lib/promptos/prompt-bank.generated";
 import { runEngine } from "@/lib/promptos/run-engine";
 
@@ -62,7 +61,6 @@ export type RunCoreEngineResult =
     };
 
 function hasPromptKey(pk: string): boolean {
-  // ✅ 判断 key 是否存在，而不是值是否 truthy
   return Object.prototype.hasOwnProperty.call(PROMPT_BANK as any, pk);
 }
 

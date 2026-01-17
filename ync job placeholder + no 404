@@ -1,0 +1,118 @@
+[1mdiff --git a/app/api/generate/route.ts b/app/api/generate/route.ts[m
+[1mindex 964ac96..ac4797e 100644[m
+[1m--- a/app/api/generate/route.ts[m
+[1m+++ b/app/api/generate/route.ts[m
+[36m@@ -3,13 +3,15 @@[m
+ import { NextResponse } from "next/server";[m
+ [m
+[32m+[m[32mexport const runtime = "nodejs";[m
+[32m+[m[32mexport const dynamic = "force-dynamic";[m
+[32m+[m
+[m
+ [m
+[31m-const worker_url = process.env.WORKER_URL!;[m
+[31m-const worker_token = process.env.WORKER_TOKEN!;[m
+[32m+[m[32mconst worker_url = (process.env.WORKER_URL || "").replace(/\/$/, "");[m
+[32m+[m[32mconst worker_token = process.env.WORKER_TOKEN || "";[m
+ [m
+ // 如果你要支持 frontModuleId/variantId，就需要能拿到 mapping 数据：[m
+[31m-// 方式1：直接 import 你的 module_mapping.v2.json（你 registry route 也是这么 import 的）[m
+ import mapping from "@/module_mapping.v2.json";[m
+ [m
+ function find_prompt_key_by_mapping(frontModuleId: string, variantId: string): string | null {[m
+[36m@@ -42,6 +44,14 @@[m [mexport async function POST(req: Request) {[m
+     );[m
+   }[m
+ [m
+[32m+[m[32m  // ✅ 环境变量缺失直接报错（避免悄悄 500）[m
+[32m+[m[32m  if (!worker_url) {[m
+[32m+[m[32m    return NextResponse.json({ ok: false, error: "Missing WORKER_URL" }, { status: 500 });[m
+[32m+[m[32m  }[m
+[32m+[m[32m  if (!worker_token) {[m
+[32m+[m[32m    return NextResponse.json({ ok: false, error: "Missing WORKER_TOKEN" }, { status: 500 });[m
+[32m+[m[32m  }[m
+[32m+[m
+   // 1) 向 worker 创建任务[m
+   const r = await fetch(`${worker_url}/run`, {[m
+     method: "POST",[m
+[36m@@ -52,14 +62,51 @@[m [mexport async function POST(req: Request) {[m
+     body: JSON.stringify({ promptKey, userInput, engineType }),[m
+   });[m
+ [m
+[32m+[m[32m  const workerText = await r.text().catch(() => "");[m
+[32m+[m
+   if (!r.ok) {[m
+[31m-    const t = await r.text();[m
+[31m-    return NextResponse.json({ ok: false, error: `worker failed: ${t}` }, { status: 500 });[m
+[32m+[m[32m    return NextResponse.json([m
+[32m+[m[32m      { ok: false, error: `worker failed`, status: r.status, workerText },[m
+[32m+[m[32m      { status: 500 }[m
+[32m+[m[32m    );[m
+   }[m
+ [m
+[31m-  const { jobId } = await r.json();[m
+[32m+[m[32m  let parsed: any = {};[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    parsed = JSON.parse(workerText);[m
+[32m+[m[32m  } catch {[m
+[32m+[m[32m    parsed = {};[m
+[32m+[m[32m  }[m
+ [m
+[31m-  // 2) 立刻返回给前端[m
+[32m+[m[32m  const jobId = parsed?.jobId;[m
+[32m+[m
+[32m+[m[32m  if (!jobId) {[m
+[32m+[m[32m    return NextResponse.json([m
+[32m+[m[32m      { ok: false, error: "worker did not return jobId", workerText },[m
+[32m+[m[32m      { status: 500 }[m
+[32m+[m[32m    );[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  // ✅ 2) 关键：先写一条占位记录，避免 GET 立刻 not found[m
+[32m+[m[32m  // （即便 worker 没 Redis，前端也不会因为 404 崩掉）[m
+[32m+[m[32m  const ttlSec = 60 * 30;[m
+[32m+[m[32m  await redis[m
+[32m+[m[32m    .set([m
+[32m+[m[32m      `job:${jobId}`,[m
+[32m+[m[32m      {[m
+[32m+[m[32m        status: "queued",[m
+[32m+[m[32m        ok: true,[m
+[32m+[m[32m        promptKey,[m
+[32m+[m[32m        engineType,[m
+[32m+[m[32m        createdAt: Date.now(),[m
+[32m+[m[32m        text: "正在生成，请耐心等待…",[m
+[32m+[m[32m        modelOutput: "正在生成，请耐心等待…",[m
+[32m+[m[32m      },[m
+[32m+[m[32m      { ex: ttlSec }[m
+[32m+[m[32m    )[m
+[32m+[m[32m    .catch(() => {});[m
+[32m+[m
+[32m+[m[32m  // 3) 立刻返回给前端[m
+   return NextResponse.json({[m
+     ok: true,[m
+     degraded: true,[m
+[36m@@ -76,8 +123,20 @@[m [mexport async function GET(req: Request) {[m
+   const jobId = searchParams.get("jobId");[m
+   if (!jobId) return NextResponse.json({ ok: false, error: "missing jobId" }, { status: 400 });[m
+ [m
+[31m-  const data = await redis.get(`job:${jobId}`);[m
+[31m-  if (!data) return NextResponse.json({ ok: false, error: "not found" }, { status: 404 });[m
+[32m+[m[32m  const data = await redis.get(`job:${jobId}`).catch(() => null);[m
+[32m+[m
+[32m+[m[32m  // ✅ 关键改动：不要再返回 404 not found[m
+[32m+[m[32m  // 查不到就当作 still running（前端就不会报错）[m
+[32m+[m[32m  if (!data) {[m
+[32m+[m[32m    return NextResponse.json({[m
+[32m+[m[32m      ok: true,[m
+[32m+[m[32m      jobId,[m
+[32m+[m[32m      status: "running",[m
+[32m+[m[32m      text: "正在生成，请耐心等待…",[m
+[32m+[m[32m      modelOutput: "正在生成，请耐心等待…",[m
+[32m+[m[32m      hint: "No redis record yet. If it never becomes done, ensure worker writes job status to Redis.",[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }[m
+ [m
+   return NextResponse.json({ ok: true, ...(data as any) });[m
+[31m-}[m
+\ No newline at end of file[m
+[32m+[m[32m}[m
