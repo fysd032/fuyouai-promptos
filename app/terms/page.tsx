@@ -17,8 +17,8 @@ export default function TermsPage() {
           Terms of Service
         </h1>
         <p>
-          The service is operated by FuyouAI. By using this service, you agree to
-          these Terms of Service.
+          The service is operated by FuyouAI (&quot;Fuyouai&quot;). By using this
+          service, you agree to these Terms of Service.
         </p>
         <p>
           Subscription access is required for paid features, and access remains active
