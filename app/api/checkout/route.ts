@@ -49,19 +49,31 @@ async function handler(req: Request) {
   const corsHeaders = getCorsHeaders(origin);
 
   try {
-    // 1. 校验用户 session
-    const supabase = await createClient();
-    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    // 1. 校验用户 session（优先从 Authorization header 取 token）
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-    if (authErr || !authData?.user) {
+    const supabase = await createClient();
+    let user = null;
+
+    if (token) {
+      const { data, error } = await supabase.auth.getUser(token);
+      if (!error) user = data.user;
+    } else {
+      // cookie 方式兜底
+      const { data } = await supabase.auth.getUser();
+      user = data.user;
+    }
+
+    if (!user) {
       return NextResponse.json(
         { ok: false, code: "UNAUTHORIZED", error: "Please sign in." },
         { status: 401, headers: corsHeaders }
       );
     }
 
-    const userId = authData.user.id;
-    const email = authData.user.email || "";
+    const userId = user.id;
+    const email = user.email || "";
 
     // 2. 解析请求体，获取 plan
     const body = await req.json().catch(() => ({}));
