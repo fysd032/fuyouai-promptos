@@ -1,0 +1,275 @@
+// app/api/webhook/creem/route.ts
+// M2: Creem Webhook - 自动升级/降级用户订阅
+
+import { NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+// 从多种可能的路径提取 productId
+function extractProductId(data: any): string | null {
+  return (
+    data?.product?.id ||
+    data?.subscription?.product?.id ||
+    data?.object?.product_id ||
+    data?.object?.product?.id ||
+    data?.product_id ||
+    data?.productId ||
+    null
+  );
+}
+
+// Plan 映射：productId → plan name
+function getPlanFromProductId(productId: string | null): "starter" | "pro" | null {
+  if (!productId) return null;
+
+  const starterProductId = process.env.CREEM_PRODUCT_ID_STARTER;
+  const proProductId = process.env.CREEM_PRODUCT_ID_PRO;
+
+  if (productId === starterProductId) return "starter";
+  if (productId === proProductId) return "pro";
+  return null;
+}
+
+// 验签：HMAC-SHA256 + timing-safe compare（防侧信道攻击）
+function verifySignature(payload: string, signature: string, secret: string): boolean {
+  const hmac = createHmac("sha256", secret);
+  hmac.update(payload);
+  const expectedSignature = hmac.digest("hex");
+
+  // 长度不同直接返回 false
+  if (signature.length !== expectedSignature.length) {
+    return false;
+  }
+
+  // timing-safe compare（hex 编码更标准）
+  const sigBuffer = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expectedSignature, "hex");
+  return timingSafeEqual(sigBuffer, expectedBuffer);
+}
+
+// 幂等：先插入 event_id，利用 primary key 唯一性
+// 返回 "claimed" | "duplicate" | "error"
+async function tryClaimEvent(
+  supabase: any,
+  eventId: string,
+  eventType: string
+): Promise<"claimed" | "duplicate" | "error"> {
+  const { error } = await supabase.from("creem_webhook_events").insert({
+    id: eventId,
+    event_type: eventType,
+    created_at: new Date().toISOString(),
+  });
+
+  // 插入成功 → 首次处理
+  if (!error) return "claimed";
+
+  // duplicate key error → 已处理过
+  if (error.code === "23505" || error.message?.includes("duplicate")) {
+    return "duplicate";
+  }
+
+  // 其他错误（数据库抖动等）→ 返回 error，让调用方返回 500 触发重试
+  console.error("[Webhook][ERROR] Event claim failed:", error);
+  return "error";
+}
+
+// 删除已 claim 的 event（用于 handleEvent 失败时回滚，让重试能再次处理）
+async function releaseEvent(supabase: any, eventId: string): Promise<void> {
+  const { error } = await supabase
+    .from("creem_webhook_events")
+    .delete()
+    .eq("id", eventId);
+
+  if (error) {
+    console.error(`[Webhook][ERROR] Failed to release event ${eventId}:`, error);
+  } else {
+    console.log(`[Webhook] Released event ${eventId} for retry`);
+  }
+}
+
+export async function POST(req: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  try {
+    // 1. 读取原始 payload
+    const rawBody = await req.text();
+    const signature = req.headers.get("creem-signature") || "";
+
+    // 2. 验签
+    const webhookSecret = process.env.CREEM_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error("[Webhook] Missing CREEM_WEBHOOK_SECRET");
+      return NextResponse.json({ ok: false, error: "Server misconfigured" }, { status: 500 });
+    }
+
+    if (!verifySignature(rawBody, signature, webhookSecret)) {
+      console.error("[Webhook] Signature verification failed");
+      return NextResponse.json({ ok: false, error: "Invalid signature" }, { status: 401 });
+    }
+
+    // 3. 解析 payload
+    let payload: any;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      console.error("[Webhook] Invalid JSON payload");
+      return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+    }
+
+    // 提取 eventId（必须存在，否则拒绝）
+    const eventId = payload.id || payload.event_id || payload.eventId;
+    if (!eventId) {
+      console.error("[Webhook] Missing event ID in payload");
+      return NextResponse.json({ ok: false, error: "Missing event ID" }, { status: 400 });
+    }
+
+    // 提取 eventType（兼容多种命名）
+    const eventType = payload.eventType || payload.event_type || payload.type || "unknown";
+
+    console.log(`[Webhook] Received event: ${eventType}, id: ${eventId}`);
+
+    // 4. 幂等：先插入 event_id，插入失败说明已处理过
+    const claimResult = await tryClaimEvent(supabaseAdmin, eventId, eventType);
+    if (claimResult === "duplicate") {
+      console.log(`[Webhook] Event ${eventId} already processed, skipping (deduped)`);
+      return NextResponse.json({ ok: true, message: "deduped" });
+    }
+    if (claimResult === "error") {
+      // 数据库错误，返回 500 让 Creem 重试
+      console.error(`[Webhook][ERROR] Failed to claim event ${eventId}, returning 500 for retry`);
+      return NextResponse.json({ ok: false, error: "Database error" }, { status: 500 });
+    }
+
+    // 5. 根据事件类型处理
+    let result: any;
+    try {
+      result = await handleEvent(supabaseAdmin, eventType, payload);
+    } catch (handleErr: any) {
+      // handleEvent 失败 → 释放 claim，让 Creem 重试时能再次处理
+      console.error(`[Webhook][ERROR] handleEvent failed for ${eventId}:`, handleErr);
+      await releaseEvent(supabaseAdmin, eventId);
+      return NextResponse.json({ ok: false, error: handleErr?.message || "Processing failed" }, { status: 500 });
+    }
+
+    console.log(`[Webhook] Event ${eventId} processed:`, result);
+    return NextResponse.json({ ok: true, ...result });
+
+  } catch (e: any) {
+    console.error("[Webhook][ERROR] Unexpected error:", e);
+    return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
+  }
+}
+
+// 升级事件类型
+const UPGRADE_EVENTS = new Set([
+  "checkout.completed",
+  "subscription.created",
+  "subscription.active",
+  "subscription.paid",
+]);
+
+// 降级事件类型
+const DOWNGRADE_EVENTS = new Set([
+  "subscription.canceled",
+  "subscription.expired",
+  "charge.refunded",
+  "refund.created",
+]);
+
+// 事件处理逻辑
+async function handleEvent(supabase: any, eventType: string, payload: any) {
+  if (UPGRADE_EVENTS.has(eventType)) {
+    return await handleSubscriptionActive(supabase, payload);
+  }
+
+  if (DOWNGRADE_EVENTS.has(eventType)) {
+    return await handleSubscriptionCanceled(supabase, payload);
+  }
+
+  console.log(`[Webhook] Unhandled event type: ${eventType}`);
+  return { message: "ignored", eventType };
+}
+
+// 处理订阅激活（升级）
+async function handleSubscriptionActive(supabase: any, payload: any) {
+  // 从 payload 中提取信息（兼容多种嵌套结构）
+  const data = payload.data?.object || payload.object || payload.data || payload;
+  const metadata = data.metadata || payload.metadata || {};
+
+  const userId = metadata.user_id || metadata.userId;
+  if (!userId) {
+    console.error("[Webhook][SKIP] missing_user_id - payload:", JSON.stringify(payload));
+    return { message: "missing_user_id", skipped: true };
+  }
+
+  // 提取 productId（鲁棒解析）
+  const productId = extractProductId(data) || extractProductId(payload);
+
+  // 从 productId 获取 plan，或从 metadata 获取
+  const plan = metadata.plan || getPlanFromProductId(productId);
+
+  // 未知 plan 不能默认升级，必须跳过
+  if (!plan) {
+    console.error(`[Webhook][SKIP] unknown_product - productId: ${productId}, user_id: ${userId}`);
+    return { message: "unknown_product", skipped: true, productId, userId };
+  }
+
+  const customerId = data.customer_id || data.customerId || data.customer?.id;
+  const subscriptionId = data.subscription_id || data.subscriptionId || data.subscription?.id || data.id;
+
+  // 更新 subscriptions 表
+  const { error } = await supabase
+    .from("subscriptions")
+    .upsert(
+      {
+        user_id: userId,
+        status: "active",
+        plan: plan,
+        creem_customer_id: customerId || null,
+        creem_subscription_id: subscriptionId || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+
+  if (error) {
+    console.error("[Webhook] Failed to update subscription:", error);
+    throw new Error(`DB update failed: ${error.message}`);
+  }
+
+  console.log(`[Webhook] User ${userId} upgraded to plan: ${plan}`);
+  return { message: "upgraded", userId, plan };
+}
+
+// 处理订阅取消/过期（降级）
+async function handleSubscriptionCanceled(supabase: any, payload: any) {
+  const data = payload.data?.object || payload.object || payload.data || payload;
+  const metadata = data.metadata || payload.metadata || {};
+
+  const userId = metadata.user_id || metadata.userId;
+  if (!userId) {
+    console.error("[Webhook][SKIP] missing_user_id_cancel - payload:", JSON.stringify(payload));
+    return { message: "missing_user_id", skipped: true };
+  }
+
+  // 更新 subscriptions 表：降级为 free / canceled
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({
+      status: "canceled",
+      plan: "free",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("[Webhook] Failed to cancel subscription:", error);
+    throw new Error(`DB update failed: ${error.message}`);
+  }
+
+  console.log(`[Webhook] User ${userId} subscription canceled`);
+  return { message: "canceled", userId };
+}
