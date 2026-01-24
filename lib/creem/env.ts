@@ -11,8 +11,13 @@ function maskKey(apiKey: string) {
 }
 
 export function resolveCreemEnv(options?: { logMaskedKey?: boolean }): CreemEnv {
+  const creemEnv = process.env.CREEM_ENV;
+  const vercelEnv = process.env.VERCEL_ENV;
   const appEnv = process.env.APP_ENV ?? process.env.NODE_ENV;
-  const isTest = appEnv !== "production";
+  const isTest =
+    creemEnv === "test" ||
+    (!creemEnv &&
+      (vercelEnv ? vercelEnv !== "production" : appEnv !== "production"));
 
   const apiKey = process.env.CREEM_API_KEY;
   if (!apiKey) throw new Error("Missing CREEM_API_KEY");
