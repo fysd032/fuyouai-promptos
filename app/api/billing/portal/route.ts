@@ -61,14 +61,15 @@ export async function POST(req: Request) {
     }
 
     // 查询用户的 creem_customer_id
-    type SubscriptionRow = { creem_customer_id: string | null };
+    type SubRow = { creem_customer_id: string | null };
 
     const supabaseAdmin = getSupabaseAdmin();
     const { data: sub, error } = await supabaseAdmin
       .from("subscriptions")
       .select("creem_customer_id")
       .eq("user_id", user.id)
-      .maybeSingle();
+      .maybeSingle()
+      .returns<SubRow | null>();
 
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500, headers: corsHeaders });
