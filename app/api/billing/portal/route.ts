@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 
     const supabaseAdmin = getSupabaseAdmin();
     const { data: sub, error } = await supabaseAdmin
-      .from<SubscriptionRow>("subscriptions")
+      .from("subscriptions")
       .select("creem_customer_id")
       .eq("user_id", user.id)
       .maybeSingle();
