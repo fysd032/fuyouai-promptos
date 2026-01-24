@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { resolveCreemEnv } from "@/lib/creem/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,8 +69,7 @@ export async function POST(req: Request) {
       .from("subscriptions")
       .select("creem_customer_id")
       .eq("user_id", user.id)
-      .maybeSingle()
-      .returns<SubRow | null>();
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500, headers: corsHeaders });
@@ -82,23 +82,16 @@ export async function POST(req: Request) {
     const customerId = sub.creem_customer_id; // string
 
     // 调用 Creem API 获取客户门户 URL
-    const creemApiKey = process.env.CREEM_API_KEY;
-    if (!creemApiKey) {
-      console.error("[BillingPortal] Missing CREEM_API_KEY");
-      return NextResponse.json(
-        { ok: false, error: "Server misconfigured." },
-        { status: 500, headers: corsHeaders }
-      );
-    }
+    const { baseUrl: creemBaseUrl, apiKey } = resolveCreemEnv();
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://fuyouai.com";
-    const returnUrl = `${baseUrl}/#/account/subscription`;
+    const appBaseUrl = process.env.APP_URL || "https://fuyouai.com";
+    const returnUrl = `${appBaseUrl}/#/account/subscription`;
 
-    const creemRes = await fetch("https://api.creem.io/v1/billing_portal/sessions", {
+    const creemRes = await fetch(`${creemBaseUrl}/v1/billing_portal/sessions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": creemApiKey,
+        "x-api-key": apiKey,
       },
       body: JSON.stringify({
         customer_id: customerId,

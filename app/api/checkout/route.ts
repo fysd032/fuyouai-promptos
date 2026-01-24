@@ -3,6 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveCreemEnv } from "@/lib/creem/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -96,17 +97,11 @@ async function handler(req: Request) {
     }
 
     // 3. 调用 Creem API 创建 checkout session
-    const creemApiKey = process.env.CREEM_API_KEY;
-    if (!creemApiKey) {
-      return NextResponse.json(
-        { ok: false, error: "Missing CREEM_API_KEY env var." },
-        { status: 500, headers: corsHeaders }
-      );
-    }
+    const { baseUrl: creemBaseUrl, apiKey } = resolveCreemEnv();
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://fuyouai.com";
-    const successUrl = `${baseUrl}/#/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${baseUrl}/#/pricing`;
+    const appBaseUrl = process.env.APP_URL || "https://fuyouai.com";
+    const successUrl = `${appBaseUrl}/#/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${appBaseUrl}/#/pricing`;
 
     const creemPayload = {
       product_id: productId,
@@ -119,11 +114,11 @@ async function handler(req: Request) {
       },
     };
 
-    const creemRes = await fetch("https://api.creem.io/v1/checkouts", {
+    const creemRes = await fetch(`${creemBaseUrl}/v1/checkouts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": creemApiKey,
+        "x-api-key": apiKey,
       },
       body: JSON.stringify(creemPayload),
     });
