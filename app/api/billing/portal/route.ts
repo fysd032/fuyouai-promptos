@@ -61,17 +61,19 @@ export async function POST(req: Request) {
     }
 
     // 查询用户的 creem_customer_id
+    type SubscriptionRow = { creem_customer_id: string | null };
+
     const supabaseAdmin = getSupabaseAdmin();
     const { data: sub, error: subErr } = await supabaseAdmin
       .from("subscriptions")
       .select("creem_customer_id")
       .eq("user_id", user.id)
-      .maybeSingle();
+      .maybeSingle<SubscriptionRow>();
 
     if (subErr) {
       console.error("[BillingPortal] DB error:", subErr);
       return NextResponse.json(
-        { ok: false, error: "Failed to fetch subscription." },
+        { ok: false, error: subErr.message },
         { status: 500, headers: corsHeaders }
       );
     }
