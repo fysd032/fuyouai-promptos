@@ -31,7 +31,7 @@ function getCorsHeaders(origin: string | null) {
   };
 
   if (isAllowedOrigin(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin;
+    headers["Access-Control-Allow-Origin"] = origin!;
   }
   return headers;
 }
