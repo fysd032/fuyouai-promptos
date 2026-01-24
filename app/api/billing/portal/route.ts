@@ -64,27 +64,21 @@ export async function POST(req: Request) {
     type SubscriptionRow = { creem_customer_id: string | null };
 
     const supabaseAdmin = getSupabaseAdmin();
-    const { data: sub, error: subErr } = await supabaseAdmin
-      .from("subscriptions")
+    const { data: sub, error } = await supabaseAdmin
+      .from<SubscriptionRow>("subscriptions")
       .select("creem_customer_id")
       .eq("user_id", user.id)
-      .maybeSingle<SubscriptionRow>();
+      .maybeSingle();
 
-    if (subErr) {
-      console.error("[BillingPortal] DB error:", subErr);
-      return NextResponse.json(
-        { ok: false, error: subErr.message },
-        { status: 500, headers: corsHeaders }
-      );
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500, headers: corsHeaders });
     }
 
-    const customerId = sub?.creem_customer_id;
-    if (!customerId) {
-      return NextResponse.json(
-        { ok: false, error: "No billing account found. Please subscribe first." },
-        { status: 404, headers: corsHeaders }
-      );
+    if (sub?.creem_customer_id == null) {
+      return NextResponse.json({ ok: false, error: "No billing account found" }, { status: 404, headers: corsHeaders });
     }
+
+    const customerId = sub.creem_customer_id; // string
 
     // 调用 Creem API 获取客户门户 URL
     const creemApiKey = process.env.CREEM_API_KEY;
