@@ -53,6 +53,14 @@ async function handler(req: Request) {
     // 1. 校验用户 session（优先从 Authorization header 取 token）
     const authHeader = req.headers.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const cookieHeader = req.headers.get("cookie") || "";
+    console.log("[checkout] auth header", authHeader ? "PRESENT" : "MISSING");
+    console.log("[checkout] cookie header", cookieHeader ? "PRESENT" : "MISSING");
+    if (!authHeader.trim()) {
+      console.log("[checkout] NO AUTH HEADER");
+    } else if (token) {
+      console.log("[checkout] token prefix", token.slice(0, 20));
+    }
 
     const supabase = await createClient();
     let user = null;
@@ -98,6 +106,13 @@ async function handler(req: Request) {
 
     // 3. 调用 Creem API 创建 checkout session
     const { baseUrl: creemBaseUrl, apiKey } = resolveCreemEnv();
+    const environment = creemBaseUrl.includes("/test") ? "test" : "live";
+    console.log("[checkout] creem config", {
+      baseUrl: creemBaseUrl,
+      apiKeyPrefix: apiKey ? apiKey.slice(0, 8) : "MISSING",
+      productId,
+      environment,
+    });
 
     const appBaseUrl = process.env.APP_URL || "https://fuyouai.com";
     const successUrl = `${appBaseUrl}/#/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
@@ -124,6 +139,10 @@ async function handler(req: Request) {
     });
 
     const creemData = await creemRes.json().catch(() => ({}));
+    console.log("[checkout] creem response", {
+      status: creemRes.status,
+      body: creemData,
+    });
 
     if (!creemRes.ok) {
       console.error("Creem API error:", creemData);
