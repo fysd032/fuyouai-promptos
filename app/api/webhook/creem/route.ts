@@ -35,19 +35,33 @@ function getPlanFromProductId(productId: string | null): "starter" | "pro" | nul
 
 // 验签：HMAC-SHA256 + timing-safe compare（防侧信道攻击）
 function verifySignature(payload: string, signature: string, secret: string): boolean {
-  const hmac = createHmac("sha256", secret);
-  hmac.update(payload);
-  const expectedSignature = hmac.digest("hex");
+  try {
+    const expectedSignature = createHmac("sha256", secret).update(payload).digest("hex");
+    const expectedBuffer = Buffer.from(expectedSignature, "hex");
 
-  // 长度不同直接返回 false
-  if (signature.length !== expectedSignature.length) {
+    // Handle comma-separated signatures (split on comma, trim each)
+    const candidates = signature.split(",").map((s) => s.trim());
+
+    for (const candidate of candidates) {
+      // Support "sha256=" prefix
+      const sigRaw = candidate.startsWith("sha256=") ? candidate.slice(7) : candidate;
+      const sig = sigRaw.trim().toLowerCase();
+
+      // Basic hex validation
+      if (!/^[0-9a-f]+$/.test(sig) || sig.length % 2 !== 0) continue;
+
+      const sigBuffer = Buffer.from(sig, "hex");
+
+      // Compare buffer lengths (not string lengths)
+      if (sigBuffer.length !== expectedBuffer.length) continue;
+
+      if (timingSafeEqual(sigBuffer, expectedBuffer)) return true;
+    }
+
+    return false;
+  } catch {
     return false;
   }
-
-  // timing-safe compare（hex 编码更标准）
-  const sigBuffer = Buffer.from(signature, "hex");
-  const expectedBuffer = Buffer.from(expectedSignature, "hex");
-  return timingSafeEqual(sigBuffer, expectedBuffer);
 }
 
 // 幂等：先插入 event_id，利用 primary key 唯一性
@@ -96,7 +110,11 @@ export async function POST(req: Request) {
   try {
     // 1. 读取原始 payload
     const rawBody = await req.text();
-    const signature = req.headers.get("creem-signature") || "";
+    const signature =
+      req.headers.get("creem-signature") ||
+      req.headers.get("x-creem-signature") ||
+      req.headers.get("signature") ||
+      "";
 
     // 2. 验签
     const webhookSecret = process.env.CREEM_WEBHOOK_SECRET;
