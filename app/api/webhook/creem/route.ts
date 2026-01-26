@@ -104,6 +104,11 @@ async function releaseEvent(supabase: any, eventId: string): Promise<void> {
   }
 }
 
+// GET 自检端点
+export async function GET() {
+  return NextResponse.json({ ok: true, message: "creem webhook endpoint alive" }, { status: 200 });
+}
+
 export async function POST(req: Request) {
   const supabaseAdmin = getSupabaseAdmin();
 
@@ -116,10 +121,25 @@ export async function POST(req: Request) {
       req.headers.get("signature") ||
       "";
 
-    // 2. 验签
-    const webhookSecret = process.env.CREEM_WEBHOOK_SECRET;
+    // Debug: log header keys and signature presence (上线后可删除)
+    // const headerKeys = Array.from(req.headers.keys());
+    // console.log("[Webhook] header keys:", headerKeys);
+    // console.log("[Webhook] signature present:", Boolean(signature));
+
+    // 2. 验签（区分 test/live 环境）
+    const creemEnv = (process.env.CREEM_ENV || "test").toLowerCase();
+    const isLive = ["live", "prod", "production"].includes(creemEnv);
+
+    const webhookSecret = isLive
+      ? process.env.CREEM_WEBHOOK_SECRET_LIVE
+      : process.env.CREEM_WEBHOOK_SECRET_TEST;
+
+    // 环境日志（上线后可删除）
+    console.log("[Webhook] env =", creemEnv);
+    console.log("[Webhook] using live secret =", isLive);
+
     if (!webhookSecret) {
-      console.error("[Webhook] Missing CREEM_WEBHOOK_SECRET");
+      console.error("[Webhook] Missing CREEM_WEBHOOK_SECRET_" + (isLive ? "LIVE" : "TEST"));
       return NextResponse.json({ ok: false, error: "Server misconfigured" }, { status: 500 });
     }
 
@@ -173,7 +193,10 @@ export async function POST(req: Request) {
     }
 
     console.log(`[Webhook] Event ${eventId} processed:`, result);
-    return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json(
+      { ok: true, received: true, ...result, eventId, eventType },
+      { status: 200 }
+    );
 
   } catch (e: any) {
     console.error("[Webhook][ERROR] Unexpected error:", e);
