@@ -44,8 +44,11 @@ function verifySignature(payload: string, signature: string, secret: string): bo
 
     for (const candidate of candidates) {
       // Support "sha256=" prefix
-      const sigRaw = candidate.startsWith("sha256=") ? candidate.slice(7) : candidate;
-      const sig = sigRaw.trim().toLowerCase();
+     const sigRaw = candidate.startsWith("sha256=") ? candidate.slice(7) : candidate;
+
+// ✅ 去掉所有空白（空格/换行/制表符），否则 Creem 示例那种会验签失败
+const sig = sigRaw.toLowerCase().replace(/\s+/g, "");
+
 
       // Basic hex validation
       if (!/^[0-9a-f]+$/.test(sig) || sig.length % 2 !== 0) continue;
@@ -171,6 +174,7 @@ export async function POST(req: Request) {
     // 4. 幂等：先插入 event_id，插入失败说明已处理过
     const claimResult = await tryClaimEvent(supabaseAdmin, eventId, eventType);
     if (claimResult === "duplicate") {
+      // ✅ 重复事件返回 200，防止 Creem 重试
       console.log(`[Webhook] Event ${eventId} already processed, skipping (deduped)`);
       return NextResponse.json({ ok: true, message: "deduped" });
     }
@@ -191,6 +195,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: handleErr?.message || "Processing failed" }, { status: 500 });
     }
 
+    // ✅ 所有成功处理的事件（包括 skip 场景如 missing_user_id / unknown_product）都返回 200
+    // 目的：防止 Creem 因 4xx/5xx 重试，导致重复事件或用户状态抖动
     console.log(`[Webhook] Event ${eventId} processed:`, result);
     return NextResponse.json(
       { ok: true, received: true, ...result, eventId, eventType },
@@ -239,7 +245,12 @@ async function handleSubscriptionActive(supabase: any, payload: any) {
   const data = payload.data?.object || payload.object || payload.data || payload;
   const metadata = data.metadata || payload.metadata || {};
 
-  const userId = metadata.user_id || metadata.userId;
+ const userId =
+  metadata.user_id ||
+  metadata.userId ||
+  metadata.referenceId ||      // ✅ 兼容官方示例
+  metadata.reference_id;
+
   if (!userId) {
     console.error("[Webhook][SKIP] missing_user_id - payload:", JSON.stringify(payload));
     return { message: "missing_user_id", skipped: true };
@@ -258,6 +269,8 @@ async function handleSubscriptionActive(supabase: any, payload: any) {
   }
 
   const customerId = data.customer_id || data.customerId || data.customer?.id;
+  // 注意：checkout.completed 事件可能没有 subscription_id，这是正常情况。
+  // 当前代码通过 fallback 到 data.id 安全处理此场景。
   const subscriptionId = data.subscription_id || data.subscriptionId || data.subscription?.id || data.id;
 
   // 更新 subscriptions 表
@@ -289,7 +302,13 @@ async function handleSubscriptionCanceled(supabase: any, payload: any) {
   const data = payload.data?.object || payload.object || payload.data || payload;
   const metadata = data.metadata || payload.metadata || {};
 
-  const userId = metadata.user_id || metadata.userId;
+  // 兼容多种 userId 字段（与升级逻辑一致）
+  const userId =
+    metadata.user_id ||
+    metadata.userId ||
+    metadata.referenceId ||
+    metadata.reference_id;
+
   if (!userId) {
     console.error("[Webhook][SKIP] missing_user_id_cancel - payload:", JSON.stringify(payload));
     return { message: "missing_user_id", skipped: true };
