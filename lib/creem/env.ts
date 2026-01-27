@@ -33,20 +33,21 @@ export function resolveCreemEnv(
    * 3. Fallback to production
    * ---------------------------------------------------------
    */
-  const creemEnv = process.env.CREEM_ENV;
+  const creemEnvRaw = process.env.CREEM_ENV || "";
+  const creemEnv = creemEnvRaw.trim().toLowerCase();
 
   let isTest = false;
 
   // Highest priority: explicit env
   if (creemEnv === "test") {
     isTest = true;
-  } else if (creemEnv === "live") {
+  } else if (creemEnv === "live" || creemEnv === "prod" || creemEnv === "production") {
     isTest = false;
   } else {
     // Auto-detect by API key prefix
-    if (apiKey.startsWith("creem_te")) {
+    if (apiKey.startsWith("creem_te") || apiKey.startsWith("creem_test")) {
       isTest = true;
-    } else if (apiKey.startsWith("creem_li")) {
+    } else if (apiKey.startsWith("creem_li") || apiKey.startsWith("creem_live")) {
       isTest = false;
     } else {
       // Safe default: test

@@ -121,6 +121,10 @@ export async function POST(req: Request) {
       req.headers.get("signature") ||
       "";
 
+    const headerKeys = Array.from(req.headers.keys());
+    console.log("[Webhook] header keys:", headerKeys);
+    console.log("[Webhook] signature present:", Boolean(signature));
+
     // 2. 验签（区分 test/live 环境）
     const creemEnv = (process.env.CREEM_ENV || "test").toLowerCase();
     const isLive = ["live", "prod", "production"].includes(creemEnv);
