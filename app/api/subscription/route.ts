@@ -96,10 +96,10 @@ export async function GET(req: Request) {
     console.log("[Subscription] origin:", origin);
     console.log("[Subscription] found:", Boolean(sub));
     if (sub) {
-      console.log("[Subscription] plan:", sub.plan, "status:", sub.status);
+      console.log("[Subscription] plan:", sub?.plan, "status:", sub?.status);
     }
     if (error) {
-      console.log("[Subscription] error:", error.code, error.message);
+      console.log("[Subscription] error:", error?.code, error?.message);
     }
 
     // 构建 debug 信息（仅 DEBUG=true 时返回）
