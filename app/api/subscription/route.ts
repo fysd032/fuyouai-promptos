@@ -4,6 +4,9 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+
+const DEBUG = process.env.DEBUG_SUBSCRIPTION === "true";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,24 +80,40 @@ export async function GET(req: Request) {
       );
     }
 
+    // 使用 admin client 绕过 RLS（用户已通过 token 验证）
+    const supabaseAdmin = getSupabaseAdmin();
+    const supabaseUrl = process.env.SUPABASE_URL || "";
+
     // 查询 subscriptions 表
-    const { data: sub, error } = await supabase
+    const { data: sub, error } = await supabaseAdmin
       .from("subscriptions")
       .select("plan, status, trial_end, updated_at, creem_customer_id, creem_subscription_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    // 开发日志
+    // Debug 日志
     console.log("[Subscription] user_id:", user.id);
-    console.log("[Subscription] found subscription:", Boolean(sub));
+    console.log("[Subscription] origin:", origin);
+    console.log("[Subscription] found:", Boolean(sub));
     if (sub) {
       console.log("[Subscription] plan:", sub.plan, "status:", sub.status);
     }
+    if (error) {
+      console.log("[Subscription] error:", error.code, error.message);
+    }
+
+    // 构建 debug 信息（仅 DEBUG=true 时返回）
+    const debugInfo = DEBUG ? {
+      user_id: user.id,
+      supabase_url_host: supabaseUrl ? new URL(supabaseUrl).host : null,
+      query_error: error ? { code: error.code, message: error.message } : null,
+      found: Boolean(sub),
+    } : undefined;
 
     if (error) {
       console.error("[Subscription] DB error:", error);
       return NextResponse.json(
-        { ok: false, error: "Failed to fetch subscription." },
+        { ok: false, error: "Failed to fetch subscription.", ...(debugInfo ? { debug: debugInfo } : {}) },
         { status: 500, headers: corsHeaders }
       );
     }
@@ -103,7 +122,7 @@ export async function GET(req: Request) {
     if (!sub) {
       console.log("[Subscription] No record found, returning null");
       return NextResponse.json(
-        { ok: true, subscription: null },
+        { ok: true, subscription: null, ...(debugInfo ? { debug: debugInfo } : {}) },
         { headers: corsHeaders }
       );
     }
@@ -122,6 +141,7 @@ export async function GET(req: Request) {
           creem_subscription_id: sub.creem_subscription_id || null,
           updated_at: sub.updated_at || null,
         },
+        ...(debugInfo ? { debug: debugInfo } : {}),
       },
       { headers: corsHeaders }
     );
