@@ -21,6 +21,33 @@ function extractProductId(data: any): string | null {
   );
 }
 
+// Extract Creem customer id from multiple possible paths.
+function extractCreemCustomerId(data: any): string | null {
+  const directCustomer = data?.customer;
+  const objectCustomer = data?.object?.customer;
+  const dataCustomer = data?.data?.customer;
+  const dataObjectCustomer = data?.data?.object?.customer;
+
+  return (
+    data?.data?.object?.customer_id ??
+    data?.data?.object?.customerId ??
+    data?.data?.object?.customer?.id ??
+    (typeof dataObjectCustomer === "string" ? dataObjectCustomer : null) ??
+    data?.data?.customer_id ??
+    data?.data?.customer?.id ??
+    (typeof dataCustomer === "string" ? dataCustomer : null) ??
+    data?.customer_id ??
+    data?.customerId ??
+    data?.customer?.id ??
+    (typeof directCustomer === "string" ? directCustomer : null) ??
+    data?.object?.customer_id ??
+    data?.object?.customerId ??
+    data?.object?.customer?.id ??
+    (typeof objectCustomer === "string" ? objectCustomer : null) ??
+    data?.creem_customer_id ??
+    null
+  );
+}
 // Plan 映射：productId → plan name
 function getPlanFromProductId(productId: string | null): "starter" | "pro" | null {
   if (!productId) return null;
@@ -215,6 +242,7 @@ const UPGRADE_EVENTS = new Set([
   "subscription.created",
   "subscription.active",
   "subscription.paid",
+  "subscription.update",
 ]);
 
 // 降级事件类型
@@ -268,10 +296,22 @@ async function handleSubscriptionActive(supabase: any, payload: any, eventType: 
     return { message: "unknown_product", skipped: true, productId, userId };
   }
 
-  const customerId = data.customer_id || data.customerId || data.customer?.id;
+  const extractedCustomerId = extractCreemCustomerId(data);
   // 注意：checkout.completed 事件可能没有 subscription_id，这是正常情况。
   // 当前代码通过 fallback 到 data.id 安全处理此场景。
   const subscriptionId = data.subscription_id || data.subscriptionId || data.subscription?.id || data.id;
+
+  let existingCustomerId: string | null = null;
+  if (!extractedCustomerId) {
+    const { data: existingSub } = await supabase
+      .from("subscriptions")
+      .select("creem_customer_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    existingCustomerId = existingSub?.creem_customer_id ?? null;
+  }
+
+  const finalCustomerId = extractedCustomerId ?? existingCustomerId ?? undefined;
 
   // 更新 subscriptions 表
   const { error } = await supabase
@@ -281,7 +321,7 @@ async function handleSubscriptionActive(supabase: any, payload: any, eventType: 
         user_id: userId,
         status: "active",
         plan: plan,
-        creem_customer_id: customerId || null,
+        creem_customer_id: finalCustomerId ?? undefined,
         creem_subscription_id: subscriptionId || null,
         updated_at: new Date().toISOString(),
       },
@@ -292,6 +332,9 @@ async function handleSubscriptionActive(supabase: any, payload: any, eventType: 
     console.log("[Webhook] event:", {
       eventType,
       eventId: eventId ?? null,
+      userId,
+      extractedCustomerId: extractedCustomerId ?? null,
+      db_write_ok: false,
       metadata_user_id:
         metadata?.user_id ??
         metadata?.userId ??
@@ -308,6 +351,9 @@ async function handleSubscriptionActive(supabase: any, payload: any, eventType: 
   console.log("[Webhook] event:", {
     eventType,
     eventId: eventId ?? null,
+    userId,
+    extractedCustomerId: extractedCustomerId ?? null,
+    db_write_ok: true,
     metadata_user_id:
       metadata?.user_id ??
       metadata?.userId ??
