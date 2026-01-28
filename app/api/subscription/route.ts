@@ -8,6 +8,16 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 const DEBUG = process.env.DEBUG_SUBSCRIPTION === "true";
 
+// 订阅记录类型
+type SubscriptionRow = {
+  plan: string | null;
+  status: string | null;
+  trial_end: string | null;
+  creem_customer_id: string | null;
+  creem_subscription_id: string | null;
+  updated_at: string | null;
+};
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -85,21 +95,23 @@ export async function GET(req: Request) {
     const supabaseUrl = process.env.SUPABASE_URL || "";
 
     // 查询 subscriptions 表
-    const { data: sub, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("subscriptions")
       .select("plan, status, trial_end, updated_at, creem_customer_id, creem_subscription_id")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    const sub = data as SubscriptionRow | null;
 
     // Debug 日志
     console.log("[Subscription] user_id:", user.id);
     console.log("[Subscription] origin:", origin);
     console.log("[Subscription] found:", Boolean(sub));
     if (sub) {
-      console.log("[Subscription] plan:", sub?.plan, "status:", sub?.status);
+      console.log("[Subscription] plan:", sub.plan, "status:", sub.status);
     }
     if (error) {
-      console.log("[Subscription] error:", error?.code, error?.message);
+      console.log("[Subscription] error:", error.code, error.message);
     }
 
     // 构建 debug 信息（仅 DEBUG=true 时返回）
