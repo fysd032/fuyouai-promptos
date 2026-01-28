@@ -187,7 +187,7 @@ export async function POST(req: Request) {
     // 5. 根据事件类型处理
     let result: any;
     try {
-      result = await handleEvent(supabaseAdmin, eventType, payload);
+      result = await handleEvent(supabaseAdmin, eventType, payload, eventId);
     } catch (handleErr: any) {
       // handleEvent 失败 → 释放 claim，让 Creem 重试时能再次处理
       console.error(`[Webhook][ERROR] handleEvent failed for ${eventId}:`, handleErr);
@@ -226,9 +226,9 @@ const DOWNGRADE_EVENTS = new Set([
 ]);
 
 // 事件处理逻辑
-async function handleEvent(supabase: any, eventType: string, payload: any) {
+async function handleEvent(supabase: any, eventType: string, payload: any, eventId?: string) {
   if (UPGRADE_EVENTS.has(eventType)) {
-    return await handleSubscriptionActive(supabase, payload);
+    return await handleSubscriptionActive(supabase, payload, eventType, eventId);
   }
 
   if (DOWNGRADE_EVENTS.has(eventType)) {
@@ -240,7 +240,7 @@ async function handleEvent(supabase: any, eventType: string, payload: any) {
 }
 
 // 处理订阅激活（升级）
-async function handleSubscriptionActive(supabase: any, payload: any) {
+async function handleSubscriptionActive(supabase: any, payload: any, eventType: string, eventId?: string) {
   // 从 payload 中提取信息（兼容多种嵌套结构）
   const data = payload.data?.object || payload.object || payload.data || payload;
   const metadata = data.metadata || payload.metadata || {};
@@ -289,10 +289,34 @@ async function handleSubscriptionActive(supabase: any, payload: any) {
     );
 
   if (error) {
+    console.log("[Webhook] event:", {
+      eventType,
+      eventId: eventId ?? null,
+      metadata_user_id:
+        metadata?.user_id ??
+        metadata?.userId ??
+        metadata?.referenceId ??
+        metadata?.reference_id ??
+        null,
+      final_user_id: userId || null,
+      upsert_ok: false,
+    });
     console.error("[Webhook] Failed to update subscription:", error);
-    throw new Error(`DB update failed: ${error.message}`);
+    return { message: "db_update_failed", userId, plan, error: error.message };
   }
 
+  console.log("[Webhook] event:", {
+    eventType,
+    eventId: eventId ?? null,
+    metadata_user_id:
+      metadata?.user_id ??
+      metadata?.userId ??
+      metadata?.referenceId ??
+      metadata?.reference_id ??
+      null,
+    final_user_id: userId || null,
+    upsert_ok: true,
+  });
   console.log(`[Webhook] User ${userId} upgraded to plan: ${plan}`);
   return { message: "upgraded", userId, plan };
 }
