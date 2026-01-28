@@ -33,9 +33,14 @@ function getCorsHeaders(origin: string | null) {
   return headers;
 }
 
-// Plan 映射：$29 → starter, $69 → pro
+// Plan 映射：$29 → basic/starter, $69 → pro
 const PLAN_CONFIG: Record<string, { productId: string; price: number }> = {
+  basic: {
+    productId: process.env.CREEM_PRODUCT_ID_STARTER || "",
+    price: 29,
+  },
   starter: {
+    // 兼容旧版前端
     productId: process.env.CREEM_PRODUCT_ID_STARTER || "",
     price: 29,
   },
