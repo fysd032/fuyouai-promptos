@@ -88,12 +88,13 @@ export async function requireSubscription(
   }
 
   // ── 第 3 步：cache miss → 查 DB（用 admin 绕过 RLS）──
+  type SubRow = { status: string; trial_end: string | null };
   const admin = getSupabaseAdmin();
   const { data: sub, error } = await admin
     .from("subscriptions")
     .select("status, trial_end")
     .eq("user_id", userId)
-    .single();
+    .single<SubRow>();
 
   if (error || !sub) {
     await setEntitlement(userId, { allowed: false, code: "SUBSCRIPTION_REQUIRED" });
