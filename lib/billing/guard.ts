@@ -14,6 +14,7 @@
 // ────────────────────────────────────────────────
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   getEntitlement,
   setEntitlement,
@@ -86,8 +87,9 @@ export async function requireSubscription(
     return { ok: false, status: 402, code };
   }
 
-  // ── 第 3 步：cache miss → 查 DB ──────────────
-  const { data: sub, error } = await supabase
+  // ── 第 3 步：cache miss → 查 DB（用 admin 绕过 RLS）──
+  const admin = getSupabaseAdmin();
+  const { data: sub, error } = await admin
     .from("subscriptions")
     .select("status, trial_end")
     .eq("user_id", userId)
