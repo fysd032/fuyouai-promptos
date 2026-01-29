@@ -12,6 +12,7 @@
 //   7. 缓存命中时直接返回，不查 DB
 //   8. Redis 不可用时降级为直接查 DB（entitlement-cache 内部 try/catch）
 // ────────────────────────────────────────────────
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -87,7 +88,7 @@ export async function requireSubscription(
   }
 
   // ── 第 3 步：cache miss → 查 DB ──────────────
-  const { data: sub, error } = await supabase
+  const { data: sub, error } = await supabaseAdmin
     .from("subscriptions")
     .select("status, trial_end")
     .eq("user_id", userId)
