@@ -1,48 +1,59 @@
-// src/lib/billing/with-subscription.ts
+// lib/billing/with-subscription.ts
+// ────────────────────────────────────────────────
+// 第一层：订阅门禁中间件
+//
+// 职责：
+//   1. 检查 BILLING_ENABLED 总开关
+//   2. 把 req 原样传给 requireSubscription(opts, req)
+//   3. 将 guard 返回的 status/code 原样透传给前端
+//
+// 验收点：
+//   - BILLING_ENABLED=0 → 直接放行，不做任何校验
+//   - BILLING_ENABLED=1 → 调用 guard，status/code 一一对应：
+//       401 UNAUTHORIZED        → "Please sign in."
+//       402 SUBSCRIPTION_REQUIRED → "No active subscription."
+//       402 SUBSCRIPTION_EXPIRED  → "Subscription expired."
+// ────────────────────────────────────────────────
 import "server-only";
 import { NextResponse } from "next/server";
 import { requireSubscription } from "./guard";
 
 type Handler = (req: Request) => Promise<NextResponse>;
 
-/**
- * 订阅系统总开关
- * - BILLING_ENABLED=0（默认）：完全放行（当前阶段）
- * - BILLING_ENABLED=1：启用订阅校验（上线/收费阶段）
- */
 function isBillingEnabled() {
   return process.env.BILLING_ENABLED === "1";
 }
+
+const ERROR_MESSAGES: Record<string, string> = {
+  UNAUTHORIZED: "Please sign in.",
+  SUBSCRIPTION_REQUIRED: "No active subscription.",
+  SUBSCRIPTION_EXPIRED: "Subscription expired.",
+};
 
 export function withSubscription(
   handler: Handler,
   opts?: { scope?: string }
 ): Handler {
   return async function wrapped(req: Request) {
-    // ✅ 订阅系统未启用：直接放行
+    // 总开关关闭 → 直接放行
     if (!isBillingEnabled()) {
       return handler(req);
     }
 
-    const gate = await requireSubscription({ scope: opts?.scope });
+    // ✅ 关键：把 req 传给 guard，使其能读取 Authorization header
+    const gate = await requireSubscription({ scope: opts?.scope }, req);
 
     if (!gate.ok) {
-      const status = gate.status; // 401 | 403
-
       return NextResponse.json(
         {
           ok: false,
           code: gate.code,
-          error:
-            status === 401
-              ? "Please sign in."
-              : "Trial ended. Please upgrade.",
+          error: ERROR_MESSAGES[gate.code] ?? "Access denied.",
         },
-        { status }
+        { status: gate.status }
       );
     }
 
-    // ✅ 校验通过，继续原逻辑
     return handler(req);
   };
 }

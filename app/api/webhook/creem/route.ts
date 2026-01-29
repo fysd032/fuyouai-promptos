@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { bustEntitlement } from "@/lib/billing/entitlement-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -363,6 +364,7 @@ async function handleSubscriptionActive(supabase: any, payload: any, eventType: 
     final_user_id: userId || null,
     upsert_ok: true,
   });
+  await bustEntitlement(userId);
   console.log(`[Webhook] User ${userId} upgraded to plan: ${plan}`);
   return { message: "upgraded", userId, plan };
 }
@@ -399,6 +401,7 @@ async function handleSubscriptionCanceled(supabase: any, payload: any) {
     throw new Error(`DB update failed: ${error.message}`);
   }
 
+  await bustEntitlement(userId);
   console.log(`[Webhook] User ${userId} subscription canceled`);
   return { message: "canceled", userId };
 }
