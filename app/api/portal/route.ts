@@ -44,7 +44,7 @@ function logPortalResult(params: {
   ok: boolean;
   error_code?: string;
 }) {
-  console.log("[Portal]", params);
+  console.error("[Portal]", params);
 }
 
 export async function POST(req: Request) {
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
     const { baseUrl: creemBaseUrl, apiKey } = resolveCreemEnv();
 
     if (!creemBaseUrl || !apiKey) {
-      console.log("[Portal] missing creem env", {
+      console.error("[Portal] missing creem env", {
         creemBaseUrl,
         hasApiKey: Boolean(apiKey),
       });
@@ -136,10 +136,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const appBaseUrl = process.env.APP_URL || "https://fuyouai.com";
-    const returnUrl = `${appBaseUrl}/account/subscription`;
-
-    const creemRes = await fetch(`${creemBaseUrl}/v1/portal/sessions`, {
+    const creemRes = await fetch(`${creemBaseUrl}/v1/customers/billing`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -147,7 +144,6 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         customer_id: customerId,
-        return_url: returnUrl,
       }),
     });
 
@@ -159,11 +155,11 @@ export async function POST(req: Request) {
       creemData = {};
     }
 
-    console.log("[Portal] creem status:", creemRes.status);
-    console.log("[Portal] creem body:", creemText);
-    const portalUrl = creemData?.url || creemData?.portal_url;
+    const portalUrl = creemData?.customer_portal_link;
 
     if (!creemRes.ok || !portalUrl) {
+      console.error("[Portal] creem status:", creemRes.status);
+      console.error("[Portal] creem body:", creemText);
       logPortalResult({
         user_id: user.id,
         has_creem_customer_id: true,
@@ -175,12 +171,6 @@ export async function POST(req: Request) {
         { status: 500, headers: corsHeaders }
       );
     }
-
-    logPortalResult({
-      user_id: user.id,
-      has_creem_customer_id: true,
-      ok: true,
-    });
 
     return NextResponse.json({ url: portalUrl }, { headers: corsHeaders });
   } catch (e: any) {

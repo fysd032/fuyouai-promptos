@@ -113,15 +113,16 @@ export async function GET(req: Request) {
 
     const sub = data as SubscriptionRow | null;
 
-    // Debug 日志
-    console.log("[Subscription] user_id:", user.id);
-    console.log("[Subscription] origin:", origin);
-    console.log("[Subscription] found:", Boolean(sub));
-    if (sub) {
-      console.log("[Subscription] plan:", sub.plan, "status:", sub.status);
-    }
-    if (error) {
-      console.log("[Subscription] error:", error.code, error.message);
+    if (DEBUG) {
+      console.log("[Subscription] user_id:", user.id);
+      console.log("[Subscription] origin:", origin);
+      console.log("[Subscription] found:", Boolean(sub));
+      if (sub) {
+        console.log("[Subscription] plan:", sub.plan, "status:", sub.status);
+      }
+      if (error) {
+        console.log("[Subscription] error:", error.code, error.message);
+      }
     }
 
     // 构建 debug 信息（仅 DEBUG=true 时返回）
@@ -142,7 +143,9 @@ export async function GET(req: Request) {
 
     // 没有订阅记录 → 返回 subscription: null（前端据此判断为 free）
     if (!sub) {
-      console.log("[Subscription] No record found, returning null");
+      if (DEBUG) {
+        console.log("[Subscription] No record found, returning null");
+      }
       return NextResponse.json(
         { ok: true, subscription: null, ...(debugInfo ? { debug: debugInfo } : {}) },
         { headers: corsHeaders }
