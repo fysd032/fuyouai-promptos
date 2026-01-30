@@ -246,7 +246,7 @@ const UPGRADE_EVENTS = new Set([
   "subscription.update",
 ]);
 
-// 降级事件类型
+// 降级事件类型（真正到期/退款后才降级）
 const DOWNGRADE_EVENTS = new Set([
   "subscription.canceled",
   "subscription.expired",
@@ -254,8 +254,17 @@ const DOWNGRADE_EVENTS = new Set([
   "refund.created",
 ]);
 
+// 预约取消事件（到期末取消，保持 active，仅标记 cancel_at_period_end）
+const SCHEDULED_CANCEL_EVENTS = new Set([
+  "subscription.scheduled_cancel",
+]);
+
 // 事件处理逻辑
 async function handleEvent(supabase: any, eventType: string, payload: any, eventId?: string) {
+  if (SCHEDULED_CANCEL_EVENTS.has(eventType)) {
+    return await handleScheduledCancel(supabase, payload);
+  }
+
   if (UPGRADE_EVENTS.has(eventType)) {
     return await handleSubscriptionActive(supabase, payload, eventType, eventId);
   }
@@ -367,6 +376,56 @@ async function handleSubscriptionActive(supabase: any, payload: any, eventType: 
   await bustEntitlement(userId);
   console.log(`[Webhook] User ${userId} upgraded to plan: ${plan}`);
   return { message: "upgraded", userId, plan };
+}
+
+// 规范化 period_end：兼容 ISO 字符串、Unix 秒、Unix 毫秒
+function normalizePeriodEnd(v: any): string | null {
+  if (!v) return null;
+  if (typeof v === "number") {
+    const ms = v < 1e12 ? v * 1000 : v;
+    return new Date(ms).toISOString();
+  }
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+// 处理预约取消（到期末取消）：仅标记 cancel_at_period_end，不改 status/plan
+async function handleScheduledCancel(supabase: any, payload: any) {
+  const data = payload.data?.object || payload.object || payload.data || payload;
+  const metadata = data.metadata || payload.metadata || {};
+
+  const userId =
+    metadata.user_id ||
+    metadata.userId ||
+    metadata.referenceId ||
+    metadata.reference_id;
+
+  if (!userId) {
+    console.error("[Webhook][SKIP] missing_user_id_scheduled_cancel - payload:", JSON.stringify(payload));
+    return { message: "missing_user_id", skipped: true };
+  }
+
+  const currentPeriodEndRaw =
+    data.current_period_end_date || data.current_period_end || null;
+  const currentPeriodEnd = normalizePeriodEnd(currentPeriodEndRaw);
+
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({
+      cancel_at_period_end: true,
+      current_period_end: currentPeriodEnd,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("[Webhook] Failed to mark scheduled cancel:", error);
+    throw new Error(`DB update failed: ${error.message}`);
+  }
+
+  await bustEntitlement(userId);
+  console.log(`[Webhook] User ${userId} subscription scheduled for cancellation at ${currentPeriodEnd}`);
+  return { message: "scheduled_cancel", userId, current_period_end: currentPeriodEnd };
 }
 
 // 处理订阅取消/过期（降级）

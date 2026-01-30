@@ -88,11 +88,17 @@ export async function requireSubscription(
   }
 
   // ── 第 3 步：cache miss → 查 DB（用 admin 绕过 RLS）──
-  type SubRow = { status: string; trial_end: string | null };
+  type SubRow = {
+    status: string;
+    plan: string | null;
+    trial_end: string | null;
+    cancel_at_period_end: boolean | null;
+    current_period_end: string | null;
+  };
   const admin = getSupabaseAdmin();
   const { data: sub, error } = await admin
     .from("subscriptions")
-    .select("status, trial_end")
+    .select("status, plan, trial_end, cancel_at_period_end, current_period_end")
     .eq("user_id", userId)
     .single<SubRow>();
 
@@ -103,12 +109,7 @@ export async function requireSubscription(
   }
 
   // ── 第 4 步：判断是否有效 ──────────────────────
-  const now = new Date();
-  const trialEnd = sub.trial_end ? new Date(sub.trial_end) : null;
-
-  const allowed =
-    sub.status === "active" ||
-    (sub.status === "trialing" && trialEnd !== null && now < trialEnd);
+  const allowed = isSubscriptionActiveNow(sub);
 
   if (!allowed) {
     await setEntitlement(userId, { allowed: false, code: "SUBSCRIPTION_EXPIRED" });
@@ -119,4 +120,49 @@ export async function requireSubscription(
   await setEntitlement(userId, { allowed: true });
   if (GATE_LOG) console.log(`[gate] userId=${userId} cache_hit=false result=ok ms=${Date.now() - t0}`);
   return { ok: true, userId };
+}
+
+/**
+ * 判断订阅是否"此刻仍然可用"。
+ *
+ * 行业标准行为：cancel_at_period_end=true 的订阅在
+ * current_period_end 之前仍然可用。
+ *
+ * 规则：
+ *  1. trialing + trial_end 未过期 → 可用（不受 plan 限制）
+ *  2. plan 为 free / 空 → 不可用
+ *  3. status=active 且有 current_period_end → now < period_end 就可用
+ *     （无论 cancel_at_period_end 是否为 true）
+ *  4. status=active 且无 current_period_end →
+ *     仅在 cancel_at_period_end 不为 true 时可用（fallback）
+ *  5. 其余 → 不可用
+ */
+function isSubscriptionActiveNow(sub: {
+  status: string;
+  plan: string | null;
+  trial_end: string | null;
+  cancel_at_period_end: boolean | null;
+  current_period_end: string | null;
+}): boolean {
+  const now = new Date();
+
+  // trialing：只看 trial_end（不受 plan 限制）
+  if (sub.status === "trialing") {
+    const trialEnd = sub.trial_end ? new Date(sub.trial_end) : null;
+    return trialEnd !== null && now < trialEnd;
+  }
+
+  // plan 为 free 或空 → 无付费订阅（对 active 等状态成立）
+  if (!sub.plan || sub.plan === "free") return false;
+
+  if (sub.status === "active") {
+    if (sub.current_period_end) {
+      // 有明确的到期时间：只要还没到就允许（cancel_at_period_end 不影响）
+      return now < new Date(sub.current_period_end);
+    }
+    // 无 current_period_end：正常 active 且未预约取消 → 允许
+    return !sub.cancel_at_period_end;
+  }
+
+  return false;
 }
