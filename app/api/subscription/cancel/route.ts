@@ -5,7 +5,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCreemEnv } from "@/lib/creem/env";
-import type { Tables } from "@/types/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,11 +34,12 @@ function getCorsHeaders(origin: string | null) {
   return headers;
 }
 
-type SubscriptionRow = Tables<"subscriptions">;
-type SubscriptionLookupRow = Pick<
-  SubscriptionRow,
-  "creem_subscription_id" | "cancel_at_period_end" | "current_period_end"
->;
+type SubscriptionLookupRow = {
+  creem_subscription_id: string | null;
+  cancel_at_period_end: boolean | null;
+  current_period_end: string | null;
+};
+
 
 export async function POST(req: Request) {
   const origin = req.headers.get("origin");
