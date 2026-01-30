@@ -125,8 +125,19 @@ export async function POST(req: Request) {
     const customerId = sub.creem_customer_id;
     const { baseUrl: creemBaseUrl, apiKey } = resolveCreemEnv();
 
+    if (!creemBaseUrl || !apiKey) {
+      console.log("[Portal] missing creem env", {
+        creemBaseUrl,
+        hasApiKey: Boolean(apiKey),
+      });
+      return NextResponse.json(
+        { error: "env_missing" },
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
     const appBaseUrl = process.env.APP_URL || "https://fuyouai.com";
-    const returnUrl = `${appBaseUrl}/#/account/subscription`;
+    const returnUrl = `${appBaseUrl}/account/subscription`;
 
     const creemRes = await fetch(`${creemBaseUrl}/v1/billing_portal/sessions`, {
       method: "POST",
@@ -140,7 +151,16 @@ export async function POST(req: Request) {
       }),
     });
 
-    const creemData: any = await creemRes.json().catch(() => ({}));
+    const creemText = await creemRes.text().catch(() => "");
+    let creemData: any = {};
+    try {
+      creemData = creemText ? JSON.parse(creemText) : {};
+    } catch {
+      creemData = {};
+    }
+
+    console.log("[Portal] creem status:", creemRes.status);
+    console.log("[Portal] creem body:", creemText);
     const portalUrl = creemData?.url || creemData?.portal_url;
 
     if (!creemRes.ok || !portalUrl) {
