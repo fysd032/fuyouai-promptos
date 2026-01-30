@@ -139,7 +139,7 @@ export async function POST(req: Request) {
     const appBaseUrl = process.env.APP_URL || "https://fuyouai.com";
     const returnUrl = `${appBaseUrl}/account/subscription`;
 
-    const creemRes = await fetch(`${creemBaseUrl}/v1/billing_portal/sessions`, {
+    const creemRes = await fetch(`${creemBaseUrl}/v1/portal/sessions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
