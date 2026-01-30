@@ -40,7 +40,6 @@ type SubscriptionLookupRow = {
   current_period_end: string | null;
 };
 
-
 export async function POST(req: Request) {
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
@@ -148,12 +147,13 @@ export async function POST(req: Request) {
     cancelData?.current_period_end_at ??
     null;
 
-  const { error: updateErr } = await supabaseAdmin
-    .from("subscriptions")
-    .update({
-      cancel_at_period_end: true,
-      current_period_end: currentPeriodEnd,
-    })
+  const updates = {
+    cancel_at_period_end: true,
+    current_period_end: currentPeriodEnd,
+  } as any;
+
+  const { error: updateErr } = await (supabaseAdmin.from("subscriptions") as any)
+    .update(updates)
     .eq("user_id", user.id);
 
   if (updateErr) {
