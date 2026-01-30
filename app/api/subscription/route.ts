@@ -15,6 +15,8 @@ type SubscriptionRow = {
   trial_end: string | null;
   creem_customer_id: string | null;
   creem_subscription_id: string | null;
+  cancel_at_period_end?: boolean | null;
+  current_period_end?: string | null;
   updated_at: string | null;
 };
 
@@ -57,9 +59,15 @@ function normalizePlan(plan: string | null | undefined): "basic" | "pro" | "free
 }
 
 // 规范化 status 字段：只允许 "active" | "inactive"
-function normalizeStatus(status: string | null | undefined): "active" | "inactive" {
+type UiStatus = "active" | "canceling" | "inactive";
+function normalizeStatus(
+  status: string | null | undefined,
+  cancelAtPeriodEnd?: boolean | null
+): UiStatus {
   if (!status) return "inactive";
-  if (["active", "trialing"].includes(status)) return "active";
+  if (["active", "trialing"].includes(status)) {
+    return cancelAtPeriodEnd ? "canceling" : "active";
+  }
   return "inactive";
 }
 
@@ -97,7 +105,9 @@ export async function GET(req: Request) {
     // 查询 subscriptions 表
     const { data, error } = await supabaseAdmin
       .from("subscriptions")
-      .select("plan, status, trial_end, updated_at, creem_customer_id, creem_subscription_id")
+      .select(
+        "plan, status, trial_end, updated_at, creem_customer_id, creem_subscription_id, cancel_at_period_end, current_period_end"
+      )
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -141,13 +151,15 @@ export async function GET(req: Request) {
 
     // 返回订阅信息（统一结构）
     const normalizedPlan = normalizePlan(sub.plan);
-    const normalizedStatus = normalizeStatus(sub.status);
+    const normalizedStatus = normalizeStatus(sub.status, sub.cancel_at_period_end);
     return NextResponse.json(
       {
         ok: true,
         subscription: {
           plan: normalizedPlan,
           status: normalizedStatus,
+          cancel_at_period_end: Boolean(sub.cancel_at_period_end),
+          current_period_end: sub.current_period_end || null,
           trialEnd: sub.status === "trialing" ? sub.trial_end : null,
           creem_customer_id: sub.creem_customer_id || null,
           creem_subscription_id: sub.creem_subscription_id || null,
