@@ -5,6 +5,7 @@
 // ✅ starter 兼容旧前端（等同 basic）
 // ✅ active（含 cancel_at_period_end=true 但仍有效）不创建 checkout，返回 alreadySubscribed=true
 // ✅ inactive/canceled/expired 允许重新 checkout
+// 🔧 FIX: 移除 cancel_url 以解决 "property cancel_url should not exist" 错误
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -79,7 +80,7 @@ function isSubscriptionCurrentlyActive(sub: SubscriptionRow | null): boolean {
 }
 
 async function handler(req: Request) {
-  console.log("[checkout-route] VERSION=2026-01-31-002");
+  console.log("[checkout-route] VERSION=2026-01-31-003-FIXED");
 
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
@@ -137,7 +138,6 @@ async function handler(req: Request) {
     }
 
     // 3) 读取当前订阅（用于：active 不创建 checkout；inactive 允许重新订阅）
-    // !!! 如果你的表名/字段不同，把这里改成你自己的实际表
     const { data: subRow, error: subErr } = await supabase
       .from("subscriptions")
       .select(
@@ -148,15 +148,14 @@ async function handler(req: Request) {
 
     if (subErr) {
       console.warn("[checkout] subscription query error", subErr);
-      // 不阻塞支付创建：查不到也允许走 checkout
     }
 
-   const subscription = (subRow &&
-  typeof subRow === "object" &&
-  subRow.creem_subscription_id
-)
-  ? (subRow as SubscriptionRow)
-  : null;
+    const subscription = (subRow &&
+      typeof subRow === "object" &&
+      subRow.creem_subscription_id
+    )
+      ? (subRow as SubscriptionRow)
+      : null;
 
     // ✅ 如果当前仍有效（包括 cancel_at_period_end=true 但仍在周期内），不应该再创建新 checkout
     if (isSubscriptionCurrentlyActive(subscription)) {
@@ -208,12 +207,12 @@ async function handler(req: Request) {
 
     const appBaseUrl = (process.env.APP_URL || "https://fuyouai.com").replace(/\/$/, "");
     const successUrl = `${appBaseUrl}/#/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${appBaseUrl}/#/pricing`;
 
+    // 🔧 FIX: 移除 cancel_url，只保留 success_url
     const creemPayload: any = {
       product_id: productId,
       success_url: successUrl,
-      cancel_url: cancelUrl, // ✅ 你之前定义了但没传，这里补上
+      // cancel_url: cancelUrl, // ❌ 移除此行以解决 "property cancel_url should not exist" 错误
       request_id: `${userId}-${Date.now()}`,
       metadata: {
         user_id: userId,
