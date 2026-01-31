@@ -51,6 +51,10 @@ const PLAN_CONFIG: Record<string, { productId: string; price: number }> = {
 };
 
 async function handler(req: Request) {
+  console.log("[checkout-route] VERSION = 2026-01-31-001"
+);
+
+  // 👇 你原来的代码继续
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 

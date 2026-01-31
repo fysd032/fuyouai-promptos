@@ -26,7 +26,7 @@ const GATE_LOG = process.env.GATE_LOG === "1";
 export type GateFail = {
   ok: false;
   status: 401 | 402;
-  code: "UNAUTHORIZED" | "SUBSCRIPTION_REQUIRED" | "SUBSCRIPTION_EXPIRED";
+  code: "UNAUTHORIZED" | "SUBSCRIPTION_REQUIRED" | "SUBSCRIPTION_EXPIRED"prod
 };
 
 export type GateOk = {
