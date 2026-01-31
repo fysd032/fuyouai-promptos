@@ -13,6 +13,7 @@ type SubscriptionRow = {
   plan: string | null;
   status: string | null;
   trial_end: string | null;
+  created_at: string | null;
   creem_customer_id: string | null;
   creem_subscription_id: string | null;
   cancel_at_period_end?: boolean | null;

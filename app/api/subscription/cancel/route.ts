@@ -140,6 +140,8 @@ export async function POST(req: Request) {
     );
   }
 
+  console.log("[Cancel] creem cancel keys:", Object.keys(cancelData || {}));
+
   const currentPeriodEnd =
     cancelData?.current_period_end ??
     cancelData?.current_period_end_date ??
@@ -147,10 +149,8 @@ export async function POST(req: Request) {
     cancelData?.current_period_end_at ??
     null;
 
-  const updates = {
-    cancel_at_period_end: true,
-    current_period_end: currentPeriodEnd,
-  } as any;
+  const updates: any = { cancel_at_period_end: true };
+  if (currentPeriodEnd) updates.current_period_end = currentPeriodEnd;
 
   const { error: updateErr } = await (supabaseAdmin.from("subscriptions") as any)
     .update(updates)
