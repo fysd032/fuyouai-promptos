@@ -151,7 +151,12 @@ async function handler(req: Request) {
       // 不阻塞支付创建：查不到也允许走 checkout
     }
 
-    const subscription = (subRow as SubscriptionRow | null) || null;
+   const subscription = (subRow &&
+  typeof subRow === "object" &&
+  subRow.creem_subscription_id
+)
+  ? (subRow as SubscriptionRow)
+  : null;
 
     // ✅ 如果当前仍有效（包括 cancel_at_period_end=true 但仍在周期内），不应该再创建新 checkout
     if (isSubscriptionCurrentlyActive(subscription)) {
