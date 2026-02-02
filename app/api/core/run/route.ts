@@ -29,6 +29,23 @@ function getCorsHeaders(origin: string | null) {
   return headers;
 }
 
+/**
+ * ✅ Highest-priority language mirroring rule.
+ * This MUST be injected as the very first system message (messages[0]).
+ */
+const LANGUAGE_GUARD = `
+SYSTEM OVERRIDE — LANGUAGE MIRRORING (HIGHEST PRIORITY)
+
+- Detect the primary language of the user's input.
+- The output language MUST strictly match the user's input language.
+- Do NOT translate between languages.
+- Do NOT mix multiple languages in a single response.
+- If the input contains multiple languages, follow the dominant language.
+- If dominance cannot be determined, follow the language of the last user message.
+- This rule has higher priority than any module description, titles, bullets, examples, or templates.
+- Apply to ALL outputs, including clarifying questions and error messages.
+`.trim();
+
 // 把原来的 POST 内容改名为 handler（内容基本不动）
 async function handler(req: Request) {
   const origin = req.headers.get("origin");
@@ -70,13 +87,14 @@ async function handler(req: Request) {
     const { promptKey, tier: tierUsed, tried } = resolved;
     const degraded = tierUsed !== tierRequested;
 
-    // ✅ 调用引擎
+    // ✅ 调用引擎（只新增 systemOverride，不改其他逻辑）
     const engineResult = await runEngine({
       moduleId: coreKey,
       promptKey,
       engineType,
       mode: "core",
       userInput,
+      systemOverride: LANGUAGE_GUARD, // ✅ 新增：语言钉子（最高优先级）
     });
 
     if (!engineResult.ok) {
