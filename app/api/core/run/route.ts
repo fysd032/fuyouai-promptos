@@ -57,6 +57,9 @@ async function handler(req: Request) {
     const tierRequested = (body?.tier as PlanTier) ?? "basic";
     const userInput = String(body?.userInput ?? "").trim();
     const engineType = String(body?.engineType ?? "deepseek").trim();
+    const systemOverride = typeof body?.systemOverride === "string" && body.systemOverride.trim()
+      ? body.systemOverride.trim()
+      : LANGUAGE_GUARD;
 
     // 基础参数校验
     if (!coreKey || !userInput) {
@@ -94,7 +97,7 @@ async function handler(req: Request) {
       engineType,
       mode: "core",
       userInput,
-      systemOverride: LANGUAGE_GUARD, // ✅ 新增：语言钉子（最高优先级）
+      systemOverride,
     });
 
     if (!engineResult.ok) {
