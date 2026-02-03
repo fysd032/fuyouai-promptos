@@ -4,6 +4,7 @@ import { runEngine } from "@/lib/promptos/run-engine";
 import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
 import type { CoreKey, PlanTier } from "@/lib/promptos/core/core-map";
 import { withSubscription } from "@/lib/billing/with-subscription";
+import { detectLanguage } from "@/lib/lang/detectLanguage";
 
 const allowedOrigins = new Set([
   "https://fuyouai-promptos.vercel.app",
@@ -76,9 +77,11 @@ async function handler(req: Request) {
     const tierRequested = (body?.tier as PlanTier) ?? "basic";
     const userInput = String(body?.userInput ?? "").trim();
     const engineType = String(body?.engineType ?? "deepseek").trim();
-    const systemOverride = typeof body?.systemOverride === "string" && body.systemOverride.trim()
-      ? body.systemOverride.trim()
-      : LANGUAGE_GUARD;
+    const systemOverride =
+      typeof body?.systemOverride === "string" && body.systemOverride.trim()
+        ? body.systemOverride.trim()
+        : "";
+    const language = detectLanguage(userInput);
 
     // 基础参数校验
     if (!coreKey || !userInput) {
@@ -117,6 +120,7 @@ async function handler(req: Request) {
       mode: "core",
       userInput,
       systemOverride,
+      language,
     });
 
     if (!engineResult.ok) {
@@ -176,6 +180,8 @@ async function handler(req: Request) {
         text: out,
         content: out,
         modelOutput: out,
+        language,
+        mode: engineResult.mode,
         meta: {
           coreKey,
           tierRequested,

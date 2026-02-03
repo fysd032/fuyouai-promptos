@@ -53,7 +53,15 @@ export async function runEngine({
       ? userInput
       : JSON.stringify(userInput ?? {}, null, 2);
 
-  const result = await runPromptModule(realKey, userInputStr, finalEngineType, systemOverride);
+  const languageGuard = buildLanguageGuard(language);
+  const finalSystemOverride = `${languageGuard}${systemOverride ? `\n\n${systemOverride}` : ""}`.trim();
+
+  const result = await runPromptModule(
+    realKey,
+    userInputStr,
+    finalEngineType,
+    finalSystemOverride
+  );
 
   const out = String(result.modelOutput ?? "").trim();
   const ok = !result.error && out.length > 0;
@@ -74,6 +82,49 @@ export async function runEngine({
     error: result.error ?? null,
   };
 
+}
+
+function normalizeLanguageName(lang: string) {
+  switch (lang.toLowerCase()) {
+    case "en":
+      return "English";
+    case "zh":
+      return "Chinese (Simplified)";
+    case "ja":
+      return "Japanese";
+    case "ko":
+      return "Korean";
+    case "fr":
+      return "French";
+    case "de":
+      return "German";
+    case "es":
+      return "Spanish";
+    case "pt":
+      return "Portuguese";
+    case "ru":
+      return "Russian";
+    case "ar":
+      return "Arabic";
+    case "it":
+      return "Italian";
+    default:
+      return lang;
+  }
+}
+
+function buildLanguageGuard(language?: string) {
+  const raw = (language ?? "").trim();
+  if (!raw) return "";
+
+  const lang = normalizeLanguageName(raw);
+
+  return `LANGUAGE GUARD:
+You MUST respond ONLY in ${lang}.
+Do NOT mix other languages.
+All headings, labels, and fixed phrases must be in ${lang}.
+If any template or system text is in another language, translate it into ${lang} before responding.
+If the user input is insufficient, ask clarifying questions ONLY in ${lang}.`;
 }
 
 function isClarificationOnly(output: string) {

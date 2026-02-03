@@ -118,7 +118,10 @@ export function detectLanguage(input: string): Lang {
   const [, secondCount] = entries[1];
 
   if (topCount === 0) return "en";
-  if (topCount > secondCount) return topLang;
+
+  const isClearWinner = topCount >= 3 && topCount >= secondCount + 2;
+  if (isClearWinner) return topLang;
+
   if (lastLang) return lastLang;
   return "en";
 }
