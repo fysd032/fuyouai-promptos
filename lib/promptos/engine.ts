@@ -61,11 +61,12 @@ function buildFinalPrompt(baseTemplate: string, userInput: string) {
   return `
 ${String(baseTemplate ?? "").trim()}
 
-【用户输入】
+---
+[USER INPUT]
 ${String(userInput ?? "").trim()}
 
-【说明】
-请严格按照上面的模块说明、输入要求、执行步骤与输出格式进行处理，不要偏题。
+[INSTRUCTIONS]
+Follow the module description, input requirements, execution steps, and output format above strictly. Do not deviate from the topic. Respond in the same language as the user input above.
 `.trim();
 }
 
