@@ -9,6 +9,7 @@ export async function runEngine({
   mode,
   industryId,
   userInput,
+  systemOverride,
 }: {
   moduleId?: string;
   promptKey?: string;
@@ -16,6 +17,7 @@ export async function runEngine({
   mode?: string;
   industryId?: string | null;
   userInput: any;
+  systemOverride?: string;
 }) {
   const requestId = crypto.randomUUID();
 
@@ -49,7 +51,7 @@ export async function runEngine({
       ? userInput
       : JSON.stringify(userInput ?? {}, null, 2);
 
-  const result = await runPromptModule(realKey, userInputStr, finalEngineType);
+  const result = await runPromptModule(realKey, userInputStr, finalEngineType, systemOverride);
 
   const out = String(result.modelOutput ?? "").trim();
   const ok = !result.error && out.length > 0;

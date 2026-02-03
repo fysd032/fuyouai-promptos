@@ -74,7 +74,8 @@ ${String(userInput ?? "").trim()}
 async function runPromptModuleLegacy(
   promptKeyRaw: string,
   userInput: string,
-  engineType: string = "deepseek"
+  engineType: string = "deepseek",
+  systemOverride?: string
 ): Promise<RunEngineResult> {
   console.log(
   "[engine] using file:",
@@ -111,7 +112,7 @@ async function runPromptModuleLegacy(
       const completion = await client.chat.completions.create({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: "You are a professional AI assistant." },
+          { role: "system", content: systemOverride || "You are a professional AI assistant." },
           { role: "user", content: finalPrompt },
         ],
         temperature: 0.7,
@@ -134,7 +135,8 @@ async function runPromptModuleLegacy(
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(finalPrompt);
+      const geminiPrompt = systemOverride ? `${systemOverride}\n\n${finalPrompt}` : finalPrompt;
+      const result = await model.generateContent(geminiPrompt);
       const text = result?.response?.text?.() ?? "";
       return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: text };
     } catch (e: any) {
@@ -156,7 +158,8 @@ async function runPromptModuleLegacy(
 async function runPromptModuleV2(
   promptKeyRaw: string,
   userInput: string,
-  engineType: string = "deepseek"
+  engineType: string = "deepseek",
+  systemOverride?: string
 ): Promise<RunEngineResult> {
   const promptKey = normalizeKey(promptKeyRaw);
   const normalizedEngineType = (normalizeKey(engineType).toLowerCase() || "deepseek") as EngineType;
@@ -178,6 +181,7 @@ async function runPromptModuleV2(
     engineType: normalizedEngineType,
     prompt: finalPrompt,
     temperature: 0.7,
+    systemOverride,
   });
 
   if (!llm.ok) {
@@ -195,9 +199,10 @@ async function runPromptModuleV2(
 export async function runPromptModule(
   promptKey: string,
   userInput: string,
-  engineType: string = "deepseek"
+  engineType: string = "deepseek",
+  systemOverride?: string
 ): Promise<RunEngineResult> {
   const flag = (process.env.ENGINE_PROVIDER_V2 || "").toLowerCase();
-  if (flag === "on") return runPromptModuleV2(promptKey, userInput, engineType);
-  return runPromptModuleLegacy(promptKey, userInput, engineType);
+  if (flag === "on") return runPromptModuleV2(promptKey, userInput, engineType, systemOverride);
+  return runPromptModuleLegacy(promptKey, userInput, engineType, systemOverride);
 }

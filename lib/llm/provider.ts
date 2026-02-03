@@ -8,6 +8,7 @@ export type RunLLMInput = {
   engineType: EngineType;
   prompt: string;
   temperature?: number;
+  systemOverride?: string;
 };
 
 export type RunLLMOutput =
@@ -28,7 +29,7 @@ export async function runLLM(input: RunLLMInput): Promise<RunLLMOutput> {
       const completion = await client.chat.completions.create({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: "You are a professional AI assistant." },
+          { role: "system", content: input.systemOverride || "You are a professional AI assistant." },
           { role: "user", content: prompt },
         ],
         temperature,
@@ -48,7 +49,8 @@ export async function runLLM(input: RunLLMInput): Promise<RunLLMOutput> {
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(prompt);
+      const geminiPrompt = input.systemOverride ? `${input.systemOverride}\n\n${prompt}` : prompt;
+      const result = await model.generateContent(geminiPrompt);
       const text = result?.response?.text?.() ?? "";
       return { ok: true, engineType, text };
     } catch (e: any) {
