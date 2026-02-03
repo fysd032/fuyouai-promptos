@@ -6,6 +6,7 @@ import { resolveCorePromptKey } from "../lib/promptos/core/resolve-core"; // ←
 import { runEngine } from "../lib/promptos/run-engine"; // ← 按项目调整
 import { CORE_PROMPT_BANK_KEY, resolveCorePlan } from "../lib/promptos/core/core-map";
 import { assertCorePromptMapping } from "../lib/promptos/core/core-map";
+import { detectLanguage } from "../lib/lang/detectLanguage";
 import "dotenv/config";
 
  // ← 按项目调整
@@ -75,12 +76,15 @@ if (!promptKey) {
   });
 }
 
+    const language = detectLanguage(input);
+
     // 3) 调引擎
     const result = await runEngine({
       promptKey,
       userInput: input,
       engineType: engineType ?? "deepseek",
       mode: mode ?? "default",
+      language,
       // moduleId: undefined // Core 专用，不走 moduleId
     });
 
@@ -95,9 +99,15 @@ if (!promptKey) {
     }
 
     // 5) 成功返回
+    const outputText = String(result.modelOutput ?? "");
+    const outputMode = result.mode;
+
     return res.status(200).json({
       ok: true,
-      output: result.modelOutput ?? "（模型未返回内容）",
+      output: outputText || "（模型未返回内容）",
+      text: outputText || "（模型未返回内容）",
+      mode: outputMode,
+      language,
       prompt: result.finalPrompt ?? "",
       meta: {
         requestId: result.requestId,

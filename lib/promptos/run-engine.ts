@@ -10,6 +10,7 @@ export async function runEngine({
   industryId,
   userInput,
   systemOverride,
+  language,
 }: {
   moduleId?: string;
   promptKey?: string;
@@ -18,6 +19,7 @@ export async function runEngine({
   industryId?: string | null;
   userInput: any;
   systemOverride?: string;
+  language?: string;
 }) {
   const requestId = crypto.randomUUID();
 
@@ -55,6 +57,7 @@ export async function runEngine({
 
   const out = String(result.modelOutput ?? "").trim();
   const ok = !result.error && out.length > 0;
+  const outputMode = isClarificationOnly(out) ? "clarification" : "normal";
 
   return {
     ok,
@@ -63,11 +66,32 @@ export async function runEngine({
     promptKey: realKey,
     engineTypeRequested: finalEngineType,
     engineTypeUsed: result.engineType,
-    mode: finalMode,
+    mode: outputMode,
     industryId: industryId ?? null,
     finalPrompt: result.finalPrompt,
     modelOutput: result.modelOutput,
+    language,
     error: result.error ?? null,
   };
 
+}
+
+function isClarificationOnly(output: string) {
+  const lines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0 || lines.length > 3) return false;
+
+  const marker = /^(\d+[\.\)]|[-*•])\s*/;
+  for (const line of lines) {
+    const text = line.replace(marker, "").trim();
+    if (!text) return false;
+    if (text.length > 200) return false;
+    if (/[:：]/.test(text)) return false;
+    if (/```|---|===|\||\{|\}|\[|\]/.test(text)) return false;
+  }
+
+  return true;
 }
