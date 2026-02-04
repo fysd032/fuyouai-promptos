@@ -57,16 +57,21 @@ function resolveBaseTemplate(promptKey: string): {
  * ✅ 拼最终 prompt：必须把模板 + 用户输入拼进去
  * 你之前 buildFinalPrompt() 只返回“说明”，会导致模型没收到模板/输入
  */
-function buildFinalPrompt(baseTemplate: string, userInput: string) {
+function buildFinalPrompt(baseTemplate: string, userInput: string, systemOverride?: string) {
+  const langBlock = systemOverride
+    ? `\n\n[LANGUAGE OVERRIDE — HIGHEST PRIORITY]\n${systemOverride}`
+    : "";
+
   return `
 ${String(baseTemplate ?? "").trim()}
 
 ---
-[USER INPUT]
+[USER INPUT — THIS IS THE USER'S ACTUAL TEXT]
 ${String(userInput ?? "").trim()}
 
 [INSTRUCTIONS]
-Follow the module description, input requirements, execution steps, and output format above strictly. Do not deviate from the topic. Respond in the same language as the user input above.
+Follow the module description, input requirements, execution steps, and output format above strictly. Do not deviate from the topic.
+The template above is a structural guide only. Your response language MUST match the [USER INPUT] section, NOT the template language.${langBlock}
 `.trim();
 }
 
@@ -99,7 +104,7 @@ async function runPromptModuleLegacy(
     };
   }
 
-  const finalPrompt = buildFinalPrompt(baseTemplate, userInput);
+  const finalPrompt = buildFinalPrompt(baseTemplate, userInput, systemOverride);
 
   // DeepSeek（OpenAI兼容）
   if (normalizedEngineType === "deepseek") {
@@ -176,7 +181,7 @@ async function runPromptModuleV2(
     };
   }
 
-  const finalPrompt = buildFinalPrompt(baseTemplate, userInput);
+  const finalPrompt = buildFinalPrompt(baseTemplate, userInput, systemOverride);
 
   const llm = await runLLM({
     engineType: normalizedEngineType,
