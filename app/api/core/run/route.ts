@@ -120,35 +120,14 @@ async function handler(req: Request) {
     const { promptKey, tier: tierUsed, tried } = resolved;
     const degraded = tierUsed !== tierRequested;
 
-    const zhLock = `【语言锁定】
-输出语言固定为：中文。
-禁止进行语言检测。
-忽略 system/kernel/meta/UI 中出现的任何语言内容。
-所有内容（包括标题、小节名、标签）必须只使用中文。
-禁止混用任何英文或其他语言。`;
-
-    const enLock = `[LANGUAGE LOCK]
-Output language is fixed to English.
-Do NOT perform language detection.
-Ignore any language used in system/kernel/meta/UI text.
-Use English only for ALL content, including section titles and labels.
-Do not mix languages.`;
-
-    const lockedSystemOverride =
-      langClass === "zh"
-        ? [systemOverride, zhLock].filter(Boolean).join("\n\n")
-        : langClass === "en"
-          ? [systemOverride, enLock].filter(Boolean).join("\n\n")
-          : systemOverride;
-
-    // ✅ 调用引擎（只新增 systemOverride，不改其他逻辑）
+    // ✅ 调用引擎，直接传递 systemOverride
     const engineResult = await runEngine({
       moduleId: coreKey,
       promptKey,
       engineType,
       mode: "core",
       userInput,
-      systemOverride: lockedSystemOverride,
+      systemOverride,
       language,
     });
 

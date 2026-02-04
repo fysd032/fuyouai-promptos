@@ -106,6 +106,14 @@ async function runPromptModuleLegacy(
 
   const finalPrompt = buildFinalPrompt(baseTemplate, userInput, systemOverride);
 
+  console.log("[engine-lang-debug]", {
+    promptKey,
+    engineType: normalizedEngineType,
+    hasSystemOverride: !!systemOverride,
+    systemOverridePreview: (systemOverride ?? "").substring(0, 200),
+    finalPromptTail: finalPrompt.substring(finalPrompt.length - 500),
+  });
+
   // DeepSeek（OpenAI兼容）
   if (normalizedEngineType === "deepseek") {
     const deepseekApiKey = process.env.DEEPSEEK_API_KEY;

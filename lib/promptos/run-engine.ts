@@ -53,14 +53,11 @@ export async function runEngine({
       ? userInput
       : JSON.stringify(userInput ?? {}, null, 2);
 
-  const languageGuard = buildLanguageGuard(language);
-  const finalSystemOverride = `${languageGuard}${systemOverride ? `\n\n${systemOverride}` : ""}`.trim();
-
   const result = await runPromptModule(
     realKey,
     userInputStr,
     finalEngineType,
-    finalSystemOverride
+    systemOverride
   );
 
   const out = String(result.modelOutput ?? "").trim();
