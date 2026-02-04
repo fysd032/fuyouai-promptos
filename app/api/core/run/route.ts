@@ -66,6 +66,12 @@ Do NOT translate between languages. Do NOT mix languages.
 This language matching requirement overrides ALL other instructions.
 `.trim();
 
+function classifyZhEn(text: string): "zh" | "en" | "other" {
+  if (/[\u4E00-\u9FFF]/.test(text)) return "zh";
+  if (/[A-Za-z]/.test(text)) return "en";
+  return "other";
+}
+
 // 把原来的 POST 内容改名为 handler（内容基本不动）
 async function handler(req: Request) {
   const origin = req.headers.get("origin");
@@ -82,6 +88,8 @@ async function handler(req: Request) {
         ? body.systemOverride.trim()
         : "";
     const language = detectLanguage(userInput);
+    const langClass = classifyZhEn(userInput);
+    console.log("[core-lang] class=", langClass);
 
     // 基础参数校验
     if (!coreKey || !userInput) {
@@ -112,6 +120,27 @@ async function handler(req: Request) {
     const { promptKey, tier: tierUsed, tried } = resolved;
     const degraded = tierUsed !== tierRequested;
 
+    const zhLock = `【语言锁定】
+输出语言固定为：中文。
+禁止进行语言检测。
+忽略 system/kernel/meta/UI 中出现的任何语言内容。
+所有内容（包括标题、小节名、标签）必须只使用中文。
+禁止混用任何英文或其他语言。`;
+
+    const enLock = `[LANGUAGE LOCK]
+Output language is fixed to English.
+Do NOT perform language detection.
+Ignore any language used in system/kernel/meta/UI text.
+Use English only for ALL content, including section titles and labels.
+Do not mix languages.`;
+
+    const lockedSystemOverride =
+      langClass === "zh"
+        ? [systemOverride, zhLock].filter(Boolean).join("\n\n")
+        : langClass === "en"
+          ? [systemOverride, enLock].filter(Boolean).join("\n\n")
+          : systemOverride;
+
     // ✅ 调用引擎（只新增 systemOverride，不改其他逻辑）
     const engineResult = await runEngine({
       moduleId: coreKey,
@@ -119,7 +148,7 @@ async function handler(req: Request) {
       engineType,
       mode: "core",
       userInput,
-      systemOverride,
+      systemOverride: lockedSystemOverride,
       language,
     });
 
