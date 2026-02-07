@@ -4,6 +4,8 @@ import OpenAI from "openai";
 import { getModuleTemplate } from "./prompts";
 import { runLLM, type EngineType } from "../llm/provider";
 
+import { PROMPT_BANK } from "./prompt-bank.generated";
+
 export type RunEngineResult = {
   promptKey: string;
   engineType: string;
@@ -12,66 +14,105 @@ export type RunEngineResult = {
   error?: string;
 };
 
-import { PROMPT_BANK } from "./prompt-bank.generated"; // 路径按你项目实际调整
+// -------- utils --------
 
-const isFinalPromptKey = (k: string) => {
-  const key = (k || "").trim();
-  // ✅ 1) 老体系：A1-01 / A1-01.xxx
-  const legacyOk =
-    /^[A-Z]\d-\d{2}$/.test(key) || /^[A-Z]\d-\d{2}(\.\w+)?$/.test(key);
+function normalizeKey(k: unknown): string {
+  return String(k ?? "").trim();
+}
 
-  // ✅ 2) 新体系：只要 PROMPT_BANK 里存在，就放行（包括 core.xxx）
-  const bankOk = Boolean((PROMPT_BANK as any)[key]);
+function readPromptBankTemplate(promptKey: string): string {
+  const v = (PROMPT_BANK as any)[promptKey];
+  if (typeof v === "string") return v;
 
-  return legacyOk || bankOk;
-};
+  // 你的 PROMPT_BANK value 是 object（你已验证），优先读 content
+  if (v && typeof v === "object") {
+    const s = v.content ?? v.template ?? v.prompt ?? "";
+    return typeof s === "string" ? s : String(s ?? "");
+  }
+  return "";
+}
 
-function buildFinalPrompt(baseTemplate: string, userInput: string) {
-  return `
-${(baseTemplate ?? "").trim()}
+function isCoreKey(promptKey: string) {
+  return promptKey.startsWith("core.");
+}
 
-【用户输入】
-${(userInput ?? "").trim()}
+function resolveBaseTemplate(promptKey: string): {
+  baseTemplate: string;
+  source: "bank" | "legacy" | "none";
+} {
+  // ✅ 五大模块：只允许走 PROMPT_BANK
+  if (isCoreKey(promptKey)) {
+    const bank = readPromptBankTemplate(promptKey);
+    if (bank && bank.trim()) return { baseTemplate: bank, source: "bank" };
+    return { baseTemplate: "", source: "none" };
+  }
 
-【说明】
-请严格按照上面的模块说明、输入要求、执行步骤与输出格式进行处理，不要偏题。
-`.trim();
+  // ✅ 通用模块：只允许走旧系统
+  const legacy = getModuleTemplate(promptKey);
+  if (legacy && legacy.trim()) return { baseTemplate: legacy, source: "legacy" };
+  return { baseTemplate: "", source: "none" };
 }
 
 /**
- * ✅ 旧实现（当前通用模块在用）：直连 DeepSeek/Gemini
- * - 保留用于兜底
- * - 只有当 ENGINE_PROVIDER_V2 != "on" 时才会走这里
+ * ✅ 拼最终 prompt：必须把模板 + 用户输入拼进去
+ * 你之前 buildFinalPrompt() 只返回“说明”，会导致模型没收到模板/输入
  */
+function buildFinalPrompt(baseTemplate: string, userInput: string, systemOverride?: string) {
+  const langBlock = systemOverride
+    ? `\n\n[LANGUAGE OVERRIDE — HIGHEST PRIORITY]\n${systemOverride}`
+    : "";
+
+  return `
+${String(baseTemplate ?? "").trim()}
+
+---
+[USER INPUT — THIS IS THE USER'S ACTUAL TEXT]
+${String(userInput ?? "").trim()}
+
+[INSTRUCTIONS]
+Follow the module description, input requirements, execution steps, and output format above strictly. Do not deviate from the topic.
+The template above is a structural guide only. Your response language MUST match the [USER INPUT] section, NOT the template language.${langBlock}
+`.trim();
+}
+
+// -------- Legacy (直连 DeepSeek/Gemini) --------
+
 async function runPromptModuleLegacy(
-  promptKey: string,
+  promptKeyRaw: string,
   userInput: string,
-  engineType: string = "deepseek"
+  engineType: string = "deepseek",
+  systemOverride?: string
 ): Promise<RunEngineResult> {
-  const normalizedEngineType = (engineType || "deepseek").toLowerCase();
+  console.log(
+  "[engine] using file:",
+  __filename,
+  "providerV2=",
+  process.env.ENGINE_PROVIDER_V2
+);
 
-  if (!isFinalPromptKey(promptKey)) {
-    return {
-      promptKey,
-      engineType: normalizedEngineType,
-      finalPrompt: "",
-      modelOutput: "",
-      error: `[ENGINE_GUARD] Invalid promptKey: ${promptKey}. Expect like "A1-01".`,
-    };
-  }
+  const promptKey = normalizeKey(promptKeyRaw);
+  const normalizedEngineType = normalizeKey(engineType).toLowerCase() || "deepseek";
 
-  const baseTemplate = getModuleTemplate(promptKey);
+  const { baseTemplate, source } = resolveBaseTemplate(promptKey);
   if (!baseTemplate) {
     return {
       promptKey,
       engineType: normalizedEngineType,
       finalPrompt: "",
       modelOutput: "",
-      error: `Unknown promptKey: ${promptKey}`,
+      error: `Unknown promptKey: ${promptKey} (not found in PROMPT_BANK / legacy modules)`,
     };
   }
 
-  const finalPrompt = buildFinalPrompt(baseTemplate, userInput);
+  const finalPrompt = buildFinalPrompt(baseTemplate, userInput, systemOverride);
+
+  console.log("[engine-lang-debug]", {
+    promptKey,
+    engineType: normalizedEngineType,
+    hasSystemOverride: !!systemOverride,
+    systemOverridePreview: (systemOverride ?? "").substring(0, 200),
+    finalPromptTail: finalPrompt.substring(finalPrompt.length - 500),
+  });
 
   // DeepSeek（OpenAI兼容）
   if (normalizedEngineType === "deepseek") {
@@ -85,7 +126,7 @@ async function runPromptModuleLegacy(
       const completion = await client.chat.completions.create({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: "You are a professional AI assistant." },
+          { role: "system", content: systemOverride || "You are a professional AI assistant." },
           { role: "user", content: finalPrompt },
         ],
         temperature: 0.7,
@@ -108,7 +149,8 @@ async function runPromptModuleLegacy(
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(finalPrompt);
+      const geminiPrompt = systemOverride ? `${systemOverride}\n\n${finalPrompt}` : finalPrompt;
+      const result = await model.generateContent(geminiPrompt);
       const text = result?.response?.text?.() ?? "";
       return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: text };
     } catch (e: any) {
@@ -125,44 +167,35 @@ async function runPromptModuleLegacy(
   };
 }
 
-/**
- * ✅ 新实现（公共厨师）：走 runLLM()
- * - 只有当 ENGINE_PROVIDER_V2 === "on" 时启用
- */
+// -------- V2 (走 runLLM) --------
+
 async function runPromptModuleV2(
-  promptKey: string,
+  promptKeyRaw: string,
   userInput: string,
-  engineType: string = "deepseek"
+  engineType: string = "deepseek",
+  systemOverride?: string
 ): Promise<RunEngineResult> {
-  const normalizedEngineType = (engineType || "deepseek").toLowerCase() as EngineType;
+  const promptKey = normalizeKey(promptKeyRaw);
+  const normalizedEngineType = (normalizeKey(engineType).toLowerCase() || "deepseek") as EngineType;
 
-  if (!isFinalPromptKey(promptKey)) {
-    return {
-      promptKey,
-      engineType: normalizedEngineType,
-      finalPrompt: "",
-      modelOutput: "",
-      error: `[ENGINE_GUARD] Invalid promptKey: ${promptKey}. Expect like "A1-01".`,
-    };
-  }
-
-  const baseTemplate = getModuleTemplate(promptKey);
+  const { baseTemplate } = resolveBaseTemplate(promptKey);
   if (!baseTemplate) {
     return {
       promptKey,
       engineType: normalizedEngineType,
       finalPrompt: "",
       modelOutput: "",
-      error: `Unknown promptKey: ${promptKey}`,
+      error: `Unknown promptKey: ${promptKey} (not found in PROMPT_BANK / legacy modules)`,
     };
   }
 
-  const finalPrompt = buildFinalPrompt(baseTemplate, userInput);
+  const finalPrompt = buildFinalPrompt(baseTemplate, userInput, systemOverride);
 
   const llm = await runLLM({
     engineType: normalizedEngineType,
     prompt: finalPrompt,
     temperature: 0.7,
+    systemOverride,
   });
 
   if (!llm.ok) {
@@ -173,18 +206,17 @@ async function runPromptModuleV2(
 }
 
 /**
- * ✅ 对外导出：保持函数名不变（通用模块不需要改任何调用）
- * - 默认走 Legacy（不影响通用模块）
- * - 开关打开后走 V2
+ * ✅ 对外导出：保持函数名不变（server/run-engine 不用改）
+ * - ENGINE_PROVIDER_V2=on -> V2
+ * - 否则走 Legacy
  */
 export async function runPromptModule(
   promptKey: string,
   userInput: string,
-  engineType: string = "deepseek"
+  engineType: string = "deepseek",
+  systemOverride?: string
 ): Promise<RunEngineResult> {
   const flag = (process.env.ENGINE_PROVIDER_V2 || "").toLowerCase();
-  if (flag === "on") {
-    return runPromptModuleV2(promptKey, userInput, engineType);
-  }
-  return runPromptModuleLegacy(promptKey, userInput, engineType);
+  if (flag === "on") return runPromptModuleV2(promptKey, userInput, engineType, systemOverride);
+  return runPromptModuleLegacy(promptKey, userInput, engineType, systemOverride);
 }

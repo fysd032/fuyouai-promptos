@@ -1,4 +1,5 @@
-import { getPrompt } from "@/lib/promptos/prompt-bank.generated";
+// app/api/handlers/coreRun.ts
+
 import { runEngine } from "@/lib/promptos/run-engine";
 import {
   CORE_PROMPT_BANK_KEY,
@@ -6,23 +7,22 @@ import {
   type PlanTier,
 } from "@/lib/promptos/core/core-map";
 
-function isCoreKey(v: any): v is CoreKey {
-  return ["task_breakdown", "cot_reasoning", "content_builder", "analytical_engine", "task_tree"].includes(v);
+function isCoreKey(v: unknown): v is CoreKey {
+  return (
+    typeof v === "string" &&
+    ["task_breakdown", "cot_reasoning", "content_builder", "analytical_engine", "task_tree"].includes(v)
+  );
 }
-function isTier(v: any): v is PlanTier {
+
+function isTier(v: unknown): v is PlanTier {
   return v === "basic" || v === "pro";
 }
 
-/**
- * 安全提取模型输出：兼容 output/text/aiOutput/modelOutput/result/content
- * 关键点：入参是 unknown，内部用类型守卫 narrow，TS 构建必过
- */
+/** 安全提取模型输出：兼容 output/text/aiOutput/modelOutput/result/content */
 function pickOutput(engineResult: unknown): string {
   if (!engineResult || typeof engineResult !== "object") return "";
-
   const r = engineResult as Record<string, unknown>;
 
-  // 1) 直接字段（你之前兜底的那几个）
   const direct =
     (typeof r.content === "string" ? r.content : undefined) ??
     (typeof r.output === "string" ? r.output : undefined) ??
@@ -30,27 +30,27 @@ function pickOutput(engineResult: unknown): string {
     (typeof r.aiOutput === "string" ? r.aiOutput : undefined) ??
     (typeof r.modelOutput === "string" ? r.modelOutput : undefined);
 
-  if (direct != null) return String(direct);
+  if (direct != null) return String(direct).trim();
 
-  // 2) result 可能是 string 或对象（常见于一些 engine 包装）
   const result = r.result;
-  if (typeof result === "string") return result;
+  if (typeof result === "string") return result.trim();
   if (result && typeof result === "object") {
     const rr = result as Record<string, unknown>;
     const nested =
       (typeof rr.content === "string" ? rr.content : undefined) ??
       (typeof rr.output === "string" ? rr.output : undefined) ??
       (typeof rr.text === "string" ? rr.text : undefined);
-    if (nested != null) return String(nested);
+    if (nested != null) return String(nested).trim();
   }
-
   return "";
 }
 
-export async function coreRun(body: any) {
-  const coreKey = body?.coreKey;
-  const tier = body?.tier;
-  const userInput = String(body?.userInput ?? body?.input ?? "").trim();
+export async function coreRun(body: unknown) {
+  const b = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
+
+  const coreKey = b.coreKey;
+  const tier = b.tier;
+  const userInput = String(b.userInput ?? b.input ?? "").trim();
 
   if (!isCoreKey(coreKey)) {
     return {
@@ -71,25 +71,26 @@ export async function coreRun(body: any) {
     };
   }
 
-// ✅ 统一 tier，避免 TS/运行时不一致
-const tierKey: "basic" | "pro" = tier === "pro" ? "pro" : "basic";
+  // ✅ 统一 tier
+  const tierKey: "basic" | "pro" = tier === "pro" ? "pro" : "basic";
 
-// ✅ CORE_PROMPT_BANK_KEY 的真实结构在你工程里可能是 CoreDefinition（不是 Record）
-// 所以这里用 any 兜底，让 Vercel 先能编译通过
-const promptBankKey = (CORE_PROMPT_BANK_KEY as any)?.[coreKey]?.[tierKey];
+  // ✅ 从映射取 promptKey（5 大模块的 5 个提示词）
+  const promptKeyUsed = (CORE_PROMPT_BANK_KEY as any)?.[coreKey]?.[tierKey];
+  if (typeof promptKeyUsed !== "string" || !promptKeyUsed.trim()) {
+    return {
+      status: 500,
+      json: {
+        ok: false,
+        error: {
+          code: "PROMPT_KEY_MISSING",
+          message: `Unknown promptBankKey. coreKey="${String(coreKey)}", tier="${tierKey}"`,
+        },
+      },
+    };
+  }
 
-if (!promptBankKey) {
-  // 这里直接抛错 / 或 return 你自己的错误结构都行
-  throw new Error(
-    `Unknown promptBankKey. coreKey="${String(coreKey)}", tier="${tierKey}". ` +
-    `Check CORE_PROMPT_BANK_KEY mapping.`
-  );
-}
-
-
-  // ✅ 关键：把 runEngine 的返回当成 unknown（不信任其类型声明）
   const engineResult: unknown = await runEngine({
-    promptKey: promptBankKey,
+    promptKey: promptKeyUsed,
     userInput,
     engineType: "deepseek",
     mode: "core",
@@ -98,16 +99,21 @@ if (!promptBankKey) {
 
   const output = pickOutput(engineResult);
 
+  if (!output) {
+    return {
+      status: 500,
+      json: { ok: false, error: { code: "EMPTY_OUTPUT", message: "Engine returned empty output" } },
+    };
+  }
+
   return {
     status: 200,
     json: {
       ok: true,
       output,
-      // 可选：把 content 也带上，方便你未来统一字段（不破坏旧前端）
-      content: output,
-      meta: { coreKey, tier, promptKeyUsed: promptBankKey },
-      // 可选：保留 raw 便于排查（稳定后可删）
-      // engineRaw: engineResult,
+      text: output,     // ✅ 给前端更通用的字段
+      content: output,  // ✅ 兼容字段
+      meta: { coreKey, tier: tierKey, promptKeyUsed },
     },
   };
 }
