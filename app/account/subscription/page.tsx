@@ -1,12 +1,12 @@
 "use client";
 
-import { Pricing } from "@/components/Pricing";
+import { Subscription } from "@/components/AccountPages";
 import { SubscriptionProvider } from "@/src/context/SubscriptionContext";
 
 export default function Page() {
   return (
     <SubscriptionProvider>
-      <Pricing />
+      <Subscription />
     </SubscriptionProvider>
   );
 }
