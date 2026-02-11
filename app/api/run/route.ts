@@ -1,18 +1,15 @@
-export default function handler(req, res) {
-  if (req.method === "OPTIONS") {
-    res.status(200).end();
-    return;
-  }
+import { NextResponse } from "next/server";
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Only POST is supported." });
-  }
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 200 });
+}
 
-  const { plan_id, text, answers, refineInstruction, previousOutput } =
-    req.body || {};
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({}));
+  const { plan_id, text, answers, refineInstruction, previousOutput } = body || {};
 
   if (!plan_id || !text) {
-    return res.status(400).json({ error: "Missing plan_id or text." });
+    return NextResponse.json({ error: "Missing plan_id or text." }, { status: 400 });
   }
 
   const answerLines = Object.entries(answers || {})
@@ -43,5 +40,5 @@ export default function handler(req, res) {
     .filter(Boolean)
     .join("\n");
 
-  return res.status(200).json({ output });
+  return NextResponse.json({ output });
 }

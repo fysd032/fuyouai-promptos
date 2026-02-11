@@ -16,7 +16,7 @@ export const Login: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // ✅ 登录成功后跳转目标：优先用 ?from=xxx，其次 ?redirect=xxx，否则默认去 /modules/core
+  // After login succeeds: prefer ?from=xxx, then ?redirect=xxx, else default to /modules/core
   const redirectTo = useMemo(() => {
     const from = searchParams?.get("from") ?? null;
     const redirect = searchParams?.get("redirect") ?? null;
@@ -31,7 +31,7 @@ export const Login: React.FC = () => {
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // --- 工具：从 URL query 或 hash query 读取参数（兼容你之前的 #/login 模式）
+  // Utility: read params from URL query or hash query (compat with older #/login mode)
   const getParam = (name: string) => {
     const url = new URL(window.location.href);
     const queryParams = new URLSearchParams(url.search);
@@ -43,14 +43,14 @@ export const Login: React.FC = () => {
     return hashParams.get(name) || queryParams.get(name);
   };
 
-  // --- 工具：清理 URL（去掉 code/token 等敏感参数）
+  // Utility: clean URL (remove code/token params)
   const cleanUrl = () => {
-    // 迁移到 Next 后，login 页标准路径是 /login
+    // After moving to Next, the canonical login route is /login
     const base = `${window.location.origin}/login`;
     window.history.replaceState({}, "", base);
   };
 
-  // ✅ 首次进入：处理 OAuth / token 回调 + 已登录自动跳转
+  // First load: handle OAuth/token callbacks + auto-redirect if already signed in
   useEffect(() => {
     let active = true;
 
@@ -60,10 +60,10 @@ export const Login: React.FC = () => {
         const accessToken = getParam("access_token");
         const refreshToken = getParam("refresh_token");
 
-        // 1) OAuth code 模式
+        // 1) OAuth code mode
         if (code) {
           const exchangeUrl = new URL(window.location.href);
-          // Supabase 要求 code 在 search 中；同时清掉 hash
+          // Supabase requires code in search; clear hash as well
           exchangeUrl.hash = "";
           exchangeUrl.search = `?code=${encodeURIComponent(code)}`;
 
@@ -85,7 +85,7 @@ export const Login: React.FC = () => {
           }
         }
 
-        // 2) access_token/refresh_token 模式（兼容旧流程）
+        // 2) access_token/refresh_token mode (compat with legacy flow)
         if (accessToken && refreshToken) {
           const { data, error: setSessionError } =
             await supabase.auth.setSession({
@@ -108,7 +108,7 @@ export const Login: React.FC = () => {
           }
         }
 
-        // 3) 已有 session：直接跳走
+        // 3) Already has session: redirect directly
         const { data } = await supabase.auth.getSession();
         if (!active) return;
 
@@ -128,7 +128,7 @@ export const Login: React.FC = () => {
     };
   }, [router, redirectTo]);
 
-  // resend 倒计时
+  // Resend countdown
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
@@ -146,7 +146,7 @@ export const Login: React.FC = () => {
       email,
       options: {
         shouldCreateUser: true,
-        // ✅ Next 标准：/login（不要再用 /#/login）
+        // Next standard route: /login (no more /#/login)
         emailRedirectTo: `${window.location.origin}/login?from=${encodeURIComponent(
           redirectTo
         )}`,
@@ -215,7 +215,7 @@ export const Login: React.FC = () => {
             size={18}
             className="group-hover:-translate-x-1 transition-transform"
           />
-          返回首页
+          Back to Home
         </button>
       </div>
 
@@ -226,14 +226,14 @@ export const Login: React.FC = () => {
             P
           </div>
           <h1 className="text-2xl font-bold text-slate-900">
-            {step === "email" ? "欢迎来到 Prompt OS" : "输入验证码"}
+            {step === "email" ? "Welcome to Prompt OS" : "Enter verification code"}
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
             {step === "email" ? (
-              "登录以开始 30 天免费试用，无需密码"
+              "Log in to start your 30-day free trial, no password needed"
             ) : (
               <span>
-                验证码已发送至{" "}
+                Code sent to{" "}
                 <span className="text-slate-800 font-medium">{email}</span>
               </span>
             )}
@@ -284,11 +284,11 @@ export const Login: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  发送中...
+                  Sending...
                 </>
               ) : (
                 <>
-                  获取验证码 <ArrowRight size={18} />
+                  Get verification code<ArrowRight size={18} />
                 </>
               )}
             </button>
@@ -334,11 +334,11 @@ export const Login: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  验证中...
+                  Verifying...
                 </>
               ) : (
                 <>
-                  进入 Prompt OS <CheckCircle size={18} />
+                  Enter Prompt OS <CheckCircle size={18} />
                 </>
               )}
             </button>
@@ -349,7 +349,7 @@ export const Login: React.FC = () => {
                 onClick={() => setStep("email")}
                 className="text-slate-400 hover:text-slate-600 transition-colors"
               >
-                更换邮箱
+                Change email
               </button>
               <button
                 type="button"
@@ -361,7 +361,9 @@ export const Login: React.FC = () => {
                     : "text-[#1E9FFF] hover:text-[#4CB2FF]"
                 }`}
               >
-                {countdown > 0 ? `${countdown}秒后重新发送` : "重新发送验证码"}
+                {countdown > 0
+                  ? `Resend in ${countdown}s`
+                  : "Resend verification code"}
               </button>
             </div>
           </form>
@@ -371,34 +373,34 @@ export const Login: React.FC = () => {
         <div className="mt-8 border-t border-slate-100 pt-6">
           <details className="group text-sm text-slate-500 cursor-pointer">
             <summary className="text-center text-slate-400 hover:text-[#1E9FFF] font-medium list-none flex items-center justify-center gap-1 transition-colors select-none">
-              查看 30 天试用特权
+              View 30-day trial details
               <span className="group-open:rotate-180 transition-transform text-xs">
-                ▼
+                v
               </span>
             </summary>
             <div className="mt-4 space-y-2 bg-slate-50/80 p-4 rounded-xl text-slate-600 text-xs leading-relaxed border border-slate-100 animate-in fade-in slide-in-from-top-2">
               <p className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-[#1E9FFF] rounded-full"></span>{" "}
-                访问全部 7 套框架、30 个模块
+                Access all 7 frameworks and 70 modules
               </p>
               <p className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-[#1E9FFF] rounded-full"></span>{" "}
-                Prompt Optimizer 全功能开放
+                Full access to Prompt Optimizer
               </p>
               <p className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-[#1E9FFF] rounded-full"></span>{" "}
-                试用结束后自动降级为 Free 版
+                Auto-downgrade to Free after trial ends
               </p>
               <p className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-[#1E9FFF] rounded-full"></span>{" "}
-                无需绑定信用卡，不自动扣费
+                No credit card required, no auto charge
               </p>
             </div>
           </details>
         </div>
 
         <p className="text-[10px] text-center mt-8 text-slate-300">
-          登录即表示你同意《用户协议》和《隐私政策》
+          By logging in, you agree to the User Agreement and Privacy Policy
         </p>
       </div>
     </div>

@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "src/main.tsx", "src/App.tsx", "src/pages/ModuleRunnerPage.tsx", "src/pages/PricingPage.tsx"]
+  "exclude": ["node_modules"]
 }

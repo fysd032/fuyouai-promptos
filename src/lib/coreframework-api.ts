@@ -1,0 +1,172 @@
+// src/lib/coreframework-api.ts
+// Calls /api/core/run (Next API Routes; same-origin by default).
+
+import { resolveApiBase } from "./apiBase";
+import { supabase } from "./supabaseClient";
+
+export type PlanTier = "basic" | "pro";
+export type EngineType = "deepseek" | "gemini";
+
+export type CoreKey =
+  | "task_breakdown"
+  | "cot_reasoning"
+  | "content_builder"
+  | "analytical_engine"
+  | "task_tree";
+
+export type CoreFrameworkArgs = {
+  coreKey: CoreKey;
+  userInput: string;
+  tier?: PlanTier;
+  engineType?: EngineType;
+  industryId?: string | null;
+  systemOverride?: string;
+
+  timeoutMs?: number; // default 60s
+  withCredentials?: boolean;
+  apiBase?: string; // allows override (rarely used, not recommended)
+};
+
+export type CoreFrameworkResult = {
+  ok: true;
+  output: string;
+  finalPrompt?: string;
+  mode?: "clarification" | "normal";
+  language?: string;
+  meta?: any;
+  raw: any;
+};
+
+function isBlank(s: unknown) {
+  return typeof s !== "string" || s.trim().length === 0;
+}
+
+function normalizeOutput(data: any): string {
+  const v =
+    data?.output ??
+    data?.modelOutput ??
+    data?.aiOutput ??
+    data?.result ??
+    data?.data?.output ??
+    "";
+  return typeof v === "string" ? v : JSON.stringify(v ?? "", null, 2);
+}
+
+async function safeJson(res: Response) {
+  try {
+    return await res.json();
+  } catch {
+    return {
+      ok: false,
+      error: {
+        code: "NON_JSON_RESPONSE",
+        message: `Non-JSON response (HTTP ${res.status})`,
+      },
+    };
+  }
+}
+
+async function safeText(res: Response) {
+  try {
+    return await res.text();
+  } catch {
+    return "";
+  }
+}
+
+function buildErrorMessage(res: Response, data: any) {
+  const msg =
+    data?.error?.message ||
+    data?.message ||
+    data?.error ||
+    `Core run failed (HTTP ${res.status})`;
+
+  const hint = data?.error?.hint ? ` | hint: ${data.error.hint}` : "";
+  const requestId =
+    data?.meta?.requestId || data?.requestId
+      ? ` | requestId: ${data?.meta?.requestId ?? data?.requestId}`
+      : "";
+
+  return `[POST /api/core/run] ${msg}${hint}${requestId}`;
+}
+
+// Dev environment uses same-origin /api (handled by Next API Routes) to avoid CORS
+export async function callCoreFramework(args: CoreFrameworkArgs): Promise<CoreFrameworkResult> {
+  const {
+    coreKey,
+    userInput,
+    tier = "basic",
+    engineType = "deepseek",
+    industryId = null,
+    systemOverride,
+    timeoutMs = 60_000,
+    withCredentials = false,
+    apiBase,
+  } = args;
+
+  if (!coreKey) throw new Error("coreKey cannot be empty");
+  if (isBlank(userInput)) throw new Error("userInput cannot be empty");
+
+  const API_BASE = resolveApiBase(apiBase);
+  const url = `${API_BASE}/api/core/run`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    // Get access_token from Supabase session
+    const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+    if (sessionErr) throw new Error(`[auth] ${sessionErr.message}`);
+    const token = sessionData.session?.access_token;
+    if (!token) throw new Error("Not signed in. Please sign in again.");
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      signal: controller.signal,
+      credentials: withCredentials ? "include" : "same-origin",
+      body: JSON.stringify({
+        coreKey,
+        tier,
+        userInput,
+        engineType,
+        industryId,
+        systemOverride,
+      }),
+    });
+
+    const data = await safeJson(res);
+
+    if (!res.ok || data?.ok === false) {
+      if (data?.error?.code === "NON_JSON_RESPONSE") {
+        const text = await safeText(res);
+        const extra = text ? ` | body: ${text.slice(0, 500)}` : "";
+        throw new Error(`[POST /api/core/run] Non-JSON response${extra}`);
+      }
+      throw new Error(buildErrorMessage(res, data));
+    }
+
+    return {
+      ok: true,
+      output: normalizeOutput(data),
+      finalPrompt: data?.finalPrompt,
+      mode: data?.mode,
+      language: data?.language,
+      meta: data?.meta,
+      raw: data,
+    };
+  } catch (e: any) {
+    if (e?.name === "AbortError") {
+      throw new Error(`[POST /api/core/run] Request timeout after ${timeoutMs}ms. | url: ${url}`);
+    }
+    if (e instanceof Error) {
+      e.message = `${e.message} | url: ${url}`;
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}

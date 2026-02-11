@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 只处理 modules，其它一律放行
+  // Only handle /modules, pass through everything else
   if (!pathname.startsWith("/modules")) {
     return NextResponse.next();
   }
 
-  // TODO: 这里保留你原来的鉴权逻辑
+  // TODO: add auth logic here
   return NextResponse.next();
 }
 
