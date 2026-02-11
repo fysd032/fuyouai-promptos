@@ -2,7 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { suggestions } from "../config/suggestions";
+
+const MODULE_ENTRIES = [
+  { href: "/modules/core", label: "Core", desc: "5 core methodology engines" },
+  { href: "/modules/general", label: "General", desc: "Universal task modules" },
+  { href: "/modules/industry", label: "Industry", desc: "Industry templates" },
+];
 
 const placeholderOptions = [
   "E.g. write a business email, run a competitor analysis, summarize a document, generate an SOP",
@@ -144,6 +151,22 @@ const MobileEntry: React.FC = () => {
           {status && (
             <div className="text-xs text-[#6B7280] text-center">{status}</div>
           )}
+
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#6B7280]">Modules</p>
+            <div className="grid grid-cols-3 gap-2">
+              {MODULE_ENTRIES.map((entry) => (
+                <Link
+                  key={entry.href}
+                  href={entry.href}
+                  className="rounded-xl border border-[#1F2937] bg-[#0F172A] p-3 text-center hover:border-[#3B82F6]/50 transition-colors"
+                >
+                  <div className="text-sm font-medium text-white">{entry.label}</div>
+                  <div className="text-[10px] text-[#6B7280] mt-1 leading-tight">{entry.desc}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

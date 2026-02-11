@@ -10,9 +10,9 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Redirect mobile devices to /m2
+  // Redirect mobile devices hitting /modules (index only) to /m2
   const ua = req.headers.get("user-agent") ?? "";
-  if (MOBILE_RE.test(ua)) {
+  if (MOBILE_RE.test(ua) && pathname === "/modules") {
     return NextResponse.redirect(new URL("/m2", req.url));
   }
 
