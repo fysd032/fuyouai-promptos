@@ -200,7 +200,7 @@ const CoreFrameworkPage: React.FC = () => {
 
   return (
     <div className="flex flex-col w-full h-full">
-      <div className="flex items-center gap-2 text-sm text-[#9CA3AF] mb-2 pt-2">
+      <div className="flex items-center gap-2 text-xs sm:text-sm text-[#9CA3AF] mb-1 sm:mb-2 pt-1 sm:pt-2">
         <Link href="/modules" className="hover:text-[#F9FAFB] transition-colors">
           Module Center
         </Link>
@@ -208,15 +208,15 @@ const CoreFrameworkPage: React.FC = () => {
         <span className="text-[#F9FAFB]">Core Methodologies</span>
       </div>
 
-      <div className="relative pt-4 pb-10 text-center z-10">
-        <h1 className="text-[32px] font-semibold text-[#F9FAFB] tracking-tight mb-2 drop-shadow-sm">
+      <div className="relative pt-2 sm:pt-4 pb-4 sm:pb-10 text-center z-10">
+        <h1 className="text-xl sm:text-[32px] font-semibold text-[#F9FAFB] tracking-tight mb-1 sm:mb-2 drop-shadow-sm">
           Core Methodologies
         </h1>
-        <p className="text-[#9CA3AF] text-base max-w-2xl mx-auto mb-8">
+        <p className="text-[#9CA3AF] text-xs sm:text-base max-w-2xl mx-auto mb-3 sm:mb-8">
           5 core engines based on Chain of Thought (CoT) and structured engineering, enabling ultimate AI output control.
         </p>
 
-        <div className="inline-flex flex-wrap p-1 bg-[#111827] border border-[#1F2937] rounded-xl shadow-lg">
+        <div className="flex flex-row flex-nowrap overflow-x-auto sm:inline-flex sm:flex-wrap p-1 bg-[#111827] border border-[#1F2937] rounded-xl shadow-lg no-scrollbar gap-0.5 sm:gap-0">
           {CORE_FRAMEWORKS.map((fw) => {
             const isActive = activeKey === fw.key;
             return (
@@ -232,7 +232,7 @@ const CoreFrameworkPage: React.FC = () => {
                   setCopied(false);
                 }}
                 className={`
-                  px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                  whitespace-nowrap px-2.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-200 flex-shrink-0
                   ${
                     isActive
                       ? "bg-[#3B82F6] text-white shadow-md shadow-blue-900/20"
@@ -247,24 +247,24 @@ const CoreFrameworkPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_480px] gap-8 items-start pb-20">
-        <div className="flex flex-col gap-6 min-w-0">
-          <div className="bg-[#111827] border border-[#1F2937] rounded-2xl p-6 shadow-sm">
-            <div className="flex items-start justify-between mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_480px] gap-4 sm:gap-8 items-start pb-10 sm:pb-20">
+        <div className="flex flex-col gap-3 sm:gap-6 min-w-0">
+          <div className="bg-[#111827] border border-[#1F2937] rounded-2xl p-3 sm:p-6 shadow-sm">
+            <div className="flex items-start justify-between mb-2 sm:mb-4">
               <div>
-                <h2 className="text-xl font-medium text-[#F9FAFB] mb-2">{activeItem.fullTitle}</h2>
-                <p className="text-[#9CA3AF] text-sm leading-relaxed max-w-xl">{activeItem.desc}</p>
+                <h2 className="text-base sm:text-xl font-medium text-[#F9FAFB] mb-1 sm:mb-2">{activeItem.fullTitle}</h2>
+                <p className="text-[#9CA3AF] text-xs sm:text-sm leading-relaxed max-w-xl">{activeItem.desc}</p>
               </div>
-              <div className="p-2 bg-[#3B82F6]/10 rounded-lg text-[#3B82F6]">
-                <Info size={20} />
+              <div className="p-1.5 sm:p-2 bg-[#3B82F6]/10 rounded-lg text-[#3B82F6]">
+                <Info size={18} />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="flex overflow-x-auto gap-2 no-scrollbar md:grid md:grid-cols-3 md:gap-3">
               {activeItem.bullets.map((bullet, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 text-xs text-[#9CA3AF] bg-[#1F2937]/50 px-3 py-2 rounded-lg border border-[#1F2937]"
+                  className="flex items-center gap-2 text-[11px] sm:text-xs text-[#9CA3AF] bg-[#1F2937]/50 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-[#1F2937] whitespace-nowrap md:whitespace-normal flex-shrink-0 md:flex-shrink"
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-[#3B82F6] flex-shrink-0" />
                   {bullet}
@@ -274,39 +274,39 @@ const CoreFrameworkPage: React.FC = () => {
           </div>
 
           <div className="bg-[#111827] border border-[#1F2937] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
-            <div className="px-6 py-4 border-b border-[#1F2937] flex items-center gap-3 bg-[#1F2937]/30">
+            <div className="px-4 sm:px-6 py-2.5 sm:py-4 border-b border-[#1F2937] flex items-center gap-2 sm:gap-3 bg-[#1F2937]/30">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border ${
+                className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold border ${
                   currentStep === 1
                     ? "border-[#3B82F6] text-[#3B82F6] bg-[#3B82F6]/10"
                     : "border-emerald-500 text-emerald-400 bg-emerald-500/10"
                 }`}
               >
-                {currentStep === 1 ? "1" : <Check size={16} />}
+                {currentStep === 1 ? "1" : <Check size={14} />}
               </div>
-              <span className="text-sm font-medium text-[#F9FAFB]">
+              <span className="text-xs sm:text-sm font-medium text-[#F9FAFB]">
                 {currentStep === 1 ? "Input Context" : "Execution Done"}
               </span>
             </div>
 
-            <div className="p-6">
+            <div className="p-3 sm:p-6">
               <textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 placeholder={`Describe the character...\nExample: "Help me break down the annual growth targets for a SaaS product, including market expansion and sales conversion dimensions."`}
-                className="w-full h-[240px] bg-[#0A0F1C] border border-[#1F2937] rounded-xl p-5 text-[15px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:border-[#3B82F6]/50 focus:ring-1 focus:ring-[#3B82F6]/20 transition-all resize-none leading-relaxed"
+                className="w-full h-[140px] sm:h-[240px] bg-[#0A0F1C] border border-[#1F2937] rounded-xl p-3 sm:p-5 text-sm sm:text-[15px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:border-[#3B82F6]/50 focus:ring-1 focus:ring-[#3B82F6]/20 transition-all resize-none leading-relaxed"
               />
 
-              <div className="mt-6 flex justify-end">
+              <div className="mt-3 sm:mt-6 flex justify-end">
                 <button
                   onClick={handleRun}
                   disabled={status === "loading" || !userInput.trim()}
-                  className="flex items-center gap-2 px-8 py-3 bg-[#3B82F6] hover:bg-blue-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="flex items-center gap-2 px-5 sm:px-8 py-2 sm:py-3 bg-[#3B82F6] hover:bg-blue-600 text-white text-sm sm:text-base font-medium rounded-xl transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {status === "loading" ? (
-                    <Loader2 size={18} className="animate-spin" />
+                    <Loader2 size={16} className="animate-spin" />
                   ) : (
-                    <Play size={18} fill="currentColor" />
+                    <Play size={16} fill="currentColor" />
                   )}
                   {status === "loading" ? "Generating..." : "Generate Prompt and Run"}
                 </button>
@@ -315,7 +315,7 @@ const CoreFrameworkPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="sticky top-6 flex flex-col h-[640px] min-w-0 bg-[#111827] border border-[#1F2937] rounded-2xl overflow-hidden shadow-xl shadow-black/40">
+        <div className="sticky top-6 flex flex-col h-[400px] sm:h-[640px] min-w-0 bg-[#111827] border border-[#1F2937] rounded-2xl overflow-hidden shadow-xl shadow-black/40">
           <div className="flex items-center border-b border-[#1F2937] bg-[#1F2937]/30">
             <button
               onClick={() => setActiveTab("preview")}

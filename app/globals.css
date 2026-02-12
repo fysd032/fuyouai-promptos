@@ -47,3 +47,19 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.15);
 }
+
+/* Desktop-only zoom */
+@media (min-width: 1024px) {
+  .lg\:zoom-110 {
+    zoom: 1.1;
+  }
+}
+
+/* Hide scrollbar but keep scrollable */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

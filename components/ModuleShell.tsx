@@ -69,7 +69,7 @@ const ModuleShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </div>
 
       {/* ============ Right: Topbar + Content ============ */}
-      <div className="flex-1 min-w-0 flex flex-col relative" style={{ zoom: 1.1 }}>
+      <div className="flex-1 min-w-0 flex flex-col relative lg:zoom-110">
         {/* Background layers */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           {/* Base gradient */}
@@ -98,7 +98,7 @@ const ModuleShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         {/* Main scrollable content */}
         <main className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
-          <div className="w-full px-6 lg:px-8 2xl:px-10 py-6">
+          <div className="w-full px-3 sm:px-6 lg:px-8 2xl:px-10 py-3 sm:py-6">
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
