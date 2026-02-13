@@ -86,6 +86,8 @@ const CORE_FRAMEWORKS = [
 
 type CoreFrameworkUIKey = (typeof CORE_FRAMEWORKS)[number]["key"];
 
+const IS_DEV = process.env.NEXT_PUBLIC_DEV_MODE === "true";
+
 const CoreFrameworkPage: React.FC = () => {
   const { subscription } = useSubscription();
 
@@ -96,8 +98,9 @@ const CoreFrameworkPage: React.FC = () => {
   const [tier, setTier] = useState<"basic" | "pro">("basic");
   const [engineType, setEngineType] = useState<"deepseek" | "gemini">("deepseek");
 
-  // Auto-sync tier from subscription
+  // Auto-sync tier from subscription (dev mode allows manual override)
   useEffect(() => {
+    if (IS_DEV) return; // dev mode: keep manual selection
     if (subscription?.plan === "pro") {
       setTier("pro");
     } else {
@@ -221,6 +224,48 @@ const CoreFrameworkPage: React.FC = () => {
         <span className="text-[#F9FAFB]">Core Methodologies</span>
       </div>
 
+      {/* Dev mode control panel — only visible when NEXT_PUBLIC_DEV_MODE=true (local dev) */}
+      {IS_DEV && (
+        <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs">
+          <span className="text-amber-400 font-semibold">DEV</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-gray-400">Tier:</span>
+            {(["basic", "pro"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTier(t)}
+                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  tier === t
+                    ? "bg-blue-500 text-white"
+                    : "bg-[#1F2937] text-gray-400 hover:text-white"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-gray-400">Engine:</span>
+            {(["deepseek", "gemini"] as const).map((e) => (
+              <button
+                key={e}
+                onClick={() => setEngineType(e)}
+                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  engineType === e
+                    ? "bg-blue-500 text-white"
+                    : "bg-[#1F2937] text-gray-400 hover:text-white"
+                }`}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+          <span className="text-gray-500 ml-auto">
+            sub: {subscription?.plan ?? "none"} / {subscription?.status ?? "n/a"}
+          </span>
+        </div>
+      )}
+
       <div className="relative pt-2 sm:pt-4 pb-4 sm:pb-10 text-center z-10">
         <h1 className="text-xl sm:text-[32px] font-semibold text-[#F9FAFB] tracking-tight mb-1 sm:mb-2 drop-shadow-sm">
           Core Methodologies
@@ -260,7 +305,6 @@ const CoreFrameworkPage: React.FC = () => {
         </div>
       </div>
 
-      <RequirePlan plan="basic" title="Sign in to use Core Methodologies" description="Sign in with your account to access the 5 core AI engines.">
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_480px] gap-4 sm:gap-8 items-start pb-10 sm:pb-20">
         <div className="flex flex-col gap-3 sm:gap-6 min-w-0">
           <div className="bg-[#111827] border border-[#1F2937] rounded-2xl p-3 sm:p-6 shadow-sm">
@@ -412,9 +456,22 @@ const CoreFrameworkPage: React.FC = () => {
           </div>
         </div>
       </div>
-      </RequirePlan>
     </div>
   );
 };
 
-export default CoreFrameworkPage;
+/** Wrap the page: dev mode → render directly; production → RequirePlan gate */
+const CoreFrameworkPageWrapped: React.FC = () => {
+  if (IS_DEV) return <CoreFrameworkPage />;
+  return (
+    <RequirePlan
+      plan="basic"
+      title="Sign in to use Core Methodologies"
+      description="Sign in with your account to access the 5 core AI engines."
+    >
+      <CoreFrameworkPage />
+    </RequirePlan>
+  );
+};
+
+export default CoreFrameworkPageWrapped;
