@@ -331,16 +331,23 @@ export default function UniversalModulesPage() {
   );
 
   return (
-    <div className="flex gap-4 sm:gap-6 h-full min-w-0">
-      {/* Desktop: show both panels side by side */}
-      <div className="hidden lg:contents">
-        {listPanel}
-        {detailPanel}
+    <div className="flex flex-col gap-4 sm:gap-6 h-full min-w-0">
+      {/* Mobile hint */}
+      <div className="lg:hidden text-center py-1.5 px-3 bg-[#1F2937]/60 border border-[#374151]/50 rounded-lg">
+        <span className="text-xs text-gray-400">For the best experience, visit on PC / tablet</span>
       </div>
 
-      {/* Mobile: show one panel at a time */}
-      <div className="lg:hidden w-full min-h-0 flex flex-col">
-        {mobileShowDetail ? detailPanel : listPanel}
+      <div className="flex gap-4 sm:gap-6 flex-1 min-h-0">
+        {/* Desktop: show both panels side by side */}
+        <div className="hidden lg:contents">
+          {listPanel}
+          {detailPanel}
+        </div>
+
+        {/* Mobile: show one panel at a time */}
+        <div className="lg:hidden w-full min-h-0 flex flex-col">
+          {mobileShowDetail ? detailPanel : listPanel}
+        </div>
       </div>
     </div>
   );
