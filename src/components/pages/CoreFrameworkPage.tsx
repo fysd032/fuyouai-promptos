@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { callCoreFramework } from "@/src/lib/coreframework-api";
 import { CORE_TAB_TO_COREKEY } from "@/src/data/ui-corekey-map";
 import Link from "next/link";
 import { Sparkles, Copy, Check, Play, Loader2, Cpu, Terminal, Info } from "lucide-react";
 import { StatusFeedback } from "@/src/components/StatusFeedback";
+import { useSubscription } from "@/src/context/SubscriptionContext";
+import { RequirePlan } from "@/src/components/RequirePlan";
 
 // --- Guidance hint below output box (multilingual) ---
 const CONTINUE_HINTS: Record<string, string> = {
@@ -85,12 +87,23 @@ const CORE_FRAMEWORKS = [
 type CoreFrameworkUIKey = (typeof CORE_FRAMEWORKS)[number]["key"];
 
 const CoreFrameworkPage: React.FC = () => {
+  const { subscription } = useSubscription();
+
   const [activeKey, setActiveKey] = useState<CoreFrameworkUIKey>(CORE_FRAMEWORKS[0].key);
   const [activeTab, setActiveTab] = useState<"preview" | "output">("preview");
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
   const [tier, setTier] = useState<"basic" | "pro">("basic");
   const [engineType, setEngineType] = useState<"deepseek" | "gemini">("deepseek");
+
+  // Auto-sync tier from subscription
+  useEffect(() => {
+    if (subscription?.plan === "pro") {
+      setTier("pro");
+    } else {
+      setTier("basic");
+    }
+  }, [subscription?.plan]);
 
   const [userInput, setUserInput] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -247,6 +260,7 @@ const CoreFrameworkPage: React.FC = () => {
         </div>
       </div>
 
+      <RequirePlan plan="basic" title="Sign in to use Core Methodologies" description="Sign in with your account to access the 5 core AI engines.">
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_480px] gap-4 sm:gap-8 items-start pb-10 sm:pb-20">
         <div className="flex flex-col gap-3 sm:gap-6 min-w-0">
           <div className="bg-[#111827] border border-[#1F2937] rounded-2xl p-3 sm:p-6 shadow-sm">
@@ -398,6 +412,7 @@ const CoreFrameworkPage: React.FC = () => {
           </div>
         </div>
       </div>
+      </RequirePlan>
     </div>
   );
 };
