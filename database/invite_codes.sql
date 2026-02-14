@@ -26,6 +26,6 @@ CREATE INDEX IF NOT EXISTS idx_invite_usage_user ON invite_code_usage(user_id);
 -- Seed some initial codes (adjust as needed)
 INSERT INTO invite_codes (code, max_uses, channel) VALUES
   ('FUYOU-BETA01',   100, 'official'),
-  ('FUYOU-TWITTER',  50,  'twitter'),
+  ('FUYOU-REDDIT',   50,  'reddit'),
   ('FUYOU-PH2025',   200, 'producthunt')
 ON CONFLICT (code) DO NOTHING;
