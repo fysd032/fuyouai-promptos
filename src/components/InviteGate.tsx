@@ -3,8 +3,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Ticket, Loader2, CheckCircle, ArrowRight } from "lucide-react";
+import { Ticket, Loader2, CheckCircle, ArrowRight, LogIn } from "lucide-react";
 import { supabase } from "@/src/lib/supabaseClient";
+import Link from "next/link";
 
 const IS_DEV = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 const INVITE_ENABLED = process.env.NEXT_PUBLIC_INVITE_ENABLED !== "false"; // enabled by default
@@ -136,9 +137,31 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
     return <>{children}</>;
   }
 
-  // Not authenticated: SubscriptionProvider / RequirePlan handles this
+  // Not authenticated: show login prompt
   if (status === "no_auth") {
-    return <>{children}</>;
+    const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/modules";
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-full max-w-md bg-[#111827] border border-[#1F2937] rounded-2xl p-8 text-center">
+          <div className="w-14 h-14 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-5">
+            <LogIn className="w-6 h-6 text-blue-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Sign In Required
+          </h2>
+          <p className="text-sm text-gray-400 mb-6">
+            Please sign in to access FuyouAI modules.
+          </p>
+          <Link
+            href={`/login?from=${encodeURIComponent(currentPath)}`}
+            className="inline-flex items-center justify-center gap-2 w-full px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-all"
+          >
+            <LogIn size={18} />
+            Sign In
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   // Needs invite code
