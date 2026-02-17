@@ -210,29 +210,117 @@ Free user → Login → 30-day trial auto-activated
 - `SubscriptionProvider` provides global subscription state to all module pages
 - CoreFrameworkPage auto-detects user plan and sends correct tier to backend
 
-### Invite Code System (Beta)
+### Invite Code System (Beta Access)
+
+Invite codes control beta access to the platform. All `/modules/*` pages are gated — users must sign in and enter a valid invite code before accessing any module (core, general, or industry).
+
+#### User Flow
 
 ```
-User logs in → Enters /modules/* → InviteGate checks status
-  → Already verified → Show content
-  → Not verified → Show invite code input
-  → Enter valid code → Recorded in DB → Show content (permanent)
+1. User receives invite link:
+   https://fuyouai.com/modules/general?invite=FUYOU-BETA01
+
+2. Opens link → Not logged in → "Sign In Required" screen
+   → Invite code saved to localStorage automatically
+
+3. Clicks "Sign In" → Redirected to /login
+   → Registers / logs in via email OTP
+
+4. After login → Redirected back to original page
+   → InviteGate detects saved invite code → auto-fills input
+
+5. Clicks "Enter Beta" → Code validated via /api/invite/validate
+   → Usage recorded in invite_code_usage table
+   → 15-day Basic trial subscription auto-created in subscriptions table
+   → localStorage cleared → User enters the platform
+
+6. 15 days later → trial_end expires
+   → guard.ts automatically blocks access → User must subscribe
 ```
 
-- Codes managed in Supabase `invite_codes` table
-- Each code has: max_uses, used_count, channel (for attribution)
-- Usage tracked per user in `invite_code_usage` table
-- URL pre-fill: `fuyouai.com/modules/core?invite=FUYOU-BETA01`
-- Dev mode (`NEXT_PUBLIC_DEV_MODE=true`) bypasses gate
-- Disable gate: set `NEXT_PUBLIC_INVITE_ENABLED=false` in Vercel
+#### Invite Link Format
 
-**Supabase setup**: Run `database/invite_codes.sql` in SQL Editor.
+```
+https://fuyouai.com/modules/core?invite=FUYOU-BETA01
+https://fuyouai.com/modules/general?invite=FUYOU-BETA01
+https://fuyouai.com/modules/general?inviteCode=FUYOU-BETA01
+```
 
-**Add new codes**:
+- Supports both `?invite=` and `?inviteCode=` query params
+- Code is case-insensitive (auto-converted to uppercase)
+- Code persists in `localStorage` across login redirects
+
+#### Access Control Layers
+
+| Layer | Component | Scope | Behavior |
+|-------|-----------|-------|----------|
+| 1. Login | `InviteGate` | All `/modules/*` | Not logged in → "Sign In Required" |
+| 2. Invite Code | `InviteGate` | All `/modules/*` | Logged in but no invite → "Enter invite code" |
+| 3. Subscription | `RequirePlan` | `/modules/core` | No active plan → "Upgrade" prompt |
+| 4. API Guard | `guard.ts` | API routes | No subscription → 402 |
+
+#### Trial Subscription (Auto-created)
+
+When a user successfully validates an invite code, the system automatically creates:
+
+| Field | Value |
+|-------|-------|
+| `plan` | `basic` |
+| `status` | `trialing` |
+| `trial_start` | Current timestamp |
+| `trial_end` | Current time + 15 days |
+
+- No manual action required — trial is created on invite code validation
+- `guard.ts` checks `trial_end` automatically — no need to manually expire users
+- If the user already has a subscription record, no trial is created (prevents overwriting paid plans)
+
+#### Database Tables
+
+**Supabase setup**: Run `database/invite_codes.sql` in Supabase SQL Editor.
+
+```sql
+-- invite_codes: stores available invite codes
+-- Fields: code (PK), max_uses, used_count, channel, active, created_at
+
+-- invite_code_usage: tracks which user used which code
+-- Fields: id, code (FK), user_id, email, used_at
+-- Constraint: UNIQUE(code, user_id) — same user can't use same code twice
+```
+
+#### Managing Invite Codes
+
+**Add a new code:**
 ```sql
 INSERT INTO invite_codes (code, max_uses, channel)
 VALUES ('FUYOU-NEWCODE', 100, 'channel-name');
 ```
+
+**Disable a code:**
+```sql
+UPDATE invite_codes SET active = false WHERE code = 'FUYOU-NEWCODE';
+```
+
+**Check usage stats:**
+```sql
+SELECT code, max_uses, used_count, active, created_at
+FROM invite_codes ORDER BY created_at DESC;
+```
+
+**See who used a code:**
+```sql
+SELECT u.email, u.used_at, u.code
+FROM invite_code_usage u
+ORDER BY u.used_at DESC;
+```
+
+#### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_INVITE_ENABLED` | `true` | Set `false` to disable invite gate (open access) |
+| `NEXT_PUBLIC_DEV_MODE` | `false` | Set `true` locally to bypass invite gate + RequirePlan |
+
+**Important**: Do NOT set `NEXT_PUBLIC_DEV_MODE=true` on Vercel production — it bypasses all access controls.
 
 ### Developer Mode
 
