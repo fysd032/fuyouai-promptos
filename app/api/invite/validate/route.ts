@@ -113,7 +113,31 @@ export async function POST(req: Request) {
       .update({ used_count: invite.used_count + 1 })
       .eq("code", code);
 
-    return NextResponse.json({ ok: true, channel: invite.channel });
+    // --- Auto-create 15-day trial subscription ---
+    const TRIAL_DAYS = 15;
+    const { data: existingSub } = await admin
+      .from("subscriptions")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!existingSub) {
+      const now = new Date();
+      const trialEnd = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+      await admin
+        .from("subscriptions")
+        .insert([
+          {
+            user_id: userId,
+            status: "trialing",
+            plan: "basic",
+            trial_start: now.toISOString(),
+            trial_end: trialEnd.toISOString(),
+          },
+        ] as any);
+    }
+
+    return NextResponse.json({ ok: true, channel: invite.channel, trialDays: TRIAL_DAYS });
   } catch (e: any) {
     console.error("[api/invite/validate]", e);
     return NextResponse.json(

@@ -19,12 +19,19 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Pre-fill from URL ?invite=CODE
+  // Pre-fill from URL ?invite=CODE, persist to localStorage so it survives login redirect
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const inviteParam = params.get("invite") || params.get("inviteCode") || "";
-      if (inviteParam) setCode(inviteParam.toUpperCase());
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const inviteParam = params.get("invite") || params.get("inviteCode") || "";
+    if (inviteParam) {
+      const upper = inviteParam.toUpperCase();
+      setCode(upper);
+      localStorage.setItem("fuyou_invite_code", upper);
+    } else {
+      // Restore from localStorage if no URL param
+      const saved = localStorage.getItem("fuyou_invite_code");
+      if (saved) setCode(saved);
     }
   }, []);
 
@@ -50,6 +57,7 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
 
       if (data.verified) {
         setStatus("verified");
+        localStorage.removeItem("fuyou_invite_code");
       } else {
         setStatus("needs_code");
       }
@@ -103,6 +111,7 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
 
       if (data.ok) {
         setStatus("verified");
+        localStorage.removeItem("fuyou_invite_code");
       } else {
         setError(data.error || "Invalid invite code");
       }
