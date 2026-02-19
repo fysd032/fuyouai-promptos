@@ -128,6 +128,22 @@ export async function requireSubscription(
     }
   }
 
+  // 3c. Fallback: check invite_code_usage (beta access via invite code)
+  type UsageRow = { used_at: string };
+
+  const { data: inviteUsage } = await admin
+    .from("invite_code_usage")
+    .select("used_at")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle<UsageRow>();
+
+  if (inviteUsage !== null) {
+    await setEntitlement(userId, { allowed: true });
+    if (GATE_LOG) console.log(`[gate] userId=${userId} source=invite_usage cache_hit=false result=ok ms=${Date.now() - t0}`);
+    return { ok: true, userId };
+  }
+
   // ── Step 4: no valid subscription or entitlement ────────
   const failCode = sub === null ? "SUBSCRIPTION_REQUIRED" : "SUBSCRIPTION_EXPIRED";
   await setEntitlement(userId, { allowed: false, code: failCode });

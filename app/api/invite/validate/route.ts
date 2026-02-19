@@ -1,31 +1,10 @@
 // app/api/invite/validate/route.ts
-// Redeems an invite code, grants user_entitlements, and busts Redis entitlement cache.
+// Redeems an invite code using direct table operations (no RPC dependency).
+// Works with the original invite_codes + invite_code_usage schema.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { bustEntitlement } from "@/lib/billing/entitlement-cache";
-
-// Shape returned by the redeem_invite_code PL/pgSQL function
-type RedeemOk = {
-  ok: true;
-  alreadyRedeemed: boolean;
-  channel: string | null;
-  expires_at: string;
-};
-type RedeemFail = {
-  ok: false;
-  error: string;
-};
-type RedeemResult = RedeemOk | RedeemFail;
-
-function isRedeemResult(v: unknown): v is RedeemResult {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    "ok" in v &&
-    typeof (v as Record<string, unknown>).ok === "boolean"
-  );
-}
 
 export async function POST(req: Request) {
   try {
@@ -72,57 +51,86 @@ export async function POST(req: Request) {
     // Narrowed to string after guard above
     const uid: string = userId;
 
-    // ── Call atomic RPC ────────────────────────────────────
-    // getSupabaseAdmin() returns an untyped client (no Database generic), so
-    // admin.rpc() resolves the args type to `undefined` for unknown functions.
-    // Cast to `any` once here — same pattern used for custom table queries.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = getSupabaseAdmin() as any;
 
-    const { data: rpcData, error: rpcError } = await db.rpc(
-      "redeem_invite_code",
-      {
-        p_code: code,
-        p_user_id: uid,
-        p_email: userEmail ?? "",
-        p_ttl_days: 15,
-      }
-    );
+    // ── Check if user already redeemed any code ────────────
+    const { data: existingUsage } = await db
+      .from("invite_code_usage")
+      .select("code")
+      .eq("user_id", uid)
+      .limit(1)
+      .maybeSingle();
 
-    if (rpcError) {
-      console.error("[api/invite/validate] rpc error", rpcError);
-      return NextResponse.json(
-        { ok: false, error: rpcError.message ?? "Internal error" },
-        { status: 500 }
-      );
+    if (existingUsage) {
+      // Already has beta access — just bust cache and return success
+      await bustEntitlement(uid);
+      return NextResponse.json({
+        ok: true,
+        alreadyRedeemed: true,
+        channel: null,
+        expiresAt: null,
+        trialDays: 15,
+      });
     }
 
-    if (!isRedeemResult(rpcData)) {
-      console.error("[api/invite/validate] unexpected rpc response", rpcData);
-      return NextResponse.json(
-        { ok: false, error: "Unexpected server response" },
-        { status: 500 }
-      );
-    }
+    // ── Validate the invite code ───────────────────────────
+    const { data: codeRow, error: codeErr } = await db
+      .from("invite_codes")
+      .select("active, used_count, max_uses, channel")
+      .eq("code", code)
+      .maybeSingle();
 
-    const result = rpcData;
-
-    if (!result.ok) {
-      // RPC returned a business error (invalid / disabled / exhausted)
+    if (codeErr || !codeRow) {
       return NextResponse.json(
-        { ok: false, error: result.error },
+        { ok: false, error: "Invalid invite code" },
         { status: 400 }
       );
     }
+
+    if (!codeRow.active) {
+      return NextResponse.json(
+        { ok: false, error: "Invite code is disabled" },
+        { status: 400 }
+      );
+    }
+
+    if (codeRow.used_count >= codeRow.max_uses) {
+      return NextResponse.json(
+        { ok: false, error: "Invite code exhausted" },
+        { status: 400 }
+      );
+    }
+
+    // ── Record usage ───────────────────────────────────────
+    const { error: insertErr } = await db
+      .from("invite_code_usage")
+      .insert({ code, user_id: uid, email: userEmail ?? null });
+
+    if (insertErr && insertErr.code !== "23505") {
+      // 23505 = unique_violation (concurrent insert), safe to ignore
+      console.error("[api/invite/validate] insert error", insertErr);
+      return NextResponse.json(
+        { ok: false, error: "Failed to record usage" },
+        { status: 500 }
+      );
+    }
+
+    // ── Increment used_count (optimistic to avoid overcounting) ──
+    await db
+      .from("invite_codes")
+      .update({ used_count: codeRow.used_count + 1 })
+      .eq("code", code)
+      .eq("used_count", codeRow.used_count);
 
     // ── Bust Redis cache so guard.ts re-checks DB immediately ─
     await bustEntitlement(uid);
 
     return NextResponse.json({
       ok: true,
-      alreadyRedeemed: result.alreadyRedeemed,
-      channel: result.channel ?? null,
-      expiresAt: result.expires_at,
+      alreadyRedeemed: false,
+      channel: codeRow.channel ?? null,
+      expiresAt: null,
       trialDays: 15,
     });
   } catch (e: unknown) {
