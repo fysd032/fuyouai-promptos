@@ -5,6 +5,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Ticket, Loader2, CheckCircle, ArrowRight, LogIn } from "lucide-react";
 import { supabase } from "@/src/lib/supabaseClient";
+import { useSubscription } from "@/src/context/SubscriptionContext";
 import Link from "next/link";
 
 const IS_DEV = process.env.NEXT_PUBLIC_DEV_MODE === "true";
@@ -19,6 +20,7 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { refreshSubscription } = useSubscription();
 
   // Pre-fill from URL ?invite=CODE, persist to localStorage so it survives login redirect
   useEffect(() => {
@@ -111,6 +113,8 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
       const data = await res.json();
 
       if (data.ok) {
+        // Refresh subscription so RequirePlan sees the newly created trial
+        await refreshSubscription();
         setStatus("verified");
         localStorage.removeItem("fuyou_invite_code");
       } else {

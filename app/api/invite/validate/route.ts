@@ -54,6 +54,30 @@ export async function POST(req: Request) {
     // the generated Supabase types, so we cast through `as any` for queries.
     const db = admin as any;
 
+    const TRIAL_DAYS = 15;
+
+    // Helper: create trial subscription if the user doesn't have one yet
+    async function ensureTrial() {
+      const { data: existingSub } = await admin
+        .from("subscriptions")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!existingSub) {
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+        await admin.from("subscriptions").insert([
+          {
+            user_id: userId,
+            status: "trialing",
+            plan: "basic",
+            trial_start: now.toISOString(),
+            trial_end: trialEnd.toISOString(),
+          },
+        ] as any);
+      }
+    }
+
     // --- Check if user already used any invite code ---
     const { data: existingUsage } = await db
       .from("invite_code_usage")
@@ -63,7 +87,8 @@ export async function POST(req: Request) {
       .single();
 
     if (existingUsage) {
-      // Already validated — let them through
+      // Already validated — ensure trial exists (handles users who validated before trial feature)
+      await ensureTrial();
       return NextResponse.json({ ok: true, alreadyUsed: true });
     }
 
@@ -103,6 +128,7 @@ export async function POST(req: Request) {
     if (insertErr) {
       // Unique constraint: user already used this code
       if (insertErr.code === "23505") {
+        await ensureTrial();
         return NextResponse.json({ ok: true, alreadyUsed: true });
       }
       throw insertErr;
@@ -114,28 +140,7 @@ export async function POST(req: Request) {
       .eq("code", code);
 
     // --- Auto-create 15-day trial subscription ---
-    const TRIAL_DAYS = 15;
-    const { data: existingSub } = await admin
-      .from("subscriptions")
-      .select("user_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (!existingSub) {
-      const now = new Date();
-      const trialEnd = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
-      await admin
-        .from("subscriptions")
-        .insert([
-          {
-            user_id: userId,
-            status: "trialing",
-            plan: "basic",
-            trial_start: now.toISOString(),
-            trial_end: trialEnd.toISOString(),
-          },
-        ] as any);
-    }
+    await ensureTrial();
 
     return NextResponse.json({ ok: true, channel: invite.channel, trialDays: TRIAL_DAYS });
   } catch (e: any) {
