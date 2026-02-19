@@ -7,7 +7,6 @@ import Link from "next/link";
 import { Sparkles, Copy, Check, Play, Loader2, Cpu, Terminal, Info } from "lucide-react";
 import { StatusFeedback } from "@/src/components/StatusFeedback";
 import { useSubscription } from "@/src/context/SubscriptionContext";
-import { RequirePlan } from "@/src/components/RequirePlan";
 
 // --- Guidance hint below output box (multilingual) ---
 const CONTINUE_HINTS: Record<string, string> = {
@@ -460,18 +459,6 @@ const CoreFrameworkPage: React.FC = () => {
   );
 };
 
-/** Wrap the page: dev mode → render directly; production → RequirePlan gate */
-const CoreFrameworkPageWrapped: React.FC = () => {
-  if (IS_DEV) return <CoreFrameworkPage />;
-  return (
-    <RequirePlan
-      plan="basic"
-      title="Sign in to use Core Methodologies"
-      description="Sign in with your account to access the 5 core AI engines."
-    >
-      <CoreFrameworkPage />
-    </RequirePlan>
-  );
-};
-
-export default CoreFrameworkPageWrapped;
+// Access control is handled by InviteGate in the modules layout.
+// API-level protection is enforced by withSubscription in /api/core/run.
+export default CoreFrameworkPage;
