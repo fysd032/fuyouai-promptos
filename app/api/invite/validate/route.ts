@@ -4,6 +4,42 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
+const TRIAL_DAYS = 15;
+
+/**
+ * Create a 15-day basic trial for the user if they don't have a subscription yet.
+ * `uid` is explicitly typed as string — callers must guard against null before calling.
+ */
+async function ensureTrial(uid: string): Promise<void> {
+  const admin = getSupabaseAdmin();
+
+  const { data: existingSub } = await admin
+    .from("subscriptions")
+    .select("user_id")
+    .eq("user_id", uid)
+    .maybeSingle();
+
+  if (!existingSub) {
+    const now = new Date();
+    const trialEnd = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+
+    // trial_start / trial_end are not in the generated Supabase types yet,
+    // so we cast the insert payload only (not the client).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const insertPayload: any[] = [
+      {
+        user_id: uid,
+        status: "trialing",
+        plan: "basic",
+        trial_start: now.toISOString(),
+        trial_end: trialEnd.toISOString(),
+      },
+    ];
+
+    await admin.from("subscriptions").insert(insertPayload);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -48,47 +84,28 @@ export async function POST(req: Request) {
       );
     }
 
+    // After the guard above, userId is narrowed to string.
+    // Capture in a const so the narrowing is preserved across all subsequent calls.
+    const uid: string = userId;
+
     const admin = getSupabaseAdmin();
 
-    // Note: invite_codes / invite_code_usage are custom tables not in
-    // the generated Supabase types, so we cast through `as any` for queries.
+    // invite_codes / invite_code_usage are custom tables not in the generated
+    // Supabase types — cast the client reference once here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = admin as any;
-
-    const TRIAL_DAYS = 15;
-
-    // Helper: create trial subscription if the user doesn't have one yet
-    async function ensureTrial() {
-      const { data: existingSub } = await admin
-        .from("subscriptions")
-        .select("user_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (!existingSub) {
-        const now = new Date();
-        const trialEnd = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
-        await admin.from("subscriptions").insert([
-          {
-            user_id: userId,
-            status: "trialing",
-            plan: "basic",
-            trial_start: now.toISOString(),
-            trial_end: trialEnd.toISOString(),
-          },
-        ] as any);
-      }
-    }
 
     // --- Check if user already used any invite code ---
     const { data: existingUsage } = await db
       .from("invite_code_usage")
       .select("code")
-      .eq("user_id", userId)
+      .eq("user_id", uid)
       .limit(1)
       .single();
 
     if (existingUsage) {
       // Already validated — ensure trial exists (handles users who validated before trial feature)
-      await ensureTrial();
+      await ensureTrial(uid);
       return NextResponse.json({ ok: true, alreadyUsed: true });
     }
 
@@ -123,12 +140,12 @@ export async function POST(req: Request) {
     // --- Record usage + increment count ---
     const { error: insertErr } = await db
       .from("invite_code_usage")
-      .insert([{ code, user_id: userId, email: userEmail }]);
+      .insert([{ code, user_id: uid, email: userEmail }]);
 
     if (insertErr) {
       // Unique constraint: user already used this code
       if (insertErr.code === "23505") {
-        await ensureTrial();
+        await ensureTrial(uid);
         return NextResponse.json({ ok: true, alreadyUsed: true });
       }
       throw insertErr;
@@ -140,13 +157,14 @@ export async function POST(req: Request) {
       .eq("code", code);
 
     // --- Auto-create 15-day trial subscription ---
-    await ensureTrial();
+    await ensureTrial(uid);
 
     return NextResponse.json({ ok: true, channel: invite.channel, trialDays: TRIAL_DAYS });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Internal error";
     console.error("[api/invite/validate]", e);
     return NextResponse.json(
-      { ok: false, error: e?.message ?? "Internal error" },
+      { ok: false, error: message },
       { status: 500 }
     );
   }
