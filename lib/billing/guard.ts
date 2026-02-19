@@ -128,19 +128,31 @@ export async function requireSubscription(
     }
   }
 
-  // 3c. Fallback: check invite_code_usage (beta access via invite code)
-  // select "id" (primary key, always exists) to avoid column-name issues
+  // 3c. Fallback: check invite_code_usage (beta access via invite code, 15-day trial)
+  const TRIAL_DAYS = 15;
+  type InviteUsageRow = { id: number; used_at: string | null };
+
   const { data: inviteUsage } = await admin
     .from("invite_code_usage")
-    .select("id")
+    .select("id, used_at")
     .eq("user_id", userId)
     .limit(1)
-    .maybeSingle();
+    .maybeSingle<InviteUsageRow>();
 
   if (inviteUsage !== null) {
-    await setEntitlement(userId, { allowed: true });
-    if (GATE_LOG) console.log(`[gate] userId=${userId} source=invite_usage cache_hit=false result=ok ms=${Date.now() - t0}`);
-    return { ok: true, userId };
+    const usedAt = inviteUsage.used_at ? new Date(inviteUsage.used_at) : null;
+    const expiresAt = usedAt
+      ? new Date(usedAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
+      : null;
+
+    // Grant access if within trial period (or if used_at is unavailable)
+    if (!expiresAt || new Date() < expiresAt) {
+      await setEntitlement(userId, { allowed: true });
+      if (GATE_LOG) console.log(`[gate] userId=${userId} source=invite_usage cache_hit=false result=ok ms=${Date.now() - t0}`);
+      return { ok: true, userId };
+    }
+    // Trial expired — fall through to 402
+    if (GATE_LOG) console.log(`[gate] userId=${userId} source=invite_usage cache_hit=false result=expired ms=${Date.now() - t0}`);
   }
 
   // ── Step 4: no valid subscription or entitlement ────────

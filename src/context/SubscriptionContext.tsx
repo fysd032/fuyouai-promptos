@@ -100,7 +100,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           });
           if (inviteRes.ok) {
             const inviteData = await inviteRes.json();
-            if (inviteData.verified) {
+            if (inviteData.verified && !inviteData.expired) {
               // Synthesize a basic subscription so RequirePlan passes
               setSubscription({
                 plan: "basic",

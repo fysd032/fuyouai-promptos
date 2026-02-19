@@ -5,7 +5,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Ticket, Loader2, ArrowRight, LogIn } from "lucide-react";
+import { Ticket, Loader2, ArrowRight, LogIn, Clock, Sparkles } from "lucide-react";
 import { supabase } from "@/src/lib/supabaseClient";
 import { useSubscription } from "@/src/context/SubscriptionContext";
 import Link from "next/link";
@@ -18,7 +18,7 @@ interface InviteGateProps {
 }
 
 export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
-  const [status, setStatus] = useState<"loading" | "verified" | "needs_code" | "no_auth">("loading");
+  const [status, setStatus] = useState<"loading" | "verified" | "needs_code" | "no_auth" | "expired">("loading");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -64,6 +64,9 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
       const data = await res.json();
       if (data.verified) {
         setStatus("verified");
+        localStorage.removeItem("fuyou_invite_code");
+      } else if (data.expired) {
+        setStatus("expired");
         localStorage.removeItem("fuyou_invite_code");
       } else {
         setStatus("needs_code");
@@ -189,6 +192,29 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
           >
             <LogIn size={18} />
             Sign In
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "expired") {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-full max-w-md bg-[#111827] border border-[#1F2937] rounded-2xl p-8 text-center">
+          <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-5">
+            <Clock className="w-6 h-6 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">Trial Expired</h2>
+          <p className="text-sm text-gray-400 mb-6">
+            Your 15-day beta trial has ended. Upgrade to a paid plan to continue using FuyouAI.
+          </p>
+          <Link
+            href="/pricing"
+            className="inline-flex items-center justify-center gap-2 w-full px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-medium rounded-xl transition-all"
+          >
+            <Sparkles size={18} />
+            Upgrade Now
           </Link>
         </div>
       </div>
