@@ -1,41 +1,30 @@
 // app/api/invite/validate/route.ts
-// Validates an invite code and records usage
+// Redeems an invite code, grants user_entitlements, and busts Redis entitlement cache.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { bustEntitlement } from "@/lib/billing/entitlement-cache";
 
-const TRIAL_DAYS = 15;
+// Shape returned by the redeem_invite_code PL/pgSQL function
+type RedeemOk = {
+  ok: true;
+  alreadyRedeemed: boolean;
+  channel: string | null;
+  expires_at: string;
+};
+type RedeemFail = {
+  ok: false;
+  error: string;
+};
+type RedeemResult = RedeemOk | RedeemFail;
 
-/**
- * Create a 15-day basic trial for the user if they don't have a subscription yet.
- * `uid` is explicitly typed as string — callers must guard against null before calling.
- */
-async function ensureTrial(uid: string): Promise<void> {
-  // Cast to any once so we can insert trial_start/trial_end columns that are
-  // not yet reflected in the generated Supabase types.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = getSupabaseAdmin() as any;
-
-  const { data: existingSub } = await db
-    .from("subscriptions")
-    .select("user_id")
-    .eq("user_id", uid)
-    .maybeSingle();
-
-  if (!existingSub) {
-    const now = new Date();
-    const trialEnd = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
-
-    await db.from("subscriptions").insert([
-      {
-        user_id: uid,
-        status: "trialing",
-        plan: "basic",
-        trial_start: now.toISOString(),
-        trial_end: trialEnd.toISOString(),
-      },
-    ]);
-  }
+function isRedeemResult(v: unknown): v is RedeemResult {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "ok" in v &&
+    typeof (v as Record<string, unknown>).ok === "boolean"
+  );
 }
 
 export async function POST(req: Request) {
@@ -50,12 +39,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // --- Authenticate user ---
+    // ── Authenticate user ──────────────────────────────────
     const supabase = await createClient();
     let userId: string | null = null;
     let userEmail: string | null = null;
 
-    // Try Bearer token first
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
     if (token) {
@@ -66,7 +54,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // Fallback: cookie session
     if (!userId) {
       const { data, error } = await supabase.auth.getUser();
       if (!error && data?.user) {
@@ -82,82 +69,58 @@ export async function POST(req: Request) {
       );
     }
 
-    // After the guard above, userId is narrowed to string.
-    // Capture in a const so the narrowing is preserved across all subsequent calls.
+    // Narrowed to string after guard above
     const uid: string = userId;
 
+    // ── Call atomic RPC ────────────────────────────────────
     const admin = getSupabaseAdmin();
 
-    // invite_codes / invite_code_usage are custom tables not in the generated
-    // Supabase types — cast the client reference once here.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = admin as any;
-
-    // --- Check if user already used any invite code ---
-    const { data: existingUsage } = await db
-      .from("invite_code_usage")
-      .select("code")
-      .eq("user_id", uid)
-      .limit(1)
-      .single();
-
-    if (existingUsage) {
-      // Already validated — ensure trial exists (handles users who validated before trial feature)
-      await ensureTrial(uid);
-      return NextResponse.json({ ok: true, alreadyUsed: true });
-    }
-
-    // --- Validate invite code ---
-    const { data: invite, error: inviteErr } = await db
-      .from("invite_codes")
-      .select("code, max_uses, used_count, active, channel")
-      .eq("code", code)
-      .single();
-
-    if (inviteErr || !invite) {
-      return NextResponse.json(
-        { ok: false, error: "Invalid invite code" },
-        { status: 400 }
-      );
-    }
-
-    if (!invite.active) {
-      return NextResponse.json(
-        { ok: false, error: "This invite code has been disabled" },
-        { status: 400 }
-      );
-    }
-
-    if (invite.used_count >= invite.max_uses) {
-      return NextResponse.json(
-        { ok: false, error: "This invite code has reached its usage limit" },
-        { status: 400 }
-      );
-    }
-
-    // --- Record usage + increment count ---
-    const { error: insertErr } = await db
-      .from("invite_code_usage")
-      .insert([{ code, user_id: uid, email: userEmail }]);
-
-    if (insertErr) {
-      // Unique constraint: user already used this code
-      if (insertErr.code === "23505") {
-        await ensureTrial(uid);
-        return NextResponse.json({ ok: true, alreadyUsed: true });
+    const { data: rpcData, error: rpcError } = await admin.rpc(
+      "redeem_invite_code",
+      {
+        p_code: code,
+        p_user_id: uid,
+        p_email: userEmail ?? "",
+        p_ttl_days: 15,
       }
-      throw insertErr;
+    );
+
+    if (rpcError) {
+      console.error("[api/invite/validate] rpc error", rpcError);
+      return NextResponse.json(
+        { ok: false, error: rpcError.message ?? "Internal error" },
+        { status: 500 }
+      );
     }
 
-    await db
-      .from("invite_codes")
-      .update({ used_count: invite.used_count + 1 })
-      .eq("code", code);
+    if (!isRedeemResult(rpcData)) {
+      console.error("[api/invite/validate] unexpected rpc response", rpcData);
+      return NextResponse.json(
+        { ok: false, error: "Unexpected server response" },
+        { status: 500 }
+      );
+    }
 
-    // --- Auto-create 15-day trial subscription ---
-    await ensureTrial(uid);
+    const result = rpcData;
 
-    return NextResponse.json({ ok: true, channel: invite.channel, trialDays: TRIAL_DAYS });
+    if (!result.ok) {
+      // RPC returned a business error (invalid / disabled / exhausted)
+      return NextResponse.json(
+        { ok: false, error: result.error },
+        { status: 400 }
+      );
+    }
+
+    // ── Bust Redis cache so guard.ts re-checks DB immediately ─
+    await bustEntitlement(uid);
+
+    return NextResponse.json({
+      ok: true,
+      alreadyRedeemed: result.alreadyRedeemed,
+      channel: result.channel ?? null,
+      expiresAt: result.expires_at,
+      trialDays: 15,
+    });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Internal error";
     console.error("[api/invite/validate]", e);

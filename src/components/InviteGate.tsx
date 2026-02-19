@@ -1,15 +1,17 @@
 // src/components/InviteGate.tsx
-// Gate component: requires a valid invite code before accessing content
+// Gate component: requires a valid invite code before accessing content.
+// • If ?invite=CODE is in the URL and user is already logged in → auto-submit once
+// • On success: clears invite params from URL, clears localStorage, refreshes subscription
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Ticket, Loader2, CheckCircle, ArrowRight, LogIn } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Ticket, Loader2, ArrowRight, LogIn } from "lucide-react";
 import { supabase } from "@/src/lib/supabaseClient";
 import { useSubscription } from "@/src/context/SubscriptionContext";
 import Link from "next/link";
 
 const IS_DEV = process.env.NEXT_PUBLIC_DEV_MODE === "true";
-const INVITE_ENABLED = process.env.NEXT_PUBLIC_INVITE_ENABLED !== "false"; // enabled by default
+const INVITE_ENABLED = process.env.NEXT_PUBLIC_INVITE_ENABLED !== "false";
 
 interface InviteGateProps {
   children: React.ReactNode;
@@ -22,29 +24,33 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
   const [submitting, setSubmitting] = useState(false);
   const { refreshSubscription } = useSubscription();
 
-  // Pre-fill from URL ?invite=CODE, persist to localStorage so it survives login redirect
+  // Tracks whether the code came from the URL (triggers auto-submit)
+  const codeFromUrl = useRef(false);
+  // Prevents auto-submit from firing more than once
+  const autoSubmitted = useRef(false);
+
+  // ── Read invite code from URL or localStorage ───────────
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    const inviteParam = params.get("invite") || params.get("inviteCode") || "";
+    const inviteParam = params.get("invite") ?? params.get("inviteCode") ?? "";
     if (inviteParam) {
       const upper = inviteParam.toUpperCase();
+      codeFromUrl.current = true;
       setCode(upper);
       localStorage.setItem("fuyou_invite_code", upper);
     } else {
-      // Restore from localStorage if no URL param
       const saved = localStorage.getItem("fuyou_invite_code");
       if (saved) setCode(saved);
     }
   }, []);
 
+  // ── Core: check whether this user already has invite access ─
   const checkStatus = useCallback(async () => {
-    // Dev mode or invite disabled: skip gate
     if (IS_DEV || !INVITE_ENABLED) {
       setStatus("verified");
       return;
     }
-
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
@@ -52,12 +58,10 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
         setStatus("no_auth");
         return;
       }
-
       const res = await fetch("/api/invite/status", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-
       if (data.verified) {
         setStatus("verified");
         localStorage.removeItem("fuyou_invite_code");
@@ -73,7 +77,6 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
     checkStatus();
   }, [checkStatus]);
 
-  // Listen for auth state changes
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
@@ -85,9 +88,9 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
     return () => { data.subscription.unsubscribe(); };
   }, [checkStatus]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!code.trim()) return;
+  // ── Submit invite code (shared by form + auto-submit) ───
+  const submitCode = useCallback(async (codeToSubmit: string) => {
+    if (!codeToSubmit.trim()) return;
 
     setSubmitting(true);
     setError(null);
@@ -97,7 +100,6 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
       const token = sessionData.session?.access_token;
       if (!token) {
         setError("Please sign in first");
-        setSubmitting(false);
         return;
       }
 
@@ -107,27 +109,53 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ code: code.trim() }),
+        body: JSON.stringify({ code: codeToSubmit.trim() }),
       });
 
       const data = await res.json();
 
       if (data.ok) {
-        // Refresh subscription so RequirePlan sees the newly created trial
+        // Remove invite params from URL without navigation
+        if (typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          url.searchParams.delete("invite");
+          url.searchParams.delete("inviteCode");
+          window.history.replaceState({}, "", url.toString());
+        }
+        localStorage.removeItem("fuyou_invite_code");
+        // Refresh subscription state so RequirePlan sees the new entitlement
         await refreshSubscription();
         setStatus("verified");
-        localStorage.removeItem("fuyou_invite_code");
       } else {
-        setError(data.error || "Invalid invite code");
+        setError(data.error ?? "Invalid invite code");
       }
     } catch {
       setError("Network error, please try again");
     } finally {
       setSubmitting(false);
     }
+  }, [refreshSubscription]);
+
+  // ── Auto-submit when code came from URL and user is ready ─
+  useEffect(() => {
+    if (
+      status === "needs_code" &&
+      codeFromUrl.current &&
+      !autoSubmitted.current &&
+      code.trim()
+    ) {
+      autoSubmitted.current = true;
+      submitCode(code);
+    }
+  }, [status, code, submitCode]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitCode(code);
   };
 
-  // Loading state
+  // ── Render ───────────────────────────────────────────────
+
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center h-full min-h-[300px]">
@@ -136,23 +164,22 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
     );
   }
 
-  // Verified: show content
   if (status === "verified") {
     return <>{children}</>;
   }
 
-  // Not authenticated: show login prompt
   if (status === "no_auth") {
-    const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/modules";
+    const currentPath =
+      typeof window !== "undefined"
+        ? window.location.pathname + window.location.search
+        : "/modules";
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-full max-w-md bg-[#111827] border border-[#1F2937] rounded-2xl p-8 text-center">
           <div className="w-14 h-14 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-5">
             <LogIn className="w-6 h-6 text-blue-400" />
           </div>
-          <h2 className="text-xl font-semibold text-white mb-2">
-            Sign In Required
-          </h2>
+          <h2 className="text-xl font-semibold text-white mb-2">Sign In Required</h2>
           <p className="text-sm text-gray-400 mb-6">
             Please sign in to access FuyouAI modules.
           </p>
@@ -168,7 +195,7 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
     );
   }
 
-  // Needs invite code
+  // needs_code
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="w-full max-w-md bg-[#111827] border border-[#1F2937] rounded-2xl p-8 text-center">
@@ -176,9 +203,7 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
           <Ticket className="w-6 h-6 text-blue-400" />
         </div>
 
-        <h2 className="text-xl font-semibold text-white mb-2">
-          Beta Access Required
-        </h2>
+        <h2 className="text-xl font-semibold text-white mb-2">Beta Access Required</h2>
         <p className="text-sm text-gray-400 mb-6">
           FuyouAI is currently in closed beta. Enter your invite code to get started.
         </p>
@@ -222,7 +247,12 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
 
         <p className="text-xs text-gray-500 mt-6">
           Don&apos;t have an invite code? Follow us on{" "}
-          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+          <a
+            href="https://twitter.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:underline"
+          >
             Twitter
           </a>{" "}
           for updates.

@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      user_entitlements: {
+        Row: {
+          id: number
+          user_id: string
+          type: string
+          expires_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          type?: string
+          expires_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          type?: string
+          expires_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -49,7 +73,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      redeem_invite_code: {
+        Args: {
+          p_code: string
+          p_user_id: string
+          p_email: string
+          p_ttl_days?: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
