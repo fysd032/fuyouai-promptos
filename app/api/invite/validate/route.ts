@@ -11,9 +11,12 @@ const TRIAL_DAYS = 15;
  * `uid` is explicitly typed as string — callers must guard against null before calling.
  */
 async function ensureTrial(uid: string): Promise<void> {
-  const admin = getSupabaseAdmin();
+  // Cast to any once so we can insert trial_start/trial_end columns that are
+  // not yet reflected in the generated Supabase types.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getSupabaseAdmin() as any;
 
-  const { data: existingSub } = await admin
+  const { data: existingSub } = await db
     .from("subscriptions")
     .select("user_id")
     .eq("user_id", uid)
@@ -23,10 +26,7 @@ async function ensureTrial(uid: string): Promise<void> {
     const now = new Date();
     const trialEnd = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
 
-    // trial_start / trial_end are not in the generated Supabase types yet,
-    // so we cast the insert payload only (not the client).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const insertPayload: any[] = [
+    await db.from("subscriptions").insert([
       {
         user_id: uid,
         status: "trialing",
@@ -34,9 +34,7 @@ async function ensureTrial(uid: string): Promise<void> {
         trial_start: now.toISOString(),
         trial_end: trialEnd.toISOString(),
       },
-    ];
-
-    await admin.from("subscriptions").insert(insertPayload);
+    ]);
   }
 }
 
