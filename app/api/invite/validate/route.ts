@@ -73,9 +73,13 @@ export async function POST(req: Request) {
     const uid: string = userId;
 
     // ── Call atomic RPC ────────────────────────────────────
-    const admin = getSupabaseAdmin();
+    // getSupabaseAdmin() returns an untyped client (no Database generic), so
+    // admin.rpc() resolves the args type to `undefined` for unknown functions.
+    // Cast to `any` once here — same pattern used for custom table queries.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = getSupabaseAdmin() as any;
 
-    const { data: rpcData, error: rpcError } = await admin.rpc(
+    const { data: rpcData, error: rpcError } = await db.rpc(
       "redeem_invite_code",
       {
         p_code: code,
