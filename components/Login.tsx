@@ -230,7 +230,7 @@ export const Login: React.FC = () => {
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
             {step === "email" ? (
-              "Log in to start your 30-day free trial, no password needed"
+              "Log in to start your 15-day free trial, no password needed"
             ) : (
               <span>
                 Code sent to{" "}
@@ -373,7 +373,7 @@ export const Login: React.FC = () => {
         <div className="mt-8 border-t border-slate-100 pt-6">
           <details className="group text-sm text-slate-500 cursor-pointer">
             <summary className="text-center text-slate-400 hover:text-[#1E9FFF] font-medium list-none flex items-center justify-center gap-1 transition-colors select-none">
-              View 30-day trial details
+              View 15-day trial details
               <span className="group-open:rotate-180 transition-transform text-xs">
                 v
               </span>

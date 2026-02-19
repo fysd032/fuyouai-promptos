@@ -195,7 +195,7 @@ User visits /login
 ### Subscription & Billing
 
 ```
-Free user → Login → 30-day trial auto-activated
+Free user → Login → 15-day trial auto-activated
   → Trial expires → Must subscribe via /pricing
   → Payment via Creem → Webhook updates subscription
 ```
@@ -218,7 +218,7 @@ Invite codes control beta access to the platform. All `/modules/*` pages are gat
 
 ```
 1. User receives invite link:
-   https://fuyouai.com/modules/general?invite=FUYOU-BETA01
+   https://fuyouai.com/modules/core?invite=FUYOU-BETA01
 
 2. Opens link → Not logged in → "Sign In Required" screen
    → Invite code saved to localStorage automatically
@@ -242,8 +242,7 @@ Invite codes control beta access to the platform. All `/modules/*` pages are gat
 
 ```
 https://fuyouai.com/modules/core?invite=FUYOU-BETA01
-https://fuyouai.com/modules/general?invite=FUYOU-BETA01
-https://fuyouai.com/modules/general?inviteCode=FUYOU-BETA01
+https://fuyouai.com/modules/core?inviteCode=FUYOU-BETA01
 ```
 
 - Supports both `?invite=` and `?inviteCode=` query params
