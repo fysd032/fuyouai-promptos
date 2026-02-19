@@ -91,6 +91,35 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       // subscription 可能为 null（无订阅记录）
+      if (!data.subscription) {
+        // No paid subscription — check if user has invite code access
+        try {
+          const inviteUrl = API_BASE ? `${API_BASE}/api/invite/status` : "/api/invite/status";
+          const inviteRes = await fetch(inviteUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (inviteRes.ok) {
+            const inviteData = await inviteRes.json();
+            if (inviteData.verified) {
+              // Synthesize a basic subscription so RequirePlan passes
+              setSubscription({
+                plan: "basic",
+                status: "active",
+                cancel_at_period_end: false,
+                current_period_end: null,
+                trialEnd: null,
+                creem_customer_id: null,
+                creem_subscription_id: null,
+                updated_at: null,
+              });
+              setLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // invite status check is best-effort; fall through to null subscription
+        }
+      }
       setSubscription(normalizeSubscription(data.subscription));
       setLoading(false);
     } catch (e: any) {
