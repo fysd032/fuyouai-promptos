@@ -103,9 +103,11 @@ export async function POST(req: Request) {
     }
 
     // ── Record usage ───────────────────────────────────────
+    // Only insert required columns (code + user_id) to avoid issues
+    // if optional columns like email don't exist in production schema.
     const { error: insertErr } = await db
       .from("invite_code_usage")
-      .insert({ code, user_id: uid, email: userEmail ?? null });
+      .insert({ code, user_id: uid });
 
     if (insertErr && insertErr.code !== "23505") {
       // 23505 = unique_violation (concurrent insert), safe to ignore

@@ -129,14 +129,13 @@ export async function requireSubscription(
   }
 
   // 3c. Fallback: check invite_code_usage (beta access via invite code)
-  type UsageRow = { used_at: string };
-
+  // select "id" (primary key, always exists) to avoid column-name issues
   const { data: inviteUsage } = await admin
     .from("invite_code_usage")
-    .select("used_at")
+    .select("id")
     .eq("user_id", userId)
     .limit(1)
-    .maybeSingle<UsageRow>();
+    .maybeSingle();
 
   if (inviteUsage !== null) {
     await setEntitlement(userId, { allowed: true });
