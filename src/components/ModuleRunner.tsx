@@ -283,7 +283,7 @@ setActiveAttachmentId(att.id);
         userInput: finalInput,
       });
 
-      const output = ((res as Record<string, unknown>)?.modelOutput ?? "").toString();
+      const output = res.output ?? "";
       setResult(output.trim() ? output : "AI returned empty response.");
       setStatus("success");
     } catch (e: unknown) {
