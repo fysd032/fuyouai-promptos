@@ -1,12 +1,42 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { callCoreFramework } from "@/src/lib/coreframework-api";
 import { CORE_TAB_TO_COREKEY } from "@/src/data/ui-corekey-map";
 import Link from "next/link";
-import { Sparkles, Copy, Check, Play, Loader2, Cpu, Terminal, Info } from "lucide-react";
+import { Sparkles, Copy, Check, Play, Loader2, Cpu, Terminal, Info, Upload, X, Trash2, Mic } from "lucide-react";
 import { StatusFeedback } from "@/src/components/StatusFeedback";
 import { useSubscription } from "@/src/context/SubscriptionContext";
+
+// --- Attachment & Helper Types ---
+type Attachment = {
+  id: string;
+  name: string;
+  text: string;
+  size: number;
+};
+
+function makeId(): string {
+  if (
+    typeof crypto !== "undefined" &&
+    "randomUUID" in crypto &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+}
+
+const MAX_FILE_BYTES = 500 * 1024; // 500KB per file
+const MAX_TOTAL_CHARS = 8000; // Total character limit
 
 // --- Guidance hint below output box (multilingual) ---
 const CONTINUE_HINTS: Record<string, string> = {
@@ -114,6 +144,17 @@ const CoreFrameworkPage: React.FC = () => {
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [copied, setCopied] = useState(false);
 
+  // File attachments
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [activeAttachmentId, setActiveAttachmentId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Voice input (Web Speech API)
+  const recognitionRef = useRef<any>(null);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [speechInterim, setSpeechInterim] = useState("");
+
   const lang = useMemo(() => detectLanguage(userInput || ""), [userInput]);
   const continueHint = CONTINUE_HINTS[lang] ?? CONTINUE_HINTS.en;
 
@@ -122,9 +163,100 @@ const CoreFrameworkPage: React.FC = () => {
     [activeKey]
   );
 
+  // Current active attachment
+  const activeAttachment = useMemo(() => {
+    if (!activeAttachmentId) return null;
+    return attachments.find((a) => a.id === activeAttachmentId) ?? null;
+  }, [attachments, activeAttachmentId]);
+
+  // Final input: user input + all attachments
+  const finalInput = useMemo(() => {
+    const base = userInput.trim();
+    if (attachments.length === 0) return base;
+
+    const appendix = attachments
+      .map((a) => `\n\n---\n[Attachment: ${a.name}]\n${a.text}`)
+      .join("");
+
+    return base ? `${base}${appendix}` : `[Attachment Content]${appendix}`;
+  }, [userInput, attachments]);
+
+  // Initialize Web Speech API
+  useEffect(() => {
+    const w = window as any;
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SR) {
+      setSpeechSupported(false);
+      return;
+    }
+
+    setSpeechSupported(true);
+
+    const recognition = new SR();
+    recognition.lang = "zh-CN";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event: any) => {
+      let interim = "";
+      let finalText = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const res = event.results[i];
+        const text = res?.[0]?.transcript ?? "";
+        if (res.isFinal) finalText += text;
+        else interim += text;
+      }
+
+      // Only append final results to avoid duplicate interim text
+      if (finalText.trim()) {
+        setUserInput((prev) => (prev.trim() ? prev + "\n" : "") + finalText.trim());
+      }
+      setSpeechInterim(interim);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setSpeechInterim("");
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setSpeechInterim("");
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      try {
+        recognition.stop();
+      } catch {}
+      recognitionRef.current = null;
+    };
+  }, []);
+
+  // Reset state when switching frameworks
+  useEffect(() => {
+    setUserInput("");
+    setStatus("idle");
+    setErrorMsg("");
+    setAiOutput("");
+    setGeneratedPrompt("");
+    setCopied(false);
+    setAttachments([]);
+    setActiveAttachmentId(null);
+
+    // Stop voice input when switching
+    try {
+      recognitionRef.current?.stop?.();
+    } catch {}
+    setIsListening(false);
+    setSpeechInterim("");
+  }, [activeKey]);
+
   const handleRun = useCallback(async () => {
-    if (!userInput.trim()) {
-      alert("Please enter your requirement description");
+    if (!userInput.trim() && attachments.length === 0) {
+      alert("Please enter your requirement description or upload a file");
       return;
     }
 
@@ -134,6 +266,15 @@ const CoreFrameworkPage: React.FC = () => {
     setCurrentStep(2);
     setAiOutput("");
     setCopied(false);
+
+    // Stop voice input when running
+    if (isListening) {
+      try {
+        recognitionRef.current?.stop?.();
+      } catch {}
+      setIsListening(false);
+      setSpeechInterim("");
+    }
 
     // Clear preview first (actual prompt will be based on finalPrompt returned from server)
     setGeneratedPrompt("");
@@ -158,13 +299,13 @@ const CoreFrameworkPage: React.FC = () => {
       }
 
       // Observability: screenshot console for quick debugging if issues occur
-      console.log("[CoreRun]", { tabKey, coreKey, tier, engineType, len: userInput.length });
+      console.log("[CoreRun]", { tabKey, coreKey, tier, engineType, len: finalInput.length, attachments: attachments.length });
 
-      // Single execution entry point: /api/core/run
+      // Single execution entry point: /api/core/run (use finalInput which includes attachments)
       const data = await callCoreFramework({
         coreKey,
         tier,
-        userInput,
+        userInput: finalInput,
         engineType,
       });
 
@@ -179,7 +320,100 @@ const CoreFrameworkPage: React.FC = () => {
       setStatus("error");
       setErrorMsg(err?.message ?? String(err));
     }
-  }, [activeKey, userInput, tier, engineType]);
+  }, [activeKey, finalInput, tier, engineType, attachments.length, isListening]);
+
+  const startListening = useCallback(() => {
+    const rec = recognitionRef.current;
+    if (!rec) return;
+    try {
+      rec.start();
+      setIsListening(true);
+      setSpeechInterim("");
+    } catch {
+      // Repeated start may throw error, ignore
+    }
+  }, []);
+
+  const stopListening = useCallback(() => {
+    const rec = recognitionRef.current;
+    if (!rec) return;
+    try {
+      rec.stop();
+    } catch {}
+    setIsListening(false);
+    setSpeechInterim("");
+  }, []);
+
+  const handlePickFile = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Allow re-selecting the same file
+    e.target.value = "";
+
+    const lower = file.name.toLowerCase();
+    const isTxt = file.type === "text/plain" || lower.endsWith(".txt");
+    const isMd = lower.endsWith(".md");
+
+    if (!isTxt && !isMd) {
+      alert("Only .txt / .md files are supported");
+      return;
+    }
+
+    // File size limit
+    if (file.size > MAX_FILE_BYTES) {
+      alert(`File too large: ${formatBytes(file.size)}, current limit is ${formatBytes(MAX_FILE_BYTES)}`);
+      return;
+    }
+
+    try {
+      const text = await file.text();
+
+      // Total character limit (user input + existing attachments + new file)
+      const currentTotalChars =
+        userInput.length + attachments.reduce((sum, a) => sum + a.text.length, 0);
+      const nextTotalChars = currentTotalChars + text.length;
+
+      if (nextTotalChars > MAX_TOTAL_CHARS) {
+        alert(
+          `Attachment content too large (~${nextTotalChars} chars), exceeds limit of ${MAX_TOTAL_CHARS}.\n` +
+            `Please remove some attachments or keep only key sections.`
+        );
+        return;
+      }
+
+      const att: Attachment = {
+        id: makeId(),
+        name: file.name,
+        text,
+        size: file.size,
+      };
+
+      setAttachments((prev) => [att, ...prev]);
+      setActiveAttachmentId(att.id);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to read file, please try again");
+    }
+  }, [userInput, attachments]);
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+    setActiveAttachmentId((curr) => {
+      if (curr !== id) return curr;
+      const remaining = attachments.filter((a) => a.id !== id);
+      return remaining.length ? remaining[0].id : null;
+    });
+  }, [attachments]);
+
+  const clearAttachments = useCallback(() => {
+    setAttachments([]);
+    setActiveAttachmentId(null);
+  }, []);
 
   const handleCopy = useCallback(async () => {
     const textToCopy =
@@ -347,10 +581,144 @@ const CoreFrameworkPage: React.FC = () => {
             </div>
 
             <div className="p-3 sm:p-6">
+              {/* Toolbar: Attachments + Voice */}
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                <div className="text-xs text-[#6B7280]">
+                  Attachments: {attachments.length ? `${attachments.length} file(s)` : "None"}{" "}
+                  {attachments.length ? <span className="ml-2 text-[#4B5563]">(will be included when running)</span> : null}
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Voice Input Button */}
+                  <button
+                    type="button"
+                    disabled={!speechSupported}
+                    onClick={() => (isListening ? stopListening() : startListening())}
+                    className={`px-3 py-1.5 rounded-lg text-xs border bg-[#0A0F1C] flex items-center gap-2 ${
+                      !speechSupported
+                        ? "border-[#1F2937] text-gray-500 cursor-not-allowed"
+                        : isListening
+                          ? "border-red-500 text-red-300 hover:bg-red-500/10"
+                          : "border-[#374151] text-gray-200 hover:bg-[#1F2937]"
+                    }`}
+                    title={speechSupported ? "Voice Input (Chrome/Edge recommended)" : "Voice input not supported in this browser"}
+                  >
+                    <Mic size={14} />
+                    {isListening ? "Stop" : "Voice Input"}
+                  </button>
+
+                  {/* Hidden File Input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".txt,.md,text/plain"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+
+                  {/* Upload Button */}
+                  <button
+                    type="button"
+                    onClick={handlePickFile}
+                    className="px-3 py-1.5 rounded-lg text-xs border border-[#374151] bg-[#0A0F1C] text-gray-200 hover:bg-[#1F2937] flex items-center gap-2"
+                    title="Upload .txt/.md file"
+                  >
+                    <Upload size={14} />
+                    Upload
+                  </button>
+
+                  {/* Clear Attachments Button */}
+                  <button
+                    type="button"
+                    onClick={clearAttachments}
+                    disabled={attachments.length === 0}
+                    className={`px-3 py-1.5 rounded-lg text-xs border bg-[#0A0F1C] flex items-center gap-2 ${
+                      attachments.length
+                        ? "border-[#374151] text-gray-200 hover:bg-[#1F2937]"
+                        : "border-[#1F2937] text-gray-500 cursor-not-allowed"
+                    }`}
+                    title="Clear all attachments"
+                  >
+                    <Trash2 size={14} />
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {/* Voice interim recognition display */}
+              {isListening && speechInterim && (
+                <div className="text-xs text-gray-400 bg-[#0A0F1C] border border-[#1F2937] rounded-lg p-2 mb-3">
+                  Recognizing: <span className="text-gray-200">{speechInterim}</span>
+                </div>
+              )}
+
+              {/* Attachment chips list */}
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {attachments.map((a) => {
+                    const active = a.id === activeAttachmentId;
+                    return (
+                      <div
+                        key={a.id}
+                        className={`flex items-center gap-1 rounded-lg border px-2 py-1 ${
+                          active
+                            ? "bg-blue-500/20 border-blue-500 text-white"
+                            : "bg-[#0A0F1C] border-[#374151] text-gray-300"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setActiveAttachmentId(a.id)}
+                          className="text-xs"
+                          title="Click to preview"
+                        >
+                          {a.name}
+                          <span className="ml-2 text-[10px] text-gray-400">{formatBytes(a.size)}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(a.id)}
+                          className="ml-1 text-gray-400 hover:text-white"
+                          title="Remove attachment"
+                          aria-label="Remove attachment"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Attachment preview panel */}
+              {activeAttachment && (
+                <div className="bg-[#0A0F1C] border border-[#1F2937] rounded-lg p-3 text-gray-200 mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs text-gray-300">
+                      Preview: <span className="text-emerald-400">{activeAttachment.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveAttachmentId(null)}
+                      className="text-xs text-gray-400 hover:text-white"
+                    >
+                      Close Preview
+                    </button>
+                  </div>
+
+                  <pre className="text-xs whitespace-pre-wrap max-h-[160px] overflow-auto text-gray-300">
+                    {activeAttachment.text.length > 4000
+                      ? activeAttachment.text.slice(0, 4000) + "\n\n...(preview truncated)"
+                      : activeAttachment.text}
+                  </pre>
+                </div>
+              )}
+
               <textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                placeholder={`Describe the character...\nExample: "Help me break down the annual growth targets for a SaaS product, including market expansion and sales conversion dimensions."`}
+                placeholder={`Describe your requirements...\n(Voice input available; attachments will be included automatically)\n\nExample: "Help me break down the annual growth targets for a SaaS product, including market expansion and sales conversion dimensions."`}
                 className="w-full h-[140px] sm:h-[240px] bg-[#0A0F1C] border border-[#1F2937] rounded-xl p-3 sm:p-5 text-sm sm:text-[15px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:border-[#3B82F6]/50 focus:ring-1 focus:ring-[#3B82F6]/20 transition-all resize-none leading-relaxed"
               />
 
