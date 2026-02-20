@@ -171,8 +171,11 @@ lib/                         # Server-side utilities
 
 database/
   invite_codes.sql           # Invite code schema + seed data
+  migrate_entitlements.sql   # user_entitlements table + RPC (optional)
 
 proxy.ts                     # Mobile redirect middleware
+types/
+  supabase.ts                # Generated Supabase database types
 ```
 
 ---
@@ -227,15 +230,16 @@ Invite codes control beta access to the platform. All `/modules/*` pages are gat
    → Registers / logs in via email OTP
 
 4. After login → Redirected back to original page
-   → InviteGate detects saved invite code → auto-fills input
+   → InviteGate detects saved invite code → auto-submits validation
 
-5. Clicks "Enter Beta" → Code validated via /api/invite/validate
-   → Usage recorded in invite_code_usage table
-   → 15-day Basic trial subscription auto-created in subscriptions table
-   → localStorage cleared → User enters the platform
+5. Code validated via /api/invite/validate
+   → Usage recorded in invite_code_usage table (with used_at timestamp)
+   → SubscriptionContext refreshed → synthesizes {plan:"basic", status:"active"}
+   → URL params cleared, localStorage cleared → User enters the platform
 
-6. 15 days later → trial_end expires
-   → guard.ts automatically blocks access → User must subscribe
+6. 15 days later → invite code trial expires
+   → InviteGate shows "Trial Expired" screen → Prompts upgrade to paid plan
+   → guard.ts blocks API access → User must subscribe via /pricing
 ```
 
 #### Invite Link Format
@@ -253,25 +257,32 @@ https://fuyouai.com/modules/core?inviteCode=FUYOU-BETA01
 
 | Layer | Component | Scope | Behavior |
 |-------|-----------|-------|----------|
-| 1. Login | `InviteGate` | All `/modules/*` | Not logged in → "Sign In Required" |
-| 2. Invite Code | `InviteGate` | All `/modules/*` | Logged in but no invite → "Enter invite code" |
-| 3. Subscription | `RequirePlan` | `/modules/core` | No active plan → "Upgrade" prompt |
-| 4. API Guard | `guard.ts` | API routes | No subscription → 402 |
+| 1. Login | `InviteGate` | All `/modules/*` pages | Not logged in → "Sign In Required" |
+| 2. Invite Code | `InviteGate` | All `/modules/*` pages | Logged in but no invite → "Enter invite code" |
+| 3. Trial Expiry | `InviteGate` | All `/modules/*` pages | Trial expired → "Trial Expired" screen |
+| 4. Subscription State | `SubscriptionContext` | Client-side | Synthesizes {plan:"basic"} for valid invite users |
+| 5. API Guard | `guard.ts` | API routes (`/api/core/run`, `/api/generate`) | Checks invite_code_usage + expiry → 401/402 |
 
-#### Trial Subscription (Auto-created)
+#### 15-Day Trial Access
 
-When a user successfully validates an invite code, the system automatically creates:
+When a user successfully validates an invite code:
 
-| Field | Value |
-|-------|-------|
-| `plan` | `basic` |
-| `status` | `trialing` |
-| `trial_start` | Current timestamp |
-| `trial_end` | Current time + 15 days |
+**Backend (Database)**:
+- Usage recorded in `invite_code_usage` table with `used_at` timestamp
+- No subscription row is created initially
+- Expiry calculated dynamically: `used_at + 15 days`
 
-- No manual action required — trial is created on invite code validation
-- `guard.ts` checks `trial_end` automatically — no need to manually expire users
-- If the user already has a subscription record, no trial is created (prevents overwriting paid plans)
+**Frontend (UI)**:
+- `SubscriptionContext` synthesizes a virtual subscription: `{plan:"basic", status:"active"}`
+- This allows all UI components to treat invite users the same as paid basic users
+
+**API Protection**:
+- `guard.ts` checks three sources (in order):
+  1. Active subscription in `subscriptions` table
+  2. Valid entitlement in `user_entitlements` table
+  3. Non-expired invite code usage in `invite_code_usage` table
+- Trial expires when `current_time > used_at + 15 days`
+- After expiry: InviteGate shows "Trial Expired" → prompts upgrade to paid plan
 
 #### Database Tables
 
@@ -282,8 +293,15 @@ When a user successfully validates an invite code, the system automatically crea
 -- Fields: code (PK), max_uses, used_count, channel, active, created_at
 
 -- invite_code_usage: tracks which user used which code
--- Fields: id, code (FK), user_id, email, used_at
+-- Fields: id, code (FK), user_id, used_at, created_at
 -- Constraint: UNIQUE(code, user_id) — same user can't use same code twice
+-- Note: used_at timestamp is used to calculate 15-day trial expiry
+
+-- user_entitlements (optional): manual entitlement grants
+-- Fields: id, user_id, type, expires_at, created_at
+-- Constraint: UNIQUE(user_id, type)
+-- Used for: manually granting beta_trial or other entitlements
+-- guard.ts checks this table as fallback #2 (after subscriptions, before invite_code_usage)
 ```
 
 #### Managing Invite Codes
@@ -312,14 +330,74 @@ FROM invite_code_usage u
 ORDER BY u.used_at DESC;
 ```
 
+**Check trial expiry status for a user:**
+```sql
+SELECT
+  user_id,
+  code,
+  used_at,
+  used_at + INTERVAL '15 days' as expires_at,
+  CASE
+    WHEN NOW() < used_at + INTERVAL '15 days' THEN 'active'
+    ELSE 'expired'
+  END as trial_status
+FROM invite_code_usage
+WHERE user_id = 'user-uuid-here';
+```
+
+#### Validation Flow (Backend)
+
+When `/api/invite/validate` receives a code:
+
+1. **Check existing usage**: Query `invite_code_usage` for this user
+   - If found → Return `{ok: true, alreadyRedeemed: true}` + bust cache
+
+2. **Validate code**: Query `invite_codes` table
+   - Code doesn't exist → `400 Invalid invite code`
+   - Code inactive → `400 Invite code is disabled`
+   - Code exhausted (used_count ≥ max_uses) → `400 Invite code exhausted`
+
+3. **Record usage**: Insert into `invite_code_usage`
+   - Duplicate (23505 error) → Ignore (idempotent)
+   - Other error → `500 Failed to record usage`
+
+4. **Update count**: Optimistic increment of `invite_codes.used_count`
+   - Uses `.eq("used_count", old_value)` for concurrent safety
+
+5. **Bust cache**: Call `bustEntitlement(userId)` to clear Redis
+
+6. **Return success**: `{ok: true, alreadyRedeemed: false, trialDays: 15}`
+
 #### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NEXT_PUBLIC_INVITE_ENABLED` | `true` | Set `false` to disable invite gate (open access) |
-| `NEXT_PUBLIC_DEV_MODE` | `false` | Set `true` locally to bypass invite gate + RequirePlan |
+| `NEXT_PUBLIC_DEV_MODE` | `false` | Set `true` locally to bypass invite gate + InviteGate |
 
 **Important**: Do NOT set `NEXT_PUBLIC_DEV_MODE=true` on Vercel production — it bypasses all access controls.
+
+#### Troubleshooting
+
+**Issue**: User enters valid code but still sees "subscription expired"
+- **Cause**: Redis cache not busted after validation, or SubscriptionContext not refreshed
+- **Fix**: `InviteGate` calls `await refreshSubscription()` after successful validation
+
+**Issue**: User can access UI but API returns 402
+- **Cause**: `guard.ts` not checking `invite_code_usage` table
+- **Fix**: Ensure `guard.ts` includes Step 3c (invite code fallback check)
+
+**Issue**: Trial expired but user still has access
+- **Cause**: Expiry calculation incorrect, or `used_at` is null
+- **Fix**: Check `invite_code_usage.used_at` timestamp; recalculate expiry as `used_at + 15 days`
+
+**Issue**: Auto-submit fires multiple times
+- **Cause**: `autoSubmitted` ref not preventing re-runs
+- **Fix**: `InviteGate` uses `autoSubmitted.current = true` before calling `submitCode()`
+
+**Issue**: Invite code exhausted prematurely
+- **Cause**: Concurrent requests incrementing `used_count` without locking
+- **Fix**: Optimistic locking with `.eq("used_count", codeRow.used_count)` prevents over-increment
 
 ### Developer Mode
 
@@ -340,6 +418,15 @@ Set `NEXT_PUBLIC_DEV_MODE=true` in `.env.local` (local only):
 | Deep Analysis | `analytical_engine` | Multi-dimensional analytical reasoning |
 | Complex Task Tree | `task_tree` | Hierarchical task structure with dependencies |
 
+**Core Framework Features**:
+- Tier-aware execution (Basic vs Pro prompts)
+- Engine selection (DeepSeek, Gemini)
+- Real-time streaming output
+- Markdown rendering with syntax highlighting
+- Copy output to clipboard
+- File upload support (attach documents for context)
+- Voice input (speech-to-text for hands-free input)
+
 ### Mobile Support
 
 - `/m2` route for mobile-optimized entry
@@ -347,6 +434,313 @@ Set `NEXT_PUBLIC_DEV_MODE=true` in `.env.local` (local only):
 - Universal Modules page: single-column view with panel switching
 - Core Methodologies: horizontal scrollable tabs
 - "For the best experience, visit on PC / tablet" hint on mobile
+
+---
+
+## Architecture Decisions
+
+### Why No Subscription Row for Invite Users?
+
+**Decision**: Invite code validation records usage in `invite_code_usage` but does NOT create a subscription row.
+
+**Rationale**:
+1. **Separation of Concerns**: Paid subscriptions vs. trial access have different lifecycles
+2. **Simpler Expiry Logic**: Calculate `used_at + 15 days` dynamically instead of managing `trial_end` timestamps
+3. **No Overwrites**: Avoids accidentally overwriting existing paid subscriptions
+4. **Cleaner Data**: `subscriptions` table only contains real payment records
+
+**Implementation**:
+- `guard.ts` checks 3 sources: subscriptions → user_entitlements → invite_code_usage
+- `SubscriptionContext` synthesizes virtual subscription for UI consistency
+- Expiry calculated on-the-fly in both `/api/invite/status` and `guard.ts`
+
+---
+
+### Why Remove RequirePlan from CoreFrameworkPage?
+
+**Decision**: Removed `<RequirePlan>` wrapper from CoreFrameworkPage.
+
+**Rationale**:
+1. **Double Gating**: InviteGate already handles access at `/modules` layout level
+2. **Invite User Friction**: RequirePlan checks `isActivePlan(subscription, "basic")` which fails for invite users without subscription rows
+3. **API Protection Sufficient**: `guard.ts` already protects `/api/core/run` endpoint
+4. **Simpler Flow**: One gate (InviteGate) + one API guard (guard.ts) = clearer access control
+
+**Result**: All users who pass InviteGate can access Core Methodologies UI. API calls are still protected by subscription validation.
+
+---
+
+### Why Redis Caching for Entitlements?
+
+**Decision**: Use Upstash Redis to cache entitlement checks with 120s TTL.
+
+**Rationale**:
+1. **Performance**: Avoid Supabase queries on every API call (especially for streaming responses)
+2. **Cost**: Reduce Supabase read operations for high-frequency users
+3. **Graceful Degradation**: Falls back to direct DB queries if Redis unavailable
+4. **Busting**: Cache invalidated on subscription changes (webhook, invite validation)
+
+**Implementation**:
+- `getEntitlement(userId)` → Try Redis first, fall back to DB
+- `setEntitlement(userId, {allowed, code})` → Write to Redis with 120s TTL
+- `bustEntitlement(userId)` → Delete Redis key immediately
+
+---
+
+### Why Synthesize Subscription in SubscriptionContext?
+
+**Decision**: When invite code is valid, synthesize `{plan:"basic", status:"active"}` in SubscriptionContext.
+
+**Rationale**:
+1. **UI Consistency**: All components use `useSubscription()` hook expecting a subscription object
+2. **No Refactoring**: Avoids rewriting RequirePlan, status indicators, and other subscription-aware UI
+3. **Type Safety**: TypeScript types remain consistent across paid/invite users
+4. **Feature Parity**: Invite users get same UI experience as basic plan subscribers
+
+**Trade-off**: Client state doesn't match database (invite users have no subscription row), but API guard ensures backend validation remains correct.
+
+---
+
+## API Reference
+
+### Invite Code Endpoints
+
+#### `POST /api/invite/validate`
+Validate and redeem an invite code for the current user.
+
+**Headers**: `Authorization: Bearer <token>`
+
+**Request**:
+```json
+{
+  "code": "FUYOU-BETA01"
+}
+```
+
+**Response (Success)**:
+```json
+{
+  "ok": true,
+  "alreadyRedeemed": false,
+  "channel": "twitter",
+  "expiresAt": "2025-02-05T10:30:00.000Z",
+  "trialDays": 15
+}
+```
+
+**Response (Already Redeemed)**:
+```json
+{
+  "ok": true,
+  "alreadyRedeemed": true,
+  "channel": null,
+  "expiresAt": null,
+  "trialDays": 15
+}
+```
+
+**Errors**:
+- `400` - Invalid/disabled/exhausted code
+- `401` - Not authenticated
+- `500` - Database error
+
+---
+
+#### `GET /api/invite/status`
+Check if current user has valid (non-expired) invite code access.
+
+**Headers**: `Authorization: Bearer <token>`
+
+**Response (Verified)**:
+```json
+{
+  "ok": true,
+  "verified": true,
+  "expired": false,
+  "expiresAt": "2025-02-05T10:30:00.000Z"
+}
+```
+
+**Response (Expired)**:
+```json
+{
+  "ok": true,
+  "verified": false,
+  "expired": true,
+  "expiresAt": "2025-01-21T10:30:00.000Z"
+}
+```
+
+**Response (No Invite)**:
+```json
+{
+  "ok": true,
+  "verified": false,
+  "expired": false,
+  "expiresAt": null
+}
+```
+
+---
+
+### Subscription Endpoints
+
+#### `GET /api/subscription`
+Get current user's subscription status.
+
+**Headers**: `Authorization: Bearer <token>`
+
+**Response**:
+```json
+{
+  "ok": true,
+  "subscription": {
+    "plan": "basic",
+    "status": "active",
+    "cancel_at_period_end": false,
+    "current_period_end": "2025-03-21T00:00:00.000Z",
+    "trialEnd": null,
+    "creem_customer_id": "cus_xxx",
+    "creem_subscription_id": "sub_xxx",
+    "updated_at": "2025-01-21T10:30:00.000Z"
+  },
+  "debug": {
+    "userId": "uuid-here",
+    "hasSubscription": true
+  }
+}
+```
+
+**Response (No Subscription, But Valid Invite)**:
+```json
+{
+  "ok": true,
+  "subscription": {
+    "plan": "basic",
+    "status": "active",
+    "cancel_at_period_end": false,
+    "current_period_end": null,
+    "trialEnd": null,
+    "creem_customer_id": null,
+    "creem_subscription_id": null,
+    "updated_at": null
+  }
+}
+```
+*Note: When user has valid invite code but no paid subscription, SubscriptionContext synthesizes a virtual basic plan.*
+
+---
+
+### Core Framework Endpoints
+
+#### `POST /api/core/run`
+Execute a core methodology engine with subscription validation.
+
+**Headers**: `Authorization: Bearer <token>`
+
+**Request**:
+```json
+{
+  "engineKey": "task_breakdown",
+  "userInput": "Build a mobile app for task management",
+  "tier": "basic"
+}
+```
+
+**Response (Stream)**:
+```
+data: {"type":"token","token":"##"}
+data: {"type":"token","token":" Task"}
+data: {"type":"token","token":" Breakdown"}
+...
+data: {"type":"done"}
+```
+
+**Errors**:
+- `401` - Not authenticated
+- `402` - Subscription required/expired
+- `400` - Missing engineKey or userInput
+- `500` - Engine execution error
+
+---
+
+### Universal Module Endpoints
+
+#### `POST /api/generate`
+Execute a universal module with subscription validation.
+
+**Headers**: `Authorization: Bearer <token>`
+
+**Request**:
+```json
+{
+  "moduleKey": "email-writer",
+  "inputs": {
+    "purpose": "Follow-up after meeting",
+    "tone": "professional",
+    "length": "medium"
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true,
+  "output": "Generated content here...",
+  "usage": {
+    "prompt_tokens": 150,
+    "completion_tokens": 300,
+    "total_tokens": 450
+  }
+}
+```
+
+**Errors**:
+- `401` - Not authenticated
+- `402` - Subscription required/expired
+- `400` - Missing moduleKey or inputs
+- `404` - Module not found
+- `500` - Generation error
+
+---
+
+### Payment Endpoints
+
+#### `POST /api/checkout`
+Create a Creem checkout session.
+
+**Headers**: `Authorization: Bearer <token>`
+
+**Request**:
+```json
+{
+  "plan": "basic"
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true,
+  "checkoutUrl": "https://pay.creem.io/checkout/xxx"
+}
+```
+
+---
+
+#### `POST /api/billing/portal`
+Create a Creem customer portal session.
+
+**Headers**: `Authorization: Bearer <token>`
+
+**Response**:
+```json
+{
+  "ok": true,
+  "portalUrl": "https://pay.creem.io/portal/xxx"
+}
+```
 
 ---
 
@@ -393,6 +787,134 @@ next-migration    ← development branch
 
 ---
 
+## Testing Guide
+
+### Invite Code Flow Testing
+
+**Test 1: New User with Valid Invite Code**
+
+1. Start with clean state (incognito window or clear localStorage)
+2. Visit `http://localhost:3000/modules/core?invite=FUYOU-BETA01`
+3. Verify: "Sign In Required" screen displays
+4. Click "Sign In" → Redirected to `/login`
+5. Enter email → Receive OTP → Enter code
+6. Verify: Redirected back to `/modules/core`
+7. Verify: Invite code auto-fills and auto-submits
+8. Verify: URL params cleared (`?invite=...` removed)
+9. Verify: Access granted to Core Methodologies
+10. Try running an engine → Verify output displays
+
+**Expected Database State**:
+```sql
+-- invite_code_usage should have 1 row
+SELECT * FROM invite_code_usage WHERE user_id = 'your-user-id';
+
+-- invite_codes.used_count should increment by 1
+SELECT used_count FROM invite_codes WHERE code = 'FUYOU-BETA01';
+
+-- subscriptions table should remain empty (no row created)
+SELECT * FROM subscriptions WHERE user_id = 'your-user-id';
+```
+
+---
+
+**Test 2: Existing User Already Redeemed Code**
+
+1. User who already redeemed a code
+2. Visit `/modules/core?invite=ANOTHER-CODE`
+3. Verify: Auto-submit happens
+4. Verify: Returns `{alreadyRedeemed: true}`
+5. Verify: No second row in `invite_code_usage`
+6. Verify: Access still granted
+
+---
+
+**Test 3: Trial Expiry**
+
+1. Manually set `used_at` to 16 days ago:
+   ```sql
+   UPDATE invite_code_usage
+   SET used_at = NOW() - INTERVAL '16 days'
+   WHERE user_id = 'your-user-id';
+   ```
+2. Clear Redis cache: `bustEntitlement(userId)` or restart Redis
+3. Refresh `/modules/core`
+4. Verify: "Trial Expired" screen displays
+5. Verify: API calls return 402 status
+6. Verify: Upgrade button links to `/pricing`
+
+---
+
+**Test 4: Invalid Code**
+
+1. Visit `/modules/core?invite=INVALID-CODE`
+2. Sign in
+3. Verify: Auto-submit happens
+4. Verify: Error message displays "Invalid invite code"
+5. Verify: Access NOT granted
+
+---
+
+**Test 5: Exhausted Code**
+
+1. Set `used_count = max_uses` in `invite_codes` table
+2. Try redeeming → Verify "Invite code exhausted"
+
+---
+
+**Test 6: Disabled Code**
+
+1. Set `active = false` in `invite_codes` table
+2. Try redeeming → Verify "Invite code is disabled"
+
+---
+
+### Subscription Flow Testing
+
+**Test 1: Free User → Paid Subscription**
+
+1. Sign in without invite code (if `NEXT_PUBLIC_INVITE_ENABLED=false`)
+2. Visit `/pricing` → Click "Subscribe to Basic"
+3. Complete Creem checkout (use test card: `4242 4242 4242 4242`)
+4. Webhook triggers → `subscriptions` table updated
+5. Visit `/modules/core` → Run engine → Verify access
+
+**Test 2: Invite User → Paid Subscription**
+
+1. User with valid invite code (within 15 days)
+2. Visit `/pricing` → Subscribe to Pro
+3. After payment: `subscriptions` table has Pro record
+4. `guard.ts` should prioritize subscription over invite code
+5. Verify: Pro-tier prompts available
+
+---
+
+### Redis Caching Testing
+
+**Test Cache Hit**:
+```bash
+# Enable gate logs
+GATE_LOG=1 npm run dev
+
+# Make API call
+curl -X POST http://localhost:3000/api/core/run \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"engineKey":"task_breakdown","userInput":"test","tier":"basic"}'
+
+# Check logs
+# First call: cache_hit=false (queries DB)
+# Second call: cache_hit=true (uses Redis, faster)
+```
+
+**Test Cache Bust**:
+```bash
+# After invite validation or subscription change
+# Check logs: cache_hit=false (cache was cleared)
+```
+
+---
+
 ## QA Checklist
 
 Run locally with `npm run dev`, then verify:
@@ -423,3 +945,206 @@ Run locally with `npm run dev`, then verify:
 - Core Methodologies: 5 tabs display horizontally (scrollable)
 - Universal Modules: single-column with panel switching
 - Navigation drawer works
+
+---
+
+## Common Issues & Solutions
+
+### TypeScript Errors
+
+**Issue**: `Property 'used_at' does not exist on type 'never'`
+```typescript
+// Problem: maybeSingle() returns never without type parameter
+const { data } = await db.from("invite_code_usage").select("used_at").maybeSingle();
+
+// Solution: Add type parameter
+type Row = { used_at: string | null };
+const { data } = await db.from("invite_code_usage").select("used_at").maybeSingle<Row>();
+```
+
+**Issue**: `Type 'string | null' is not assignable to parameter of type 'string'`
+```typescript
+// Problem: userId might be null, but TypeScript loses narrowing in closures
+if (!userId) return error;
+await someFunction(userId); // Error: still thinks it's string | null
+
+// Solution: Explicit type narrowing
+const uid: string = userId;
+await someFunction(uid); // Works
+```
+
+**Issue**: `Argument of type '...' is not assignable to parameter of type 'TablesInsert<"subscriptions">'`
+```typescript
+// Problem: Supabase admin client isn't typed with Database generic
+const admin = getSupabaseAdmin();
+await admin.from("subscriptions").insert(data); // Type error
+
+// Solution: Cast to any (admin client intentionally untyped)
+const db = getSupabaseAdmin() as any;
+await db.from("subscriptions").insert(data); // Works
+```
+
+---
+
+### Build Errors
+
+**Issue**: Vercel build fails with "Cannot find module 'server-only'"
+```bash
+# Solution: Ensure 'server-only' is in dependencies, not devDependencies
+npm install server-only --save
+```
+
+**Issue**: Build fails with "Module not found: Can't resolve '@/lib/...'"
+```json
+// Solution: Check tsconfig.json has correct paths
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}
+```
+
+---
+
+### Runtime Errors
+
+**Issue**: "AI returned empty response" in Universal Modules
+```typescript
+// Problem: Accessing wrong field on response object
+const output = res.modelOutput ?? ""; // Wrong field
+
+// Solution: Use correct field name
+const output = res.output ?? "";
+```
+
+**Issue**: Redis connection fails, all API calls slow
+```typescript
+// Expected: guard.ts should gracefully degrade
+// Check logs: Should see direct DB queries instead of Redis
+// Verify UPSTASH_REDIS_REST_URL is set correctly
+```
+
+**Issue**: Invite code validation succeeds but user still blocked
+```typescript
+// Problem: SubscriptionContext not refreshed after validation
+// Solution: InviteGate should call refreshSubscription()
+await refreshSubscription();
+setStatus("verified");
+```
+
+---
+
+### Database Issues
+
+**Issue**: Invite code usage count doesn't increment
+```sql
+-- Check if optimistic locking is working
+SELECT code, used_count FROM invite_codes WHERE code = 'YOUR-CODE';
+
+-- If stuck, manually fix:
+UPDATE invite_codes
+SET used_count = (SELECT COUNT(*) FROM invite_code_usage WHERE code = 'YOUR-CODE')
+WHERE code = 'YOUR-CODE';
+```
+
+**Issue**: User has expired trial but still has access
+```sql
+-- Check actual expiry date
+SELECT
+  user_id,
+  used_at,
+  used_at + INTERVAL '15 days' as expires_at,
+  NOW() > used_at + INTERVAL '15 days' as is_expired
+FROM invite_code_usage
+WHERE user_id = 'USER-UUID';
+
+-- If used_at is NULL, update it:
+UPDATE invite_code_usage SET used_at = created_at WHERE user_id = 'USER-UUID';
+```
+
+---
+
+## Development Tips
+
+### Local Development Shortcuts
+
+**Bypass All Gates (Local Only)**:
+```env
+# .env.local
+NEXT_PUBLIC_DEV_MODE=true           # Bypass InviteGate + RequirePlan
+NEXT_PUBLIC_INVITE_ENABLED=false    # Disable invite code requirement
+BILLING_ENABLED=0                   # Disable subscription checks
+```
+
+**Enable Debug Logging**:
+```env
+GATE_LOG=1  # Log every guard.ts check with timing
+```
+
+**Test Streaming Responses**:
+```bash
+curl -X POST http://localhost:3000/api/core/run \
+  -H "Authorization: Bearer $(supabase auth get-session | jq -r .access_token)" \
+  -H "Content-Type: application/json" \
+  -d '{"engineKey":"task_breakdown","userInput":"Build a mobile app","tier":"basic"}' \
+  -N  # --no-buffer to see streaming
+```
+
+---
+
+### Database Seed Data
+
+**Create Test Invite Codes**:
+```sql
+INSERT INTO invite_codes (code, max_uses, channel, active) VALUES
+  ('DEV-TEST-01', 100, 'dev', true),
+  ('DEV-TEST-02', 10, 'dev', true),
+  ('DEV-EXHAUSTED', 1, 'dev', true),
+  ('DEV-DISABLED', 100, 'dev', false);
+```
+
+**Create Test Subscription**:
+```sql
+INSERT INTO subscriptions (user_id, plan, status, current_period_end) VALUES
+  ('your-user-uuid', 'pro', 'active', NOW() + INTERVAL '30 days');
+```
+
+**Manually Grant Beta Trial**:
+```sql
+INSERT INTO user_entitlements (user_id, type, expires_at) VALUES
+  ('your-user-uuid', 'beta_trial', NOW() + INTERVAL '15 days')
+ON CONFLICT (user_id, type) DO UPDATE SET expires_at = EXCLUDED.expires_at;
+```
+
+---
+
+### Debugging Subscription Issues
+
+**Check Full Access Chain**:
+```sql
+-- 1. Check subscriptions table
+SELECT plan, status, trial_end, current_period_end
+FROM subscriptions WHERE user_id = 'USER-UUID';
+
+-- 2. Check user_entitlements
+SELECT type, expires_at FROM user_entitlements WHERE user_id = 'USER-UUID';
+
+-- 3. Check invite_code_usage
+SELECT code, used_at, used_at + INTERVAL '15 days' as expires_at
+FROM invite_code_usage WHERE user_id = 'USER-UUID';
+
+-- 4. Check Redis cache (if available)
+-- Use Redis CLI: GET entitlement:USER-UUID
+```
+
+**Clear All Access for User**:
+```sql
+DELETE FROM subscriptions WHERE user_id = 'USER-UUID';
+DELETE FROM user_entitlements WHERE user_id = 'USER-UUID';
+DELETE FROM invite_code_usage WHERE user_id = 'USER-UUID';
+-- Also bust Redis: DELETE entitlement:USER-UUID
+```
+
+---
