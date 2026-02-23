@@ -53,11 +53,12 @@ export async function runEngine({
       ? userInput
       : JSON.stringify(userInput ?? {}, null, 2);
 
+  const langGuard = buildLanguageGuard(language);
   const result = await runPromptModule(
     realKey,
     userInputStr,
     finalEngineType,
-    systemOverride
+    langGuard || systemOverride
   );
 
   const out = String(result.modelOutput ?? "").trim();
