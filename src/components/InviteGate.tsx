@@ -9,6 +9,7 @@ import { Ticket, Loader2, ArrowRight, LogIn, Clock, Sparkles } from "lucide-reac
 import { supabase } from "@/src/lib/supabaseClient";
 import { useSubscription } from "@/src/context/SubscriptionContext";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const IS_DEV = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 const INVITE_ENABLED = process.env.NEXT_PUBLIC_INVITE_ENABLED !== "false";
@@ -18,6 +19,7 @@ interface InviteGateProps {
 }
 
 export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
+  const router = useRouter();
   const [status, setStatus] = useState<"loading" | "verified" | "needs_code" | "no_auth" | "expired">("loading");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -118,17 +120,10 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
       const data = await res.json();
 
       if (data.ok) {
-        // Remove invite params from URL without navigation
-        if (typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          url.searchParams.delete("invite");
-          url.searchParams.delete("inviteCode");
-          window.history.replaceState({}, "", url.toString());
-        }
         localStorage.removeItem("fuyou_invite_code");
         // Refresh subscription state so RequirePlan sees the new entitlement
         await refreshSubscription();
-        setStatus("verified");
+        router.replace("/modules/core");
       } else {
         setError(data.error ?? "Invalid invite code");
       }
