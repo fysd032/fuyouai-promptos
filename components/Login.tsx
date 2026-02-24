@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Mail,
+  Lock,
+  CheckCircle,
   Loader2,
   ArrowRight,
 } from "lucide-react";
@@ -22,8 +24,15 @@ export const Login: React.FC = () => {
     return target && target.startsWith("/") ? target : "/modules/core";
   }, [searchParams]);
 
+  // Invite flow: URL contains invite= param → use magic link, no OTP input
+  const isInviteFlow = useMemo(
+    () => redirectTo.includes("invite="),
+    [redirectTo]
+  );
+
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +51,6 @@ export const Login: React.FC = () => {
 
   // Utility: clean URL (remove code/token params)
   const cleanUrl = () => {
-    // After moving to Next, the canonical login route is /login
     const base = `${window.location.origin}/login`;
     window.history.replaceState({}, "", base);
   };
@@ -60,7 +68,6 @@ export const Login: React.FC = () => {
         // 1) OAuth code mode
         if (code) {
           const exchangeUrl = new URL(window.location.href);
-          // Supabase requires code in search; clear hash as well
           exchangeUrl.hash = "";
           exchangeUrl.search = `?code=${encodeURIComponent(code)}`;
 
@@ -143,7 +150,6 @@ export const Login: React.FC = () => {
       email,
       options: {
         shouldCreateUser: true,
-        // Next standard route: /login (no more /#/login)
         emailRedirectTo: `${window.location.origin}/login?from=${encodeURIComponent(
           redirectTo
         )}`,
@@ -164,6 +170,36 @@ export const Login: React.FC = () => {
   const handleSendCode = (e: React.FormEvent) => {
     e.preventDefault();
     void sendCode();
+  };
+
+  // Regular flow only: verify OTP code manually entered by user
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    const { data, error: verifyError } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: "email",
+    });
+
+    if (verifyError) {
+      setError(verifyError.message);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!data?.session) {
+      setError("No session returned. Please retry login.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(false);
+    router.replace(redirectTo);
   };
 
   return (
@@ -194,14 +230,18 @@ export const Login: React.FC = () => {
             P
           </div>
           <h1 className="text-2xl font-bold text-slate-900">
-            {step === "email" ? "Welcome to Prompt OS" : "Check your email"}
+            {step === "email"
+              ? "Welcome to Prompt OS"
+              : isInviteFlow
+              ? "Check your email"
+              : "Enter verification code"}
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
             {step === "email" ? (
               "Log in to start your 15-day free trial, no password needed"
             ) : (
               <span>
-                Sign-in link sent to{" "}
+                {isInviteFlow ? "Sign-in link sent to " : "Code sent to "}
                 <span className="text-slate-800 font-medium">{email}</span>
               </span>
             )}
@@ -254,26 +294,36 @@ export const Login: React.FC = () => {
                   <Loader2 size={18} className="animate-spin" />
                   Sending...
                 </>
-              ) : (
+              ) : isInviteFlow ? (
                 <>
                   Send sign-in link<ArrowRight size={18} />
+                </>
+              ) : (
+                <>
+                  Get verification code<ArrowRight size={18} />
                 </>
               )}
             </button>
           </form>
         )}
 
-        {/* Step 2: Magic Link Sent */}
-        {step === "otp" && (
+        {/* Step 2a: Magic Link Sent (invite flow) */}
+        {step === "otp" && isInviteFlow && (
           <div className="space-y-5 animate-in fade-in slide-in-from-right-8 duration-300">
             <div className="flex flex-col items-center text-center py-4 gap-3">
               <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center">
                 <Mail className="text-[#1E9FFF]" size={28} />
               </div>
               <p className="text-slate-600 text-sm leading-relaxed">
-                Click the <span className="font-semibold text-slate-800">sign-in link</span> in your email to continue.
+                Click the{" "}
+                <span className="font-semibold text-slate-800">
+                  sign-in link
+                </span>{" "}
+                in your email to continue.
                 <br />
-                <span className="text-slate-400">No code needed — just one click.</span>
+                <span className="text-slate-400">
+                  No code needed — just one click.
+                </span>
               </p>
             </div>
 
@@ -295,12 +345,84 @@ export const Login: React.FC = () => {
                     : "text-[#1E9FFF] hover:text-[#4CB2FF]"
                 }`}
               >
-                {countdown > 0
-                  ? `Resend in ${countdown}s`
-                  : "Resend link"}
+                {countdown > 0 ? `Resend in ${countdown}s` : "Resend link"}
               </button>
             </div>
           </div>
+        )}
+
+        {/* Step 2b: OTP Code Input (regular flow) */}
+        {step === "otp" && !isInviteFlow && (
+          <form
+            className="space-y-5 animate-in fade-in slide-in-from-right-8 duration-300"
+            onSubmit={handleVerify}
+          >
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
+                Verification Code
+              </label>
+              <div className="relative">
+                <Lock
+                  className="absolute left-3.5 top-3.5 text-slate-400"
+                  size={18}
+                />
+                <input
+                  type="text"
+                  required
+                  value={otp}
+                  onChange={(e) => {
+                    setOtp(e.target.value);
+                    setError(null);
+                  }}
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-[#6BB7FF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E9FFF] focus:border-[#1E9FFF] transition-all text-slate-900 placeholder:text-slate-400 tracking-widest font-mono text-lg"
+                  placeholder="12345678"
+                  maxLength={8}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || otp.length < 6}
+              className="w-full bg-[#1E9FFF] hover:bg-[#4CB2FF] disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg shadow-[#1E9FFF]/25 active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  Enter Prompt OS <CheckCircle size={18} />
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center justify-between text-sm mt-4">
+              <button
+                type="button"
+                onClick={() => setStep("email")}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Change email
+              </button>
+              <button
+                type="button"
+                disabled={countdown > 0}
+                onClick={() => void sendCode()}
+                className={`font-medium transition-colors ${
+                  countdown > 0
+                    ? "text-slate-300 cursor-not-allowed"
+                    : "text-[#1E9FFF] hover:text-[#4CB2FF]"
+                }`}
+              >
+                {countdown > 0
+                  ? `Resend in ${countdown}s`
+                  : "Resend verification code"}
+              </button>
+            </div>
+          </form>
         )}
 
         {/* Trial Details Footer */}
