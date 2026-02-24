@@ -35,6 +35,8 @@ export type GateFail = {
 export type GateOk = {
   ok: true;
   userId: string;
+  /** "paid" = active subscription; "trial" = beta_trial / invite_code_usage */
+  tier: "paid" | "trial";
 };
 
 export type GateResult = GateOk | GateFail;
@@ -80,7 +82,7 @@ export async function requireSubscription(
   if (cached !== null) {
     if (cached.allowed) {
       if (GATE_LOG) console.log(`[gate] userId=${userId} cache_hit=true result=ok ms=${Date.now() - t0}`);
-      return { ok: true, userId };
+      return { ok: true, userId, tier: cached.tier ?? "trial" };
     }
     const code = cached.code ?? "SUBSCRIPTION_REQUIRED";
     if (GATE_LOG) console.log(`[gate] userId=${userId} cache_hit=true result=402 ms=${Date.now() - t0}`);
@@ -106,9 +108,9 @@ export async function requireSubscription(
     .maybeSingle<SubRow>();
 
   if (sub !== null && isSubscriptionActiveNow(sub)) {
-    await setEntitlement(userId, { allowed: true });
+    await setEntitlement(userId, { allowed: true, tier: "paid" });
     if (GATE_LOG) console.log(`[gate] userId=${userId} source=subscription cache_hit=false result=ok ms=${Date.now() - t0}`);
-    return { ok: true, userId };
+    return { ok: true, userId, tier: "paid" };
   }
 
   // 3b. Subscription absent/expired → check user_entitlements (beta_trial)
@@ -124,9 +126,9 @@ export async function requireSubscription(
   if (ent !== null) {
     const expiresAt = ent.expires_at ? new Date(ent.expires_at) : null;
     if (expiresAt !== null && new Date() < expiresAt) {
-      await setEntitlement(userId, { allowed: true });
+      await setEntitlement(userId, { allowed: true, tier: "trial" });
       if (GATE_LOG) console.log(`[gate] userId=${userId} source=entitlement cache_hit=false result=ok ms=${Date.now() - t0}`);
-      return { ok: true, userId };
+      return { ok: true, userId, tier: "trial" };
     }
   }
 
@@ -149,9 +151,9 @@ export async function requireSubscription(
 
     // Grant access if within trial period (or if used_at is unavailable)
     if (!expiresAt || new Date() < expiresAt) {
-      await setEntitlement(userId, { allowed: true });
+      await setEntitlement(userId, { allowed: true, tier: "trial" });
       if (GATE_LOG) console.log(`[gate] userId=${userId} source=invite_usage cache_hit=false result=ok ms=${Date.now() - t0}`);
-      return { ok: true, userId };
+      return { ok: true, userId, tier: "trial" };
     }
     // Trial expired — fall through to 402
     if (GATE_LOG) console.log(`[gate] userId=${userId} source=invite_usage cache_hit=false result=expired ms=${Date.now() - t0}`);

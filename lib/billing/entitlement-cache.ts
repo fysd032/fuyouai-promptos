@@ -3,6 +3,7 @@ import { redis } from "./redis";
 export type Entitlement = {
   allowed: boolean;
   code?: "SUBSCRIPTION_REQUIRED" | "SUBSCRIPTION_EXPIRED";
+  tier?: "paid" | "trial";
 };
 
 const PREFIX = "entitlement:";

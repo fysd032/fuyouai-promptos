@@ -4,9 +4,9 @@
 //
 // 逻辑：
 //   - BILLING_ENABLED !== "1"  → 直接放行（开发环境）
-//   - Trial / Paid（requireSubscription ok）→ 直接放行，不计数
+//   - Paid（tier=paid）        → 直接放行，无限制
 //   - 未登录（401）            → 返回 401
-//   - Free（402）              → 调用 consume_daily_call(p_limit=20)
+//   - Trial / Free             → 调用 consume_daily_call(p_limit=20)
 //       计数未超 → 放行
 //       计数已超 → 返回 402 DAILY_LIMIT_REACHED
 //
@@ -64,13 +64,14 @@ export function withDailyLimit(
       );
     }
 
-    // ── Trial / Paid → 直接放行，无限制 ───────────────────
-    if (gate.ok) {
+    // ── Paid → 直接放行，无限制 ────────────────────────────
+    if (gate.ok && gate.tier === "paid") {
       return handler(req);
     }
 
-    // ── Free 用户（402）→ 检查每日限额 ────────────────────
-    const userId = gate.userId;
+    // ── Trial / Free → 检查每日限额 ────────────────────────
+    // gate.ok=true means trial; gate.ok=false (402) means free
+    const userId: string | undefined = gate.ok ? gate.userId : gate.userId;
     if (!userId) {
       return NextResponse.json(
         { ok: false, code: "UNAUTHORIZED", error: "Please sign in." },
