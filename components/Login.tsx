@@ -307,25 +307,61 @@ export const Login: React.FC = () => {
           </form>
         )}
 
-        {/* Step 2a: Magic Link Sent (invite flow) */}
+        {/* Step 2a: Invite flow — click link OR enter code */}
         {step === "otp" && isInviteFlow && (
-          <div className="space-y-5 animate-in fade-in slide-in-from-right-8 duration-300">
-            <div className="flex flex-col items-center text-center py-4 gap-3">
-              <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center">
-                <Mail className="text-[#1E9FFF]" size={28} />
-              </div>
-              <p className="text-slate-600 text-sm leading-relaxed">
-                Click the{" "}
-                <span className="font-semibold text-slate-800">
-                  sign-in link
-                </span>{" "}
-                in your email to continue.
-                <br />
-                <span className="text-slate-400">
-                  No code needed — just one click.
-                </span>
-              </p>
+          <form
+            className="space-y-5 animate-in fade-in slide-in-from-right-8 duration-300"
+            onSubmit={handleVerify}
+          >
+            <div className="flex items-start gap-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-slate-600">
+              <Mail className="text-[#1E9FFF] mt-0.5 shrink-0" size={16} />
+              <span>
+                Click the <span className="font-semibold text-slate-800">sign-in link</span> in your email,
+                or enter the code below.
+              </span>
             </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
+                Verification Code
+              </label>
+              <div className="relative">
+                <Lock
+                  className="absolute left-3.5 top-3.5 text-slate-400"
+                  size={18}
+                />
+                <input
+                  type="text"
+                  required
+                  value={otp}
+                  onChange={(e) => {
+                    setOtp(e.target.value);
+                    setError(null);
+                  }}
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-[#6BB7FF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E9FFF] focus:border-[#1E9FFF] transition-all text-slate-900 placeholder:text-slate-400 tracking-widest font-mono text-lg"
+                  placeholder="12345678"
+                  maxLength={8}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || otp.length < 6}
+              className="w-full bg-[#1E9FFF] hover:bg-[#4CB2FF] disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg shadow-[#1E9FFF]/25 active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  Enter Prompt OS <CheckCircle size={18} />
+                </>
+              )}
+            </button>
 
             <div className="flex items-center justify-between text-sm mt-4">
               <button
@@ -348,7 +384,7 @@ export const Login: React.FC = () => {
                 {countdown > 0 ? `Resend in ${countdown}s` : "Resend link"}
               </button>
             </div>
-          </div>
+          </form>
         )}
 
         {/* Step 2b: OTP Code Input (regular flow) */}
