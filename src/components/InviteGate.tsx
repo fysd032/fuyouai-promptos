@@ -1,11 +1,10 @@
 // src/components/InviteGate.tsx
-// Gate component: requires a valid invite code before accessing content.
-// • If ?invite=CODE is in the URL and user is already logged in → auto-submit once
-// • On success: clears invite params from URL, clears localStorage, refreshes subscription
+// Access gate: allows users with a valid invite code (URL auto-submit only)
+// or an active paid subscription. No manual invite code entry.
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Ticket, Loader2, ArrowRight, LogIn, Clock, Sparkles } from "lucide-react";
+import { Loader2, LogIn, Clock, Sparkles, Lock } from "lucide-react";
 import { supabase } from "@/src/lib/supabaseClient";
 import { useSubscription } from "@/src/context/SubscriptionContext";
 import Link from "next/link";
@@ -20,9 +19,8 @@ interface InviteGateProps {
 
 export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
   const router = useRouter();
-  const [status, setStatus] = useState<"loading" | "verified" | "needs_code" | "no_auth" | "expired">("loading");
+  const [status, setStatus] = useState<"loading" | "verified" | "needs_sub" | "no_auth" | "expired">("loading");
   const [code, setCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { refreshSubscription } = useSubscription();
 
@@ -47,7 +45,7 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
     }
   }, []);
 
-  // ── Core: check whether this user already has invite access ─
+  // ── Core: check invite code OR paid subscription ─────────
   const checkStatus = useCallback(async () => {
     if (IS_DEV || !INVITE_ENABLED) {
       setStatus("verified");
@@ -60,21 +58,46 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
         setStatus("no_auth");
         return;
       }
-      const res = await fetch("/api/invite/status", {
+
+      // 1. Check invite code status
+      const inviteRes = await fetch("/api/invite/status", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
-      if (data.verified) {
+      const inviteData = await inviteRes.json();
+
+      if (inviteData.verified) {
         setStatus("verified");
         localStorage.removeItem("fuyou_invite_code");
-      } else if (data.expired) {
+        return;
+      }
+
+      // 2. Not verified via invite → check paid subscription
+      const subRes = await fetch("/api/subscription", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (subRes.ok) {
+        const subData = await subRes.json();
+        const sub = subData.subscription;
+        if (
+          sub &&
+          (sub.status === "active" || sub.status === "canceling") &&
+          sub.plan &&
+          sub.plan !== "free"
+        ) {
+          setStatus("verified");
+          return;
+        }
+      }
+
+      // 3. Neither invite nor paid subscription
+      if (inviteData.expired) {
         setStatus("expired");
         localStorage.removeItem("fuyou_invite_code");
       } else {
-        setStatus("needs_code");
+        setStatus("needs_sub");
       }
     } catch {
-      setStatus("needs_code");
+      setStatus("needs_sub");
     }
   }, []);
 
@@ -93,20 +116,16 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
     return () => { data.subscription.unsubscribe(); };
   }, [checkStatus]);
 
-  // ── Submit invite code (shared by form + auto-submit) ───
+  // ── Auto-submit invite code from URL only ────────────────
   const submitCode = useCallback(async (codeToSubmit: string) => {
     if (!codeToSubmit.trim()) return;
 
     setSubmitting(true);
-    setError(null);
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      if (!token) {
-        setError("Please sign in first");
-        return;
-      }
+      if (!token) return;
 
       const res = await fetch("/api/invite/validate", {
         method: "POST",
@@ -121,23 +140,23 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
 
       if (data.ok) {
         localStorage.removeItem("fuyou_invite_code");
-        // Refresh subscription state so RequirePlan sees the new entitlement
         await refreshSubscription();
         router.replace("/modules/core");
       } else {
-        setError(data.error ?? "Invalid invite code");
+        // Invalid invite code from URL → show subscribe page
+        setStatus("needs_sub");
       }
     } catch {
-      setError("Network error, please try again");
+      setStatus("needs_sub");
     } finally {
       setSubmitting(false);
     }
-  }, [refreshSubscription]);
+  }, [refreshSubscription, router]);
 
   // ── Auto-submit when code came from URL and user is ready ─
   useEffect(() => {
     if (
-      status === "needs_code" &&
+      status === "needs_sub" &&
       codeFromUrl.current &&
       !autoSubmitted.current &&
       code.trim()
@@ -147,14 +166,9 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
     }
   }, [status, code, submitCode]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await submitCode(code);
-  };
-
   // ── Render ───────────────────────────────────────────────
 
-  if (status === "loading") {
+  if (status === "loading" || submitting) {
     return (
       <div className="flex items-center justify-center h-full min-h-[300px]">
         <Loader2 size={28} className="animate-spin text-blue-500" />
@@ -216,68 +230,24 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
     );
   }
 
-  // needs_code
+  // needs_sub: logged in but no invite code and no paid subscription
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="w-full max-w-md bg-[#111827] border border-[#1F2937] rounded-2xl p-8 text-center">
         <div className="w-14 h-14 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-5">
-          <Ticket className="w-6 h-6 text-blue-400" />
+          <Lock className="w-6 h-6 text-blue-400" />
         </div>
-
-        <h2 className="text-xl font-semibold text-white mb-2">Beta Access Required</h2>
+        <h2 className="text-xl font-semibold text-white mb-2">Subscription Required</h2>
         <p className="text-sm text-gray-400 mb-6">
-          FuyouAI is currently in closed beta. Enter your invite code to get started.
+          Subscribe to access FuyouAI, or use an invite link to start a 15-day free trial.
         </p>
-
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => {
-              setCode(e.target.value.toUpperCase());
-              setError(null);
-            }}
-            placeholder="e.g. FUYOU-BETA01"
-            className="w-full px-4 py-3 bg-[#0A0F1C] border border-[#374151] rounded-xl text-white text-center text-lg font-mono tracking-widest placeholder:text-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
-            maxLength={20}
-            autoFocus
-          />
-          <button
-            type="submit"
-            disabled={submitting || !code.trim()}
-            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all"
-          >
-            {submitting ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                Validating...
-              </>
-            ) : (
-              <>
-                Enter Beta <ArrowRight size={18} />
-              </>
-            )}
-          </button>
-        </form>
-
-        <p className="text-xs text-gray-500 mt-6">
-          Don&apos;t have an invite code? Follow us on{" "}
-          <a
-            href="https://twitter.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 hover:underline"
-          >
-            Twitter
-          </a>{" "}
-          for updates.
-        </p>
+        <Link
+          href="/pricing"
+          className="inline-flex items-center justify-center gap-2 w-full px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white font-medium rounded-xl transition-all"
+        >
+          <Sparkles size={18} />
+          View Pricing
+        </Link>
       </div>
     </div>
   );
