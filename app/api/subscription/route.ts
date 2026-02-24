@@ -142,8 +142,43 @@ export async function GET(req: Request) {
       );
     }
 
-    // 没有订阅记录 → 返回 subscription: null（前端据此判断为 free）
+    // 没有订阅记录 → 检查 user_entitlements (beta_trial)
     if (!sub) {
+      type EntRow = { expires_at: string | null };
+      const { data: ent } = await supabaseAdmin
+        .from("user_entitlements")
+        .select("expires_at")
+        .eq("user_id", user.id)
+        .eq("type", "beta_trial")
+        .maybeSingle<EntRow>();
+
+      if (ent !== null) {
+        const expiresAt = ent.expires_at ? new Date(ent.expires_at) : null;
+        const isActive = expiresAt !== null && new Date() < expiresAt;
+        if (DEBUG) {
+          console.log("[Subscription] beta_trial found, expiresAt:", ent.expires_at, "active:", isActive);
+        }
+        if (isActive) {
+          return NextResponse.json(
+            {
+              ok: true,
+              subscription: {
+                plan: "free",
+                status: "trialing",
+                trialEnd: ent.expires_at,
+                cancel_at_period_end: false,
+                current_period_end: null,
+                creem_customer_id: null,
+                creem_subscription_id: null,
+                updated_at: null,
+              },
+              ...(debugInfo ? { debug: debugInfo } : {}),
+            },
+            { headers: corsHeaders }
+          );
+        }
+      }
+
       if (DEBUG) {
         console.log("[Subscription] No record found, returning null");
       }

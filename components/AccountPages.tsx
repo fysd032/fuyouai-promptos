@@ -354,14 +354,19 @@ export const Subscription: React.FC = () => {
               </span>
             </div>
           )}
-        {subscription?.trialEnd && subscription.status === "trialing" && (
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-400">Trial ends</span>
-            <span className="text-white font-medium">
-              {formatNumericDate(subscription.trialEnd)}
-            </span>
-          </div>
-        )}
+        {subscription?.trialEnd && subscription.status === "trialing" && (() => {
+          const end = new Date(subscription.trialEnd);
+          const daysLeft = Math.max(0, Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+          return (
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-slate-400">Trial ends</span>
+              <span className="text-blue-400 font-medium">
+                {formatNumericDate(subscription.trialEnd)}
+                <span className="ml-2 text-sm text-slate-400">({daysLeft} day{daysLeft !== 1 ? "s" : ""} left)</span>
+              </span>
+            </div>
+          );
+        })()}
         {status === "canceled" && (
           <div className="mb-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
             <p className="text-sm text-yellow-400">
