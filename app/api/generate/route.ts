@@ -2,7 +2,7 @@
 // ✅ 同步直出版本：不再依赖 Railway worker / 不再依赖 Redis / 不再 jobId 轮询
 
 import { NextResponse } from "next/server";
-import { withSubscription } from "@/lib/billing/with-subscription";
+import { withDailyLimit } from "@/lib/billing/with-daily-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -162,7 +162,7 @@ async function handler(req: Request) {
 }
 
 // ✅ 文件顶层导出：订阅拦截统一生效
-export const POST = withSubscription(handler, { scope: "generate" });
+export const POST = withDailyLimit(handler, { scope: "generate" });
 
 export async function GET(req: Request) {
   const origin = req.headers.get("origin");

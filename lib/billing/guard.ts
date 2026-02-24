@@ -28,6 +28,8 @@ export type GateFail = {
   ok: false;
   status: 401 | 402;
   code: "UNAUTHORIZED" | "SUBSCRIPTION_REQUIRED" | "SUBSCRIPTION_EXPIRED";
+  /** Present when user is authenticated but lacks an active subscription (Free tier). */
+  userId?: string;
 };
 
 export type GateOk = {
@@ -82,7 +84,7 @@ export async function requireSubscription(
     }
     const code = cached.code ?? "SUBSCRIPTION_REQUIRED";
     if (GATE_LOG) console.log(`[gate] userId=${userId} cache_hit=true result=402 ms=${Date.now() - t0}`);
-    return { ok: false, status: 402, code };
+    return { ok: false, status: 402, code, userId };
   }
 
   // ── Step 3: cache miss → check DB ──────────────────────
@@ -159,7 +161,7 @@ export async function requireSubscription(
   const failCode = sub === null ? "SUBSCRIPTION_REQUIRED" : "SUBSCRIPTION_EXPIRED";
   await setEntitlement(userId, { allowed: false, code: failCode });
   if (GATE_LOG) console.log(`[gate] userId=${userId} cache_hit=false result=402(${failCode}) ms=${Date.now() - t0}`);
-  return { ok: false, status: 402, code: failCode };
+  return { ok: false, status: 402, code: failCode, userId };
 }
 
 /**
