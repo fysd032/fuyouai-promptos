@@ -55,6 +55,18 @@ export const Login: React.FC = () => {
     window.history.replaceState({}, "", base);
   };
 
+  // Auto-grant 15-day trial after login (best-effort, non-blocking)
+  const initTrial = async (accessToken: string) => {
+    try {
+      await fetch("/api/trial/init", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    } catch {
+      // Non-critical — trial can be initialized on first module access
+    }
+  };
+
   // First load: handle OAuth/token callbacks + auto-redirect if already signed in
   useEffect(() => {
     let active = true;
@@ -83,6 +95,7 @@ export const Login: React.FC = () => {
           }
 
           if (data.session) {
+            await initTrial(data.session.access_token);
             cleanUrl();
             router.replace(redirectTo);
             return;
@@ -106,6 +119,7 @@ export const Login: React.FC = () => {
           }
 
           if (data.session) {
+            await initTrial(data.session.access_token);
             cleanUrl();
             router.replace(redirectTo);
             return;
@@ -198,6 +212,7 @@ export const Login: React.FC = () => {
       return;
     }
 
+    await initTrial(data.session.access_token);
     setIsLoading(false);
     router.replace(redirectTo);
   };
