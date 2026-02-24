@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Mail,
-  Lock,
-  CheckCircle,
   Loader2,
   ArrowRight,
 } from "lucide-react";
@@ -26,7 +24,6 @@ export const Login: React.FC = () => {
 
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -169,35 +166,6 @@ export const Login: React.FC = () => {
     void sendCode();
   };
 
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otp) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    const { data, error: verifyError } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: "email",
-    });
-
-    if (verifyError) {
-      setError(verifyError.message);
-      setIsLoading(false);
-      return;
-    }
-
-    if (!data?.session) {
-      setError("No session returned. Please retry login.");
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(false);
-    router.replace(redirectTo);
-  };
-
   return (
     <div className="min-h-screen bg-[radial-gradient(900px_600px_at_70%_-10%,rgba(30,159,255,0.16),transparent_60%),linear-gradient(180deg,#0B0F15_0%,#0F141C_45%,#111827_100%)] flex items-center justify-center px-4 font-sans relative overflow-hidden">
       {/* Background Elements */}
@@ -226,14 +194,14 @@ export const Login: React.FC = () => {
             P
           </div>
           <h1 className="text-2xl font-bold text-slate-900">
-            {step === "email" ? "Welcome to Prompt OS" : "Enter verification code"}
+            {step === "email" ? "Welcome to Prompt OS" : "Check your email"}
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
             {step === "email" ? (
               "Log in to start your 15-day free trial, no password needed"
             ) : (
               <span>
-                Code sent to{" "}
+                Sign-in link sent to{" "}
                 <span className="text-slate-800 font-medium">{email}</span>
               </span>
             )}
@@ -288,60 +256,26 @@ export const Login: React.FC = () => {
                 </>
               ) : (
                 <>
-                  Get verification code<ArrowRight size={18} />
+                  Send sign-in link<ArrowRight size={18} />
                 </>
               )}
             </button>
           </form>
         )}
 
-        {/* Step 2: OTP Form */}
+        {/* Step 2: Magic Link Sent */}
         {step === "otp" && (
-          <form
-            className="space-y-5 animate-in fade-in slide-in-from-right-8 duration-300"
-            onSubmit={handleVerify}
-          >
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                Verification Code
-              </label>
-              <div className="relative">
-                <Lock
-                  className="absolute left-3.5 top-3.5 text-slate-400"
-                  size={18}
-                />
-                <input
-                  type="text"
-                  required
-                  value={otp}
-                  onChange={(e) => {
-                    setOtp(e.target.value);
-                    setError(null);
-                  }}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-[#6BB7FF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E9FFF] focus:border-[#1E9FFF] transition-all text-slate-900 placeholder:text-slate-400 tracking-widest font-mono text-lg"
-                  placeholder="12345678"
-                  maxLength={8}
-                  autoFocus
-                />
+          <div className="space-y-5 animate-in fade-in slide-in-from-right-8 duration-300">
+            <div className="flex flex-col items-center text-center py-4 gap-3">
+              <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center">
+                <Mail className="text-[#1E9FFF]" size={28} />
               </div>
+              <p className="text-slate-600 text-sm leading-relaxed">
+                Click the <span className="font-semibold text-slate-800">sign-in link</span> in your email to continue.
+                <br />
+                <span className="text-slate-400">No code needed — just one click.</span>
+              </p>
             </div>
-
-            <button
-              type="submit"
-              disabled={isLoading || otp.length < 8}
-              className="w-full bg-[#1E9FFF] hover:bg-[#4CB2FF] disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg shadow-[#1E9FFF]/25 active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                <>
-                  Enter Prompt OS <CheckCircle size={18} />
-                </>
-              )}
-            </button>
 
             <div className="flex items-center justify-between text-sm mt-4">
               <button
@@ -363,10 +297,10 @@ export const Login: React.FC = () => {
               >
                 {countdown > 0
                   ? `Resend in ${countdown}s`
-                  : "Resend verification code"}
+                  : "Resend link"}
               </button>
             </div>
-          </form>
+          </div>
         )}
 
         {/* Trial Details Footer */}
