@@ -1,6 +1,6 @@
-# 🚀 FuyouAI Prompt OS
+# FuyouAI Prompt OS
 
-A production-ready Next.js AI automation platform with structured prompt engineering, multi-model support, and enterprise-grade billing integration.
+Turn messy ideas into clear, structured, executable instructions. A production-ready Next.js AI platform with structured prompt engineering, guest trial flow, multi-model support, and enterprise-grade billing integration.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
@@ -9,6 +9,12 @@ A production-ready Next.js AI automation platform with structured prompt enginee
 ---
 
 ## ✨ Features
+
+### 🆓 Guest Trial (No Sign-up Required)
+- **2 Free Runs**: Unauthenticated users can try the core engine at `/try` without registering
+- **IP-based Rate Limiting**: Server enforces 2 calls/IP/24h via Redis (`rl:guest:core:{ip}`)
+- **Conversion Card**: After 2 runs, a sign-up prompt replaces the run button — user sees their last output while being invited to register
+- **Isolated Route**: `/try` bypasses InviteGate entirely; `/modules/*` remains fully protected
 
 ### 🎯 Core Methodologies
 - **5 AI Engines**: Task Decomposition, CoT Reasoning, Content Generation, Deep Analysis, Task Tree
@@ -161,14 +167,16 @@ NEXT_PUBLIC_DEV_MODE=true  # Bypasses InviteGate and RequirePlan
 fuyouai-promptos/
 ├── app/                          # Next.js App Router
 │   ├── api/                      # API routes
-│   │   ├── core/run/             # Core framework execution
+│   │   ├── core/run/             # Core framework execution (auth required)
+│   │   ├── core/run-guest/       # Guest trial execution (no auth, IP-limited)
 │   │   ├── generate/             # Universal module execution
 │   │   ├── invite/               # Invite code validation & status
 │   │   ├── subscription/         # Subscription management
 │   │   ├── checkout/             # Payment checkout
 │   │   ├── webhook/creem/        # Creem payment webhook
 │   │   └── billing/portal/       # Customer billing portal
-│   ├── modules/                  # Module pages
+│   ├── try/                      # Guest trial page (no login required)
+│   ├── modules/                  # Module pages (InviteGate protected)
 │   │   ├── core/                 # Core Methodologies
 │   │   ├── general/              # Universal Modules
 │   │   ├── industry/             # Industry Templates
@@ -182,6 +190,7 @@ fuyouai-promptos/
 │   ├── components/
 │   │   ├── pages/                # Page-level components
 │   │   │   ├── CoreFrameworkPage.tsx     # 5 AI engines with file & voice
+│   │   │   ├── GuestTrialPage.tsx        # Lightweight guest trial (2 free runs)
 │   │   │   ├── UniversalModulesPage.tsx  # 50+ templates
 │   │   │   └── IndustryTemplatesPage.tsx
 │   │   ├── InviteGate.tsx        # Beta access gate with auto-submit
@@ -192,7 +201,7 @@ fuyouai-promptos/
 │   │   └── SubscriptionContext.tsx  # Global subscription state
 │   ├── lib/
 │   │   ├── supabaseClient.ts     # Browser Supabase client
-│   │   ├── coreframework-api.ts  # Core framework API helpers
+│   │   ├── coreframework-api.ts  # Core API helpers (callCoreFramework + callCoreFrameworkGuest)
 │   │   └── api.ts                # General API utilities
 │   └── data/
 │       ├── universalModules.ts   # 50+ module definitions
@@ -366,6 +375,91 @@ ORDER BY u.used_at DESC;
 | `NEXT_PUBLIC_DEV_MODE` | `false` | Set `true` locally to bypass invite gate (dev only) |
 
 **⚠️ Important**: Do NOT set `NEXT_PUBLIC_DEV_MODE=true` on Vercel production — it bypasses all access controls.
+
+---
+
+## 🆓 Guest Trial Flow
+
+### Overview
+
+Unauthenticated visitors can try the core engine at `/try` without signing up. After 2 free runs, a sign-up card replaces the run button.
+
+### User Flow
+
+```
+1. Visitor clicks "Generate Now" on the homepage
+   → Redirected to /try (no login required)
+
+2. Enters a prompt → clicks "Generate Now"
+   → Frontend calls POST /api/core/run-guest (no Bearer token)
+   → Server checks Redis key rl:guest:core:{ip}
+   → If count ≤ 2: runs Task Breakdown engine, returns output
+   → Frontend increments localStorage fuyou_guest_calls
+
+3. After 2nd run:
+   → Sign-up card appears above output:
+     "You've used your 2 free runs — Sign Up Free →"
+   → Run button disabled
+   → User sees their last result while being prompted to register
+
+4. User clicks "Sign Up Free →"
+   → Redirected to /login
+```
+
+### Architecture
+
+| Component | File | Role |
+|-----------|------|------|
+| Guest page | `app/try/page.tsx` + `GuestTrialPage.tsx` | UI, localStorage tracking, sign-up card |
+| Guest API | `app/api/core/run-guest/route.ts` | No-auth endpoint, IP rate limit via Redis |
+| Guest client | `src/lib/coreframework-api.ts` → `callCoreFrameworkGuest()` | Calls `/api/core/run-guest` without Bearer token |
+
+### Rate Limiting
+
+- **Frontend**: `localStorage` key `fuyou_guest_calls` tracks count client-side
+- **Backend**: Redis key `rl:guest:core:{ip}` enforces hard limit of 2 per IP per 24h
+- **Fail-open**: If Redis is unavailable, requests pass through (no blocking)
+
+### API: Guest Run
+
+**Endpoint**: `POST /api/core/run-guest`
+
+**No Authorization header required.**
+
+**Request**:
+```json
+{
+  "coreKey": "task_breakdown",
+  "userInput": "Help me plan a product launch",
+  "engineType": "deepseek"
+}
+```
+
+**Response (success)**:
+```json
+{
+  "ok": true,
+  "output": "...",
+  "language": "en",
+  "mode": "normal"
+}
+```
+
+**Response (limit reached)**:
+```json
+{
+  "ok": false,
+  "code": "GUEST_LIMIT_REACHED",
+  "error": "Free preview limit reached. Sign up to continue.",
+  "count": 3,
+  "limit": 2
+}
+```
+
+**Error codes**:
+- `402 GUEST_LIMIT_REACHED` — IP has exhausted free runs
+- `400` — Missing `coreKey` or `userInput`
+- `500` — Engine execution error
 
 ---
 
@@ -982,5 +1076,5 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 **Built with ❤️ by the FuyouAI Team**
 
-**Version**: 1.0.0
-**Last Updated**: January 2025
+**Version**: 1.1.0
+**Last Updated**: February 2026
