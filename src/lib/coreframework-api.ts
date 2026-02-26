@@ -1,5 +1,5 @@
 // src/lib/coreframework-api.ts
-// Calls /api/core/run (Next API Routes; same-origin by default).
+// Calls /api/core/run and /api/core/run-guest (Next API Routes; same-origin by default).
 
 import { resolveApiBase } from "./apiBase";
 import { supabase } from "./supabaseClient";
@@ -164,6 +164,64 @@ export async function callCoreFramework(args: CoreFrameworkArgs): Promise<CoreFr
     }
     if (e instanceof Error) {
       e.message = `${e.message} | url: ${url}`;
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ── Guest (unauthenticated) call → /api/core/run-guest ────────────────────────
+export async function callCoreFrameworkGuest(args: {
+  coreKey: CoreKey;
+  userInput: string;
+  engineType?: EngineType;
+  timeoutMs?: number;
+}): Promise<CoreFrameworkResult> {
+  const { coreKey, userInput, engineType = "deepseek", timeoutMs = 60_000 } = args;
+
+  if (!coreKey) throw new Error("coreKey cannot be empty");
+  if (isBlank(userInput)) throw new Error("userInput cannot be empty");
+
+  const API_BASE = resolveApiBase();
+  const url = `${API_BASE}/api/core/run-guest`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      credentials: "same-origin",
+      body: JSON.stringify({ coreKey, userInput, engineType }),
+    });
+
+    const data = await safeJson(res);
+
+    if (data?.code === "GUEST_LIMIT_REACHED") {
+      const err = new Error("GUEST_LIMIT_REACHED") as any;
+      err.code = "GUEST_LIMIT_REACHED";
+      throw err;
+    }
+
+    if (!res.ok || data?.ok === false) {
+      throw new Error(buildErrorMessage(res, data));
+    }
+
+    return {
+      ok: true,
+      output: normalizeOutput(data),
+      finalPrompt: data?.finalPrompt,
+      mode: data?.mode,
+      language: data?.language,
+      meta: data?.meta,
+      raw: data,
+    };
+  } catch (e: any) {
+    if (e?.name === "AbortError") {
+      throw new Error(`[POST /api/core/run-guest] Request timeout after ${timeoutMs}ms.`);
     }
     throw e;
   } finally {
