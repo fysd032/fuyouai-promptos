@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { callCoreFramework, callCoreFrameworkGuest } from "@/src/lib/coreframework-api";
-import { supabase } from "@/src/lib/supabaseClient";
+import { callCoreFramework } from "@/src/lib/coreframework-api";
 import { CORE_TAB_TO_COREKEY } from "@/src/data/ui-corekey-map";
 import Link from "next/link";
 import { Sparkles, Copy, Check, Play, Loader2, Cpu, Terminal, Info, Upload, X, Trash2, Mic } from "lucide-react";
@@ -117,7 +116,6 @@ const CORE_FRAMEWORKS = [
 type CoreFrameworkUIKey = (typeof CORE_FRAMEWORKS)[number]["key"];
 
 const IS_DEV = process.env.NEXT_PUBLIC_DEV_MODE === "true";
-const GUEST_CALL_LIMIT = 2;
 
 const CoreFrameworkPage: React.FC = () => {
   const { subscription } = useSubscription();
@@ -129,9 +127,6 @@ const CoreFrameworkPage: React.FC = () => {
   const [tier, setTier] = useState<"basic" | "pro">("basic");
   const [engineType, setEngineType] = useState<"deepseek" | "gemini">("deepseek");
 
-  const [isGuest, setIsGuest] = useState(false);
-  const [guestCallCount, setGuestCallCount] = useState(0);
-
   // Auto-sync tier from subscription (dev mode allows manual override)
   useEffect(() => {
     if (IS_DEV) return; // dev mode: keep manual selection
@@ -142,16 +137,7 @@ const CoreFrameworkPage: React.FC = () => {
     }
   }, [subscription?.plan]);
 
-  // Detect guest user and load stored call count
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        setIsGuest(true);
-        const stored = parseInt(localStorage.getItem("fuyou_guest_calls") ?? "0", 10);
-        setGuestCallCount(isNaN(stored) ? 0 : stored);
-      }
-    });
-  }, []);
+
 
   const [userInput, setUserInput] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -317,16 +303,13 @@ const CoreFrameworkPage: React.FC = () => {
       // Observability: screenshot console for quick debugging if issues occur
       console.log("[CoreRun]", { tabKey, coreKey, tier, engineType, len: finalInput.length, attachments: attachments.length });
 
-      // Single execution entry point
-      let data;
-      if (isGuest) {
-        data = await callCoreFrameworkGuest({ coreKey, userInput: finalInput, engineType });
-        const newCount = guestCallCount + 1;
-        localStorage.setItem("fuyou_guest_calls", String(newCount));
-        setGuestCallCount(newCount);
-      } else {
-        data = await callCoreFramework({ coreKey, tier, userInput: finalInput, engineType });
-      }
+      // Single execution entry point: /api/core/run (use finalInput which includes attachments)
+      const data = await callCoreFramework({
+        coreKey,
+        tier,
+        userInput: finalInput,
+        engineType,
+      });
 
       setAiOutput(data.output ?? "");
       setStatus("success");
@@ -336,14 +319,10 @@ const CoreFrameworkPage: React.FC = () => {
         setGeneratedPrompt(data.finalPrompt);
       }
     } catch (err: any) {
-      if ((err as any)?.code === "GUEST_LIMIT_REACHED") {
-        localStorage.setItem("fuyou_guest_calls", String(GUEST_CALL_LIMIT));
-        setGuestCallCount(GUEST_CALL_LIMIT);
-      }
       setStatus("error");
       setErrorMsg(err?.message ?? String(err));
     }
-  }, [activeKey, finalInput, tier, engineType, attachments.length, isListening, isGuest, guestCallCount]);
+  }, [activeKey, finalInput, tier, engineType, attachments.length, isListening]);
 
   const startListening = useCallback(() => {
     const rec = recognitionRef.current;
@@ -746,27 +725,18 @@ const CoreFrameworkPage: React.FC = () => {
               />
 
               <div className="mt-3 sm:mt-6 flex justify-end">
-                {isGuest && guestCallCount >= GUEST_CALL_LIMIT ? (
-                  <Link
-                    href="/login"
-                    className="flex items-center gap-2 px-5 sm:px-8 py-2 sm:py-3 bg-[#3B82F6] hover:bg-blue-600 text-white text-sm sm:text-base font-medium rounded-xl transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5"
-                  >
-                    Sign Up to Continue
-                  </Link>
-                ) : (
-                  <button
-                    onClick={handleRun}
-                    disabled={status === "loading" || !userInput.trim()}
-                    className="flex items-center gap-2 px-5 sm:px-8 py-2 sm:py-3 bg-[#3B82F6] hover:bg-blue-600 text-white text-sm sm:text-base font-medium rounded-xl transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  >
-                    {status === "loading" ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <Play size={16} fill="currentColor" />
-                    )}
-                    {status === "loading" ? "Generating..." : "Generate Prompt and Run"}
-                  </button>
-                )}
+                <button
+                  onClick={handleRun}
+                  disabled={status === "loading" || !userInput.trim()}
+                  className="flex items-center gap-2 px-5 sm:px-8 py-2 sm:py-3 bg-[#3B82F6] hover:bg-blue-600 text-white text-sm sm:text-base font-medium rounded-xl transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {status === "loading" ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Play size={16} fill="currentColor" />
+                  )}
+                  {status === "loading" ? "Generating..." : "Generate Prompt and Run"}
+                </button>
               </div>
             </div>
           </div>

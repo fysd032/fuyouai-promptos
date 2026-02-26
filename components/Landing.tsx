@@ -143,7 +143,7 @@ export const Landing: React.FC = () => {
             <div className="flex flex-wrap items-center gap-4 sm:flex-nowrap">
               <div className="flex flex-col items-start gap-1">
                 <Link
-                  href="/modules/core"
+                  href="/try"
                   className="bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white px-7 py-4 rounded-xl font-medium text-base shadow-[0_4px_14px_rgba(30,159,255,0.35)] transition-all inline-flex items-center gap-2 whitespace-nowrap"
                 >
                   Generate Now <ArrowRight size={18} />
