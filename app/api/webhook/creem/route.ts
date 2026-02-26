@@ -294,6 +294,14 @@ async function handleSubscriptionActive(supabase: any, payload: any, eventType: 
     return { message: "missing_user_id", skipped: true };
   }
 
+  // 防御性验证：确认 userId 真实存在于 auth.users
+  // 防止 Creem API 密钥泄露后攻击者伪造含任意 userId 的 checkout
+  const { data: authData } = await supabase.auth.admin.getUserById(userId);
+  if (!authData?.user) {
+    console.error(`[Webhook][SKIP] user_id ${userId} not found in auth.users`);
+    return { message: "user_not_found", skipped: true };
+  }
+
   // 提取 productId（鲁棒解析）
   const productId = extractProductId(data) || extractProductId(payload);
 

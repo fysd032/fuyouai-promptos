@@ -7,12 +7,19 @@ export const dynamic = "force-dynamic";
 const TRIAL_DAYS = 30;
 
 export async function GET() {
-  return NextResponse.json({ ok: true, message: "test-trial api is alive" });
+  return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
 }
 
 export async function POST(req: NextRequest) {
   // ✅ 运行时创建（不会在 build 阶段炸）
   const supabaseAdmin = getSupabaseAdmin();
+
+  // 0) 管理员密钥校验 — 防止任意用户自授权 trial
+  const ADMIN_SECRET = process.env.ADMIN_SECRET;
+  const providedSecret = req.headers.get("x-admin-secret");
+  if (!ADMIN_SECRET || !providedSecret || providedSecret !== ADMIN_SECRET) {
+    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  }
 
   // 1) 读 token
   const auth = req.headers.get("authorization") || "";

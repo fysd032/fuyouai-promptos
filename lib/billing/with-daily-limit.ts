@@ -18,10 +18,34 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { requireSubscription } from "./guard";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { redis } from "./redis";
 
 type Handler = (req: Request) => Promise<NextResponse>;
 
+/**
+ * 记录每个 Request 对应的 gate tier，供下游 handler 读取。
+ * 使用 WeakMap 保证 Request 对象被 GC 时自动清理，无内存泄漏。
+ */
+export const requestGateTier = new WeakMap<Request, "paid" | "trial" | "free">();
+
 const DEFAULT_FREE_LIMIT = 20;
+
+// 每 IP 每小时请求上限（防脚本批量攻击）
+// 可通过环境变量覆盖，例如企业内网多用户共享 IP 时适当调高
+const IP_HOURLY_LIMIT = Number(process.env.IP_RATE_LIMIT_PER_HOUR) || 300;
+
+/** 返回 true = 允许通过；false = 已超限 */
+async function checkIpRateLimit(ip: string): Promise<boolean> {
+  try {
+    const key = `rl:ip:run:${ip}`;
+    const count = await redis.incr(key);
+    if (count === 1) redis.expire(key, 3600).catch(() => {});
+    return count <= IP_HOURLY_LIMIT;
+  } catch {
+    // Redis 不可用 → fail-open，不阻断正常请求
+    return true;
+  }
+}
 
 function isBillingEnabled() {
   return process.env.BILLING_ENABLED === "1";
@@ -46,9 +70,24 @@ export function withDailyLimit(
   opts?: { scope?: string; freeLimit?: number }
 ): Handler {
   return async function wrapped(req: Request) {
-    // 总开关关闭 → 直接放行
+    // 总开关关闭 → 直接放行（开发环境，视为 paid 不受限）
     if (!isBillingEnabled()) {
+      requestGateTier.set(req, "paid");
       return handler(req);
+    }
+
+    // ── IP 速率限制：在认证前执行，防脚本高频轮询 ──────────
+    const ip =
+      req.headers.get("x-real-ip") ??
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+
+    const ipAllowed = await checkIpRateLimit(ip);
+    if (!ipAllowed) {
+      return NextResponse.json(
+        { ok: false, code: "RATE_LIMITED", error: "Too many requests. Please slow down." },
+        { status: 429 }
+      );
     }
 
     const limit = opts?.freeLimit ?? DEFAULT_FREE_LIMIT;
@@ -66,6 +105,7 @@ export function withDailyLimit(
 
     // ── Paid → 直接放行，无限制 ────────────────────────────
     if (gate.ok && gate.tier === "paid") {
+      requestGateTier.set(req, "paid");
       return handler(req);
     }
 
@@ -78,6 +118,9 @@ export function withDailyLimit(
         { status: 401 }
       );
     }
+
+    // Trial/Free 的 gate tier
+    const tierForHandler: "trial" | "free" = gate.ok ? "trial" : "free";
 
     try {
       const result = await consumeDailyCall(userId, limit);
@@ -94,11 +137,16 @@ export function withDailyLimit(
         );
       }
       // 未超限 → 放行
+      requestGateTier.set(req, tierForHandler);
       return handler(req);
     } catch (e: unknown) {
-      // DB 异常时 fail-open，避免误伤用户
+      // DB 异常时 fail-closed：拒绝 trial/free 请求，防止通过制造异常绕过计数
+      // paid 用户不经过此分支（已在上方提前 return）
       console.error("[withDailyLimit] consumeDailyCall error:", e);
-      return handler(req);
+      return NextResponse.json(
+        { ok: false, code: "SERVICE_UNAVAILABLE", error: "Service temporarily unavailable, please retry." },
+        { status: 503 }
+      );
     }
   };
 }

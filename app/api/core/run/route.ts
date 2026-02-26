@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { runEngine } from "@/lib/promptos/run-engine";
 import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
 import type { CoreKey, PlanTier } from "@/lib/promptos/core/core-map";
-import { withDailyLimit } from "@/lib/billing/with-daily-limit";
+import { withDailyLimit, requestGateTier } from "@/lib/billing/with-daily-limit";
 import { detectLanguage } from "@/lib/lang/detectLanguage";
 
 const allowedOrigins = new Set([
@@ -80,7 +80,12 @@ async function handler(req: Request) {
     const body = await req.json();
 
     const coreKey = body?.coreKey as CoreKey;
+    // ── Tier 上限校验：gate tier 由 withDailyLimit 注入，防止 trial/free 用户伪造 "pro"
+    const gateTier = requestGateTier.get(req) ?? "free";
     const tierRequested = (body?.tier as PlanTier) ?? "basic";
+    // 只有 paid 用户可以使用 pro tier；其他用户强制降级为 basic
+    const effectiveTier: PlanTier =
+      tierRequested === "pro" && gateTier !== "paid" ? "basic" : tierRequested;
     const userInput = String(body?.userInput ?? "").trim();
     const engineType = String(body?.engineType ?? "deepseek").trim();
     const systemOverride =
@@ -99,8 +104,8 @@ async function handler(req: Request) {
       );
     }
 
-    // ✅ 统一入口：解析 promptKey（包含校验 + 降级 + tried）
-    const resolved = resolveCorePromptKey(coreKey, tierRequested);
+    // ✅ 统一入口：解析 promptKey（包含校验 + 降级 + tried），使用服务端校验后的 effectiveTier
+    const resolved = resolveCorePromptKey(coreKey, effectiveTier);
 
     if (!resolved.ok) {
       return NextResponse.json(
@@ -109,7 +114,7 @@ async function handler(req: Request) {
           error: resolved.error,
           meta: {
             coreKey: resolved.coreKey,
-            tierRequested,
+            tierRequested: effectiveTier,
             tried: resolved.tried,
           },
         },
@@ -118,7 +123,7 @@ async function handler(req: Request) {
     }
 
     const { promptKey, tier: tierUsed, tried } = resolved;
-    const degraded = tierUsed !== tierRequested;
+    const degraded = tierUsed !== effectiveTier;
 
     // ✅ 调用引擎，直接传递 systemOverride
     const engineResult = await runEngine({
@@ -149,7 +154,7 @@ async function handler(req: Request) {
           error: engineResult.error || "Engine failed",
           meta: {
             coreKey,
-            tierRequested,
+            tierRequested: effectiveTier,
             tierUsed,
             degraded,
             promptKey,
@@ -169,7 +174,7 @@ async function handler(req: Request) {
           error: "Model returned empty output",
           meta: {
             coreKey,
-            tierRequested,
+            tierRequested: effectiveTier,
             tierUsed,
             degraded,
             promptKey,
