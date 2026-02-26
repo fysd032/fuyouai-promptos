@@ -99,11 +99,12 @@ export async function requireSubscription(
     trial_end: string | null;
     cancel_at_period_end: boolean | null;
     current_period_end: string | null;
+    creem_subscription_id: string | null;
   };
 
   const { data: sub } = await admin
     .from("subscriptions")
-    .select("status, plan, trial_end, cancel_at_period_end, current_period_end")
+    .select("status, plan, trial_end, cancel_at_period_end, current_period_end, creem_subscription_id")
     .eq("user_id", userId)
     .maybeSingle<SubRow>();
 
@@ -182,10 +183,14 @@ function isSubscriptionActiveNow(sub: {
   trial_end: string | null;
   cancel_at_period_end: boolean | null;
   current_period_end: string | null;
+  creem_subscription_id: string | null;
 }): boolean {
   const now = new Date();
 
   if (sub.status === "trialing") {
+    // 真实的 Creem 付费试用必须有 subscription_id；
+    // 没有则为未付款的假记录（如 test-trial 遗留数据），拒绝授权
+    if (!sub.creem_subscription_id) return false;
     const trialEnd = sub.trial_end ? new Date(sub.trial_end) : null;
     return trialEnd !== null && now < trialEnd;
   }
