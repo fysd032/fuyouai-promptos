@@ -120,17 +120,11 @@ export const Landing: React.FC = () => {
             </div>
 
             <h1 className="text-5xl lg:text-[56px] font-semibold leading-[1.1] tracking-tight mb-2 text-white">
-              From Complex Demands
-              <br />
-              to Executable Workflows
+              Your Prompt Isn't Bad — It's Unfocused
             </h1>
 
             <p className="text-lg lg:text-[20px] leading-[1.6] text-slate-400 font-normal mb-8 max-w-[36rem]">
-              FuyouAI transforms ambiguous requirements into stable, automated
-              workflows
-              <br className="hidden md:block" />
-              with professional-grade task understanding and structured
-              execution.
+              Turn messy ideas into clear, structured, executable instructions.
             </p>
 
             <div className="space-y-3 mb-10">
