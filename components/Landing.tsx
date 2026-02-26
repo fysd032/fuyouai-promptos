@@ -141,12 +141,15 @@ export const Landing: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-4 sm:flex-nowrap">
-              <Link
-                href="/login"
-                className="bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white px-7 py-4 rounded-xl font-medium text-base shadow-[0_4px_14px_rgba(30,159,255,0.35)] transition-all inline-flex items-center gap-2 whitespace-nowrap"
-              >
-                Get Started with FuyouAI <ArrowRight size={18} />
-              </Link>
+              <div className="flex flex-col items-start gap-1">
+                <Link
+                  href="/modules/core"
+                  className="bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white px-7 py-4 rounded-xl font-medium text-base shadow-[0_4px_14px_rgba(30,159,255,0.35)] transition-all inline-flex items-center gap-2 whitespace-nowrap"
+                >
+                  Generate Now <ArrowRight size={18} />
+                </Link>
+                <span className="text-xs text-slate-500 pl-1">Preview first step free</span>
+              </div>
 
               <button
                 onClick={scrollToFeatures}
