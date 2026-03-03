@@ -1,0 +1,17 @@
+{
+  "quick_direction": {
+    "task_type": "",
+    "core_difficulty": "",
+    "current_direction": ""
+  },
+  "task_understanding": "",
+  "objectives": [],
+  "required_inputs": [],
+  "constraints": [],
+  "clarifying_questions": [],
+  "step_by_step_workflow": [],
+  "dependencies": [],
+  "risks_and_mitigations": [],
+  "alternative_options": [],
+  "final_action_plan": []
+}
