@@ -120,7 +120,7 @@ export const Landing: React.FC = () => {
             </div>
 
             <h1 className="text-5xl lg:text-[56px] font-semibold leading-[1.1] tracking-tight mb-2 text-white">
-              Your Prompt Isn't Bad — It's Unfocused
+              Your Decisions Aren't Bad — They're Just Unstructured
             </h1>
 
             <p className="text-lg lg:text-[20px] leading-[1.6] text-slate-400 font-normal mb-8 max-w-[36rem]">
