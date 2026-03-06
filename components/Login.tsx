@@ -131,6 +131,7 @@ export const Login: React.FC = () => {
         if (!active) return;
 
         if (data.session) {
+          await initTrial(data.session.access_token);
           router.replace(redirectTo);
         }
       } catch (e: any) {

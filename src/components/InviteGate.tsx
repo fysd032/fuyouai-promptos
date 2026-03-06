@@ -89,7 +89,29 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
         }
       }
 
-      // 3. Neither invite nor paid subscription
+      // 3. Trial not expired but no record yet → auto-init 15-day trial for new users
+      if (!inviteData.expired) {
+        try {
+          const trialRes = await fetch("/api/trial/init", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (trialRes.ok) {
+            const recheckRes = await fetch("/api/invite/status", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const recheckData = await recheckRes.json();
+            if (recheckData.verified) {
+              setStatus("verified");
+              return;
+            }
+          }
+        } catch {
+          // fall through to needs_sub
+        }
+      }
+
+      // 4. Neither invite nor paid subscription nor auto-trial
       if (inviteData.expired) {
         setStatus("expired");
         localStorage.removeItem("fuyou_invite_code");
