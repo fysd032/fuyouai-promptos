@@ -132,11 +132,23 @@ function getModuleCategory(m: RegistryModule): ModuleCategory {
   return "other";
 }
 
+const SYSTEM_TOOL_IDS = new Set(["meta_prompt", "risk_control", "knowledge_base"]);
+
+type LayerKey = "work" | "system";
+
+const LAYER_TABS: Array<{ key: LayerKey; label: string }> = [
+  { key: "work", label: "通用工作模块层" },
+  { key: "system", label: "系统工具层" },
+];
+
 export default function UniversalModulesPage() {
   const [modules, setModules] = useState<RegistryModule[]>([]);
   const [selectedModuleId, setSelectedModuleId] = useState<string>("");
   const [selectedVariant, setSelectedVariant] = useState<RegistryVariant | null>(null);
   const [viewMode, setViewMode] = useState<"detail" | "run">("detail");
+
+  // Layer switcher
+  const [activeLayer, setActiveLayer] = useState<LayerKey>("work");
 
   // Category filter + search
   const [activeCategory, setActiveCategory] = useState<ModuleCategory>("all");
@@ -154,13 +166,18 @@ export default function UniversalModulesPage() {
     });
   }, []);
 
-  /** 2. Filtered modules (category + search) */
+  /** 2. Filtered modules (layer + category + search) */
   const filteredModules = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
 
     return modules.filter((m) => {
+      // Layer filter
+      const isSystemTool = SYSTEM_TOOL_IDS.has(m.frontModuleId);
+      if (activeLayer === "system" && !isSystemTool) return false;
+      if (activeLayer === "work" && isSystemTool) return false;
+
       const cat = getModuleCategory(m);
-      const matchCategory = activeCategory === "all" ? true : cat === activeCategory;
+      const matchCategory = activeCategory === "all" || activeLayer === "system" ? true : cat === activeCategory;
 
       const label = (m.frontModuleLabel ?? "").toLowerCase();
       const id = (m.frontModuleId ?? "").toLowerCase();
@@ -168,7 +185,7 @@ export default function UniversalModulesPage() {
 
       return matchCategory && matchKeyword;
     });
-  }, [modules, activeCategory, keyword]);
+  }, [modules, activeLayer, activeCategory, keyword]);
 
   /** 3. Current module */
   const activeModule = useMemo(
@@ -181,7 +198,7 @@ export default function UniversalModulesPage() {
     return selectedVariant?.backendModules?.[0]?.promptKey || "";
   }, [selectedVariant]);
 
-  // Auto-select first module when category filter changes and current selection is not in filtered list
+  // Auto-select first module when layer/category filter changes and current selection is not in filtered list
   useEffect(() => {
     if (!filteredModules.length) return;
 
@@ -190,32 +207,57 @@ export default function UniversalModulesPage() {
       setSelectedModuleId(filteredModules[0].frontModuleId);
       setSelectedVariant(null);
       setViewMode("detail");
+      setMobileShowDetail(false);
     }
   }, [filteredModules, selectedModuleId]);
 
   /** Left panel: module list */
   const listPanel = (
     <div className="w-full lg:w-[340px] flex-shrink-0 min-h-0 border border-[#1F2937] rounded-xl bg-[#111827] p-3 flex flex-col">
-      {/* Category Tabs */}
-      <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
-        {CATEGORY_TABS.map((t) => (
+      {/* Layer Tabs */}
+      <div className="flex gap-1.5 mb-3">
+        {LAYER_TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => {
-              setActiveCategory(t.key);
+              setActiveLayer(t.key);
+              setActiveCategory("all");
               setSelectedVariant(null);
               setViewMode("detail");
             }}
-            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm border transition-colors ${
-              activeCategory === t.key
+            className={`flex-1 py-1.5 rounded-lg text-xs sm:text-sm font-medium border transition-colors ${
+              activeLayer === t.key
                 ? "bg-blue-500/20 border-blue-500 text-white"
-                : "bg-[#0A0F1C] border-[#374151] text-gray-300 hover:bg-[#1F2937]"
+                : "bg-[#0A0F1C] border-[#374151] text-gray-400 hover:bg-[#1F2937]"
             }`}
           >
             {t.label}
           </button>
         ))}
       </div>
+
+      {/* Category Tabs (work layer only) */}
+      {activeLayer === "work" && (
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
+          {CATEGORY_TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => {
+                setActiveCategory(t.key);
+                setSelectedVariant(null);
+                setViewMode("detail");
+              }}
+              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm border transition-colors ${
+                activeCategory === t.key
+                  ? "bg-blue-500/20 border-blue-500 text-white"
+                  : "bg-[#0A0F1C] border-[#374151] text-gray-300 hover:bg-[#1F2937]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Search box */}
       <div className="mb-3">
