@@ -137,8 +137,8 @@ const SYSTEM_TOOL_IDS = new Set(["meta_prompt", "risk_control", "knowledge_base"
 type LayerKey = "work" | "system";
 
 const LAYER_TABS: Array<{ key: LayerKey; label: string }> = [
-  { key: "work", label: "通用工作模块层" },
-  { key: "system", label: "系统工具层" },
+  { key: "work", label: "General Modules" },
+  { key: "system", label: "System Tools" },
 ];
 
 export default function UniversalModulesPage() {
