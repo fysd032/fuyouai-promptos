@@ -358,11 +358,18 @@ const CoreFrameworkPage: React.FC = () => {
     e.target.value = "";
 
     const lower = file.name.toLowerCase();
-    const isTxt = file.type === "text/plain" || lower.endsWith(".txt");
-    const isMd = lower.endsWith(".md");
+    const isAllowed =
+      file.type === "text/plain" ||
+      lower.endsWith(".txt") ||
+      lower.endsWith(".md") ||
+      lower.endsWith(".csv") ||
+      lower.endsWith(".json") ||
+      file.type === "text/markdown" ||
+      file.type === "text/csv" ||
+      file.type === "application/json";
 
-    if (!isTxt && !isMd) {
-      alert("Only .txt / .md files are supported");
+    if (!isAllowed) {
+      alert("Only .txt / .md / .csv / .json files are supported");
       return;
     }
 
@@ -613,7 +620,7 @@ const CoreFrameworkPage: React.FC = () => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".txt,.md,text/plain"
+                    accept=".txt,.md,.csv,.json,text/plain,text/markdown,text/csv,application/json"
                     className="hidden"
                     onChange={handleFileChange}
                   />
@@ -623,7 +630,7 @@ const CoreFrameworkPage: React.FC = () => {
                     type="button"
                     onClick={handlePickFile}
                     className="px-3 py-1.5 rounded-lg text-xs border border-[#374151] bg-[#0A0F1C] text-gray-200 hover:bg-[#1F2937] flex items-center gap-2"
-                    title="Upload .txt/.md file"
+                    title="Upload .txt / .md / .csv / .json file"
                   >
                     <Upload size={14} />
                     Upload
@@ -720,7 +727,7 @@ const CoreFrameworkPage: React.FC = () => {
               <textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                placeholder={`Describe your requirements...\n(Voice input available; attachments will be included automatically)\n\nExample: "Help me break down the annual growth targets for a SaaS product, including market expansion and sales conversion dimensions."`}
+                placeholder={`TASK\nDescribe your task\n\nGOAL\nWhat outcome do you want\n\nCONSTRAINTS\nTime / budget / resources`}
                 className="w-full h-[140px] sm:h-[240px] bg-[#0A0F1C] border border-[#1F2937] rounded-xl p-3 sm:p-5 text-sm sm:text-[15px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:border-[#3B82F6]/50 focus:ring-1 focus:ring-[#3B82F6]/20 transition-all resize-none leading-relaxed"
               />
 
