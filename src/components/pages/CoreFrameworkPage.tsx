@@ -317,20 +317,51 @@ const CoreFrameworkPage: React.FC = () => {
       // Observability: screenshot console for quick debugging if issues occur
       console.log("[CoreRun]", { tabKey, coreKey, tier, engineType, len: finalInput.length, attachments: attachments.length });
 
-      // Single execution entry point: /api/core/run (use finalInput which includes attachments)
+      // Raw buffer for JSON streaming extraction
+      let rawBuf = "";
+      let coreFound = false;
+      let clarifFound = false;
+
+      // Unescape JSON string content for real-time display
+      function unescapeJsonStr(s: string): string {
+        return s.replace(/\\n/g, "\n").replace(/\\t/g, "\t").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+      }
+
       const data = await callCoreFramework({
         coreKey,
         tier,
         userInput: finalInput,
         engineType,
         conversationId,
-        // Buffer raw output — don't show JSON to user during streaming
-        onChunk: (chunk) => setAiOutput((prev) => prev + chunk),
+        onChunk: (chunk) => {
+          rawBuf += chunk;
+
+          // ── Stream core content in real-time ─────────────────────
+          if (!coreFound) {
+            const idx = rawBuf.indexOf('"core":"');
+            if (idx !== -1) {
+              coreFound = true;
+              const content = rawBuf.slice(idx + 8).replace(/"\s*\}?\s*$/, "");
+              setAiOutput(unescapeJsonStr(content));
+            }
+          } else {
+            const idx = rawBuf.indexOf('"core":"');
+            const content = rawBuf.slice(idx + 8).replace(/"\s*\}?\s*$/, "");
+            setAiOutput(unescapeJsonStr(content));
+          }
+
+          // ── Stream clarification questions in real-time ───────────
+          if (!coreFound && !clarifFound) {
+            const idx = rawBuf.indexOf('"clarification":[');
+            if (idx !== -1) clarifFound = true;
+          }
+        },
       });
 
-      // Use structured output if available (JSON mode), else keep raw text
+      // Final structured render replaces the streaming preview
       if (data.parsed?.mode) {
         setParsedOutput(data.parsed);
+        setAiOutput("");
       }
 
       setStatus("success");
@@ -830,10 +861,17 @@ const CoreFrameworkPage: React.FC = () => {
 
             {activeTab === "output" && (
               <div className="h-full overflow-y-auto p-6 custom-scrollbar">
-                {status === "loading" ? (
+                {status === "loading" && !aiOutput ? (
                   <div className="h-full flex flex-col items-center justify-center text-[#6B7280] space-y-3">
                     <Loader2 size={32} className="animate-spin text-[#3B82F6]" />
                     <span className="text-sm">Thinking...</span>
+                  </div>
+                ) : status === "loading" && aiOutput ? (
+                  // Streaming core content preview
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    <pre className="whitespace-pre-wrap font-sans text-[14px] text-[#E5E7EB] leading-[1.7]">
+                      {aiOutput}
+                    </pre>
                   </div>
                 ) : parsedOutput ? (
                   <div className="space-y-4">
