@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { callCoreFramework } from "@/src/lib/coreframework-api";
+import { callCoreFramework, type CoreParsedOutput } from "@/src/lib/coreframework-api";
 import { CORE_TAB_TO_COREKEY } from "@/src/data/ui-corekey-map";
 import Link from "next/link";
 import { Sparkles, Copy, Check, Play, Loader2, Cpu, Terminal, Info, Upload, X, Trash2, Mic } from "lucide-react";
@@ -150,6 +150,8 @@ const CoreFrameworkPage: React.FC = () => {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [aiOutput, setAiOutput] = useState("");
+  const [parsedOutput, setParsedOutput] = useState<CoreParsedOutput | null>(null);
+  const [contextExpanded, setContextExpanded] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -251,6 +253,8 @@ const CoreFrameworkPage: React.FC = () => {
     setStatus("idle");
     setErrorMsg("");
     setAiOutput("");
+    setParsedOutput(null);
+    setContextExpanded(false);
     setGeneratedPrompt("");
     setCopied(false);
     setAttachments([]);
@@ -275,6 +279,8 @@ const CoreFrameworkPage: React.FC = () => {
     setActiveTab("output");
     setCurrentStep(2);
     setAiOutput("");
+    setParsedOutput(null);
+    setContextExpanded(false);
     setCopied(false);
 
     // Stop voice input when running
@@ -318,8 +324,14 @@ const CoreFrameworkPage: React.FC = () => {
         userInput: finalInput,
         engineType,
         conversationId,
+        // Buffer raw output — don't show JSON to user during streaming
         onChunk: (chunk) => setAiOutput((prev) => prev + chunk),
       });
+
+      // Use structured output if available (JSON mode), else keep raw text
+      if (data.parsed?.mode) {
+        setParsedOutput(data.parsed);
+      }
 
       setStatus("success");
 
@@ -542,6 +554,8 @@ const CoreFrameworkPage: React.FC = () => {
                   setStatus("idle");
                   setErrorMsg("");
                   setAiOutput("");
+                  setParsedOutput(null);
+                  setContextExpanded(false);
                   setGeneratedPrompt("");
                   setCopied(false);
                   setConversationId(null);
@@ -816,7 +830,74 @@ const CoreFrameworkPage: React.FC = () => {
 
             {activeTab === "output" && (
               <div className="h-full overflow-y-auto p-6 custom-scrollbar">
-                {aiOutput ? (
+                {status === "loading" ? (
+                  <div className="h-full flex flex-col items-center justify-center text-[#6B7280] space-y-3">
+                    <Loader2 size={32} className="animate-spin text-[#3B82F6]" />
+                    <span className="text-sm">Thinking...</span>
+                  </div>
+                ) : parsedOutput ? (
+                  <div className="space-y-4">
+                    {/* Clarification mode */}
+                    {parsedOutput.mode === "clarification" && parsedOutput.clarification && (
+                      <div className="space-y-3">
+                        <p className="text-sm text-amber-400 font-medium">Need more information to proceed:</p>
+                        <ul className="space-y-2">
+                          {parsedOutput.clarification.map((q, i) => (
+                            <li key={i} className="flex gap-2 text-sm text-[#E5E7EB]">
+                              <span className="text-[#3B82F6] font-bold flex-shrink-0">{i + 1}.</span>
+                              <span>{q}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {parsedOutput.quick_direction && (
+                          <div className="mt-4 p-3 bg-[#1F2937]/50 rounded-lg border border-[#374151] text-xs text-[#9CA3AF] space-y-1">
+                            <p><span className="text-[#6B7280]">Task type:</span> {parsedOutput.quick_direction.task_type}</p>
+                            <p><span className="text-[#6B7280]">Direction:</span> {parsedOutput.quick_direction.current_direction}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Normal mode — core content first */}
+                    {parsedOutput.mode === "normal" && (
+                      <div className="space-y-4">
+                        {/* Quick direction badge */}
+                        {parsedOutput.quick_direction && (
+                          <div className="p-3 bg-[#1F2937]/50 rounded-lg border border-[#374151] text-xs text-[#9CA3AF] space-y-1">
+                            <p><span className="text-[#6B7280]">Task type:</span> {parsedOutput.quick_direction.task_type}</p>
+                            <p><span className="text-[#6B7280]">Direction:</span> {parsedOutput.quick_direction.current_direction}</p>
+                          </div>
+                        )}
+
+                        {/* Core content — shown first */}
+                        {parsedOutput.core && (
+                          <pre className="whitespace-pre-wrap font-sans text-[14px] text-[#E5E7EB] leading-[1.7]">
+                            {parsedOutput.core}
+                          </pre>
+                        )}
+
+                        {/* Context — collapsible */}
+                        {parsedOutput.context && (
+                          <div className="border border-[#1F2937] rounded-lg overflow-hidden">
+                            <button
+                              onClick={() => setContextExpanded((v) => !v)}
+                              className="w-full flex items-center justify-between px-4 py-2 bg-[#1F2937]/40 text-xs text-[#9CA3AF] hover:text-[#F9FAFB] transition-colors"
+                            >
+                              <span>Background & Context</span>
+                              <span>{contextExpanded ? "▲" : "▼"}</span>
+                            </button>
+                            {contextExpanded && (
+                              <pre className="whitespace-pre-wrap font-sans text-xs text-[#9CA3AF] leading-relaxed p-4">
+                                {parsedOutput.context}
+                              </pre>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : aiOutput ? (
+                  // Fallback: plain text (non-JSON engines)
                   <div className="prose prose-invert prose-sm max-w-none">
                     <pre className="whitespace-pre-wrap font-sans text-[15px] text-[#E5E7EB] leading-[1.7]">
                       {aiOutput}
@@ -824,17 +905,8 @@ const CoreFrameworkPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-[#6B7280] space-y-3">
-                    {status === "loading" ? (
-                      <>
-                        <Loader2 size={32} className="animate-spin text-[#3B82F6]" />
-                        <span className="text-sm">Thinking...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Cpu size={32} className="opacity-20" />
-                        <span className="text-sm opacity-50">Results will appear here after execution</span>
-                      </>
-                    )}
+                    <Cpu size={32} className="opacity-20" />
+                    <span className="text-sm opacity-50">Results will appear here after execution</span>
                   </div>
                 )}
               </div>

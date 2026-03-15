@@ -214,19 +214,35 @@ async function handler(req: Request): Promise<Response> {
         }
 
         const latencyMs = Date.now() - t0;
+
+        // ── Try to parse structured JSON output ───────────────────────
+        let parsedOutput: Record<string, unknown> | null = null;
+        try {
+          // Strip accidental markdown code fences the model may add
+          const stripped = out.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+          const candidate = JSON.parse(stripped);
+          if (candidate && typeof candidate === "object" && "mode" in candidate) {
+            parsedOutput = candidate;
+          }
+        } catch { /* non-JSON output — plain text fallback */ }
+
+        const effectiveMode = (parsedOutput?.mode as string) ?? engineResult.mode ?? "normal";
+
         console.log("[api/core/run] done", {
           coreKey,
           engineType,
           latencyMs,
           tokens: engineResult.tokenUsage,
           conversationId: newConversationId,
+          structured: !!parsedOutput,
         });
 
         enqueue({
           type: "done",
           language,
-          mode: engineResult.mode ?? "normal",
+          mode: effectiveMode,
           conversationId: newConversationId,
+          parsed: parsedOutput,
           meta: {
             coreKey,
             tierRequested,

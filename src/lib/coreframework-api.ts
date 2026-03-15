@@ -29,9 +29,22 @@ export type CoreFrameworkArgs = {
   apiBase?: string; // allows override (rarely used, not recommended)
 };
 
+export type CoreParsedOutput = {
+  mode: "normal" | "clarification";
+  quick_direction?: {
+    task_type: string;
+    core_difficulty: string;
+    current_direction: string;
+  } | null;
+  clarification?: string[] | null;
+  context?: string | null;
+  core?: string | null;
+};
+
 export type CoreFrameworkResult = {
   ok: true;
   output: string;
+  parsed?: CoreParsedOutput | null;
   finalPrompt?: string;
   mode?: "clarification" | "normal";
   language?: string;
@@ -206,6 +219,7 @@ export async function callCoreFramework(args: CoreFrameworkArgs): Promise<CoreFr
     return {
       ok: true,
       output: fullOutput,
+      parsed: (doneEvent.parsed as CoreParsedOutput) ?? null,
       mode: doneEvent.mode,
       language: doneEvent.language,
       conversationId: doneEvent.conversationId ?? null,
