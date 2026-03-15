@@ -28,6 +28,9 @@ type Handler = (req: Request) => Promise<NextResponse>;
  */
 export const requestGateTier = new WeakMap<Request, "paid" | "trial" | "free">();
 
+/** 记录每个 Request 对应的已验证 userId，供下游 handler 读取。 */
+export const requestUserId = new WeakMap<Request, string>();
+
 const DEFAULT_FREE_LIMIT = 20;
 
 // 每 IP 每小时请求上限（防脚本批量攻击）
@@ -106,6 +109,7 @@ export function withDailyLimit(
     // ── Paid → 直接放行，无限制 ────────────────────────────
     if (gate.ok && gate.tier === "paid") {
       requestGateTier.set(req, "paid");
+      requestUserId.set(req, gate.userId);
       return handler(req);
     }
 
@@ -138,6 +142,7 @@ export function withDailyLimit(
       }
       // 未超限 → 放行
       requestGateTier.set(req, tierForHandler);
+      requestUserId.set(req, userId);
       return handler(req);
     } catch (e: unknown) {
       // DB 异常时 fail-closed：拒绝 trial/free 请求，防止通过制造异常绕过计数

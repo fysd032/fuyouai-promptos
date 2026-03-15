@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { callCoreFramework } from "@/src/lib/coreframework-api";
 import { CORE_TAB_TO_COREKEY } from "@/src/data/ui-corekey-map";
 import Link from "next/link";
@@ -119,6 +120,7 @@ const IS_DEV = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 
 const CoreFrameworkPage: React.FC = () => {
   const { subscription } = useSubscription();
+  const searchParams = useSearchParams();
 
   const [activeKey, setActiveKey] = useState<CoreFrameworkUIKey>(CORE_FRAMEWORKS[0].key);
   const [activeTab, setActiveTab] = useState<"preview" | "output">("preview");
@@ -138,6 +140,11 @@ const CoreFrameworkPage: React.FC = () => {
   }, [subscription?.plan]);
 
 
+
+  // Restore conversationId from ?conv= URL param (coming from history page)
+  const [conversationId, setConversationId] = useState<string | null>(
+    () => searchParams?.get("conv") ?? null
+  );
 
   const [userInput, setUserInput] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -239,6 +246,7 @@ const CoreFrameworkPage: React.FC = () => {
 
   // Reset state when switching frameworks
   useEffect(() => {
+    setConversationId(null);
     setUserInput("");
     setStatus("idle");
     setErrorMsg("");
@@ -309,10 +317,16 @@ const CoreFrameworkPage: React.FC = () => {
         tier,
         userInput: finalInput,
         engineType,
+        conversationId,
       });
 
       setAiOutput(data.output ?? "");
       setStatus("success");
+
+      // Persist conversation_id for subsequent runs (continues same conversation)
+      if (data.conversationId) {
+        setConversationId(data.conversationId);
+      }
 
       // If server provides finalPrompt, use it for "Prompt Preview"
       if (data.finalPrompt) {
@@ -530,6 +544,7 @@ const CoreFrameworkPage: React.FC = () => {
                   setAiOutput("");
                   setGeneratedPrompt("");
                   setCopied(false);
+                  setConversationId(null);
                 }}
                 className={`
                   whitespace-nowrap px-2.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-200 flex-shrink-0

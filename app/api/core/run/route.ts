@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { runEngine } from "@/lib/promptos/run-engine";
 import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
 import type { CoreKey, PlanTier } from "@/lib/promptos/core/core-map";
-import { withDailyLimit, requestGateTier } from "@/lib/billing/with-daily-limit";
+import { withDailyLimit, requestGateTier, requestUserId } from "@/lib/billing/with-daily-limit";
+import { recordCoreRun, recordFailedRun } from "@/lib/db/conversations";
+import { createClient } from "@/lib/supabase/server";
 import { detectLanguage } from "@/lib/lang/detectLanguage";
 
 const allowedOrigins = new Set([
@@ -79,7 +81,23 @@ async function handler(req: Request) {
   try {
     const body = await req.json();
 
+    const t0 = Date.now();
     const coreKey = body?.coreKey as CoreKey;
+    const conversationId: string | null = typeof body?.conversationId === "string" ? body.conversationId : null;
+
+    // Resolve userId: middleware sets it when billing is enabled; fallback for dev/bypass mode
+    let resolvedUserId: string | null = requestUserId.get(req) ?? null;
+    if (!resolvedUserId) {
+      try {
+        const authHeader = req.headers.get("authorization") ?? "";
+        const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+        if (token) {
+          const supabase = await createClient();
+          const { data } = await supabase.auth.getUser(token);
+          resolvedUserId = data.user?.id ?? null;
+        }
+      } catch { /* best-effort */ }
+    }
     // ── Tier 上限校验：gate tier 由 withDailyLimit 注入，防止 trial/free 用户伪造 "pro"
     const gateTier = requestGateTier.get(req) ?? "free";
     const tierRequested = (body?.tier as PlanTier) ?? "basic";
@@ -148,6 +166,19 @@ async function handler(req: Request) {
         error: engineResult.error,
       });
 
+      // Record the failed run
+      if (resolvedUserId) {
+        recordFailedRun({
+          userId: resolvedUserId,
+          conversationId,
+          userInput,
+          coreKey,
+          engineType,
+          errorMessage: engineResult.error || "Engine failed",
+          latencyMs: Date.now() - t0,
+        });
+      }
+
       return NextResponse.json(
         {
           ok: false,
@@ -168,6 +199,17 @@ async function handler(req: Request) {
 
     const out = String(engineResult.modelOutput ?? "").trim();
     if (!out) {
+      if (resolvedUserId) {
+        recordFailedRun({
+          userId: resolvedUserId,
+          conversationId,
+          userInput,
+          coreKey,
+          engineType,
+          errorMessage: "Model returned empty output",
+          latencyMs: Date.now() - t0,
+        });
+      }
       return NextResponse.json(
         {
           ok: false,
@@ -186,6 +228,28 @@ async function handler(req: Request) {
       );
     }
 
+    // ── Record conversation / messages / module_run (best-effort) ──
+    let newConversationId: string | null = conversationId;
+    if (resolvedUserId) {
+      try {
+        const record = await recordCoreRun({
+          userId: resolvedUserId,
+          conversationId,
+          userInput,
+          coreKey,
+          engineType,
+          output: out,
+          latencyMs: Date.now() - t0,
+          tokenUsageInput: engineResult.tokenUsage?.input,
+          tokenUsageOutput: engineResult.tokenUsage?.output,
+        });
+        newConversationId = record.conversationId;
+      } catch (e) {
+        // Non-fatal: log but don't break response
+        console.error("[api/core/run] recordCoreRun failed:", e);
+      }
+    }
+
     return NextResponse.json(
       {
         ok: true,
@@ -195,6 +259,7 @@ async function handler(req: Request) {
         modelOutput: out,
         language,
         mode: engineResult.mode,
+        conversationId: newConversationId,
         meta: {
           coreKey,
           tierRequested,

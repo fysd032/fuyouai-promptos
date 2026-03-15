@@ -21,6 +21,7 @@ export type CoreFrameworkArgs = {
   engineType?: EngineType;
   industryId?: string | null;
   systemOverride?: string;
+  conversationId?: string | null; // pass to continue an existing conversation
 
   timeoutMs?: number; // default 60s
   withCredentials?: boolean;
@@ -33,6 +34,7 @@ export type CoreFrameworkResult = {
   finalPrompt?: string;
   mode?: "clarification" | "normal";
   language?: string;
+  conversationId?: string | null;
   meta?: any;
   raw: any;
 };
@@ -99,6 +101,7 @@ export async function callCoreFramework(args: CoreFrameworkArgs): Promise<CoreFr
     engineType = "deepseek",
     industryId = null,
     systemOverride,
+    conversationId = null,
     timeoutMs = 60_000,
     withCredentials = false,
     apiBase,
@@ -135,6 +138,7 @@ export async function callCoreFramework(args: CoreFrameworkArgs): Promise<CoreFr
         engineType,
         industryId,
         systemOverride,
+        conversationId,
       }),
     });
 
@@ -155,6 +159,7 @@ export async function callCoreFramework(args: CoreFrameworkArgs): Promise<CoreFr
       finalPrompt: data?.finalPrompt,
       mode: data?.mode,
       language: data?.language,
+      conversationId: data?.conversationId ?? null,
       meta: data?.meta,
       raw: data,
     };

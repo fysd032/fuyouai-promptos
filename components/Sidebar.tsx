@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Layers, Box, Building2, ChevronRight } from "lucide-react";
+import { Layers, Box, Building2, ChevronRight, History } from "lucide-react";
 
 const NAV_ITEMS = [
   {
@@ -23,6 +23,12 @@ const NAV_ITEMS = [
     label: "Industry Templates",
     desc: "Industry Templates",
     icon: Building2,
+  },
+  {
+    path: "/modules/history",
+    label: "Session History",
+    desc: "Past sessions",
+    icon: History,
   },
 ];
 

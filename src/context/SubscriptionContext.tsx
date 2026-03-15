@@ -4,6 +4,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
@@ -25,6 +26,8 @@ interface SubscriptionContextValue {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
+  user: User | null;
+  userId: string | null;
   refreshSubscription: () => Promise<void>;
 }
 
@@ -40,6 +43,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   const fetchSubscription = useCallback(async () => {
     try {
@@ -52,6 +56,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // 未登录时不请求
       if (!token) {
         setIsAuthenticated(false);
+        setUser(null);
         setSubscription(null);
         setLoading(false);
         return;
@@ -59,6 +64,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // token 存在 => 已登录
       setIsAuthenticated(true);
+      setUser(sessionData.session?.user ?? null);
 
       const apiUrl = API_BASE ? `${API_BASE}/api/subscription` : "/api/subscription";
       const res = await fetch(apiUrl, {
@@ -143,6 +149,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         fetchSubscription();
       } else {
         setIsAuthenticated(false);
+        setUser(null);
         setSubscription(null);
         setLoading(false);
       }
@@ -160,6 +167,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         loading,
         error,
         isAuthenticated,
+        user,
+        userId: user?.id ?? null,
         refreshSubscription: fetchSubscription,
       }}
     >

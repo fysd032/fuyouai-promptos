@@ -2,7 +2,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
 import { getModuleTemplate } from "./prompts";
-import { runLLM, type EngineType } from "../llm/provider";
+import { runLLM, type EngineType, type TokenUsage } from "../llm/provider";
 
 import { PROMPT_BANK } from "./prompt-bank.generated";
 
@@ -12,6 +12,7 @@ export type RunEngineResult = {
   finalPrompt: string;
   modelOutput: string;
   error?: string;
+  tokenUsage?: TokenUsage;
 };
 
 // -------- utils --------
@@ -133,7 +134,11 @@ async function runPromptModuleLegacy(
       });
 
       const text = completion.choices?.[0]?.message?.content?.trim() ?? "";
-      return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: text };
+      const usage = completion.usage;
+      const tokenUsage: TokenUsage | undefined = usage
+        ? { input: usage.prompt_tokens, output: usage.completion_tokens }
+        : undefined;
+      return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: text, tokenUsage };
     } catch (e: any) {
       return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: "", error: `[engine] DeepSeek failed: ${e?.message ?? String(e)}` };
     }
@@ -152,7 +157,11 @@ async function runPromptModuleLegacy(
       const geminiPrompt = systemOverride ? `${systemOverride}\n\n${finalPrompt}` : finalPrompt;
       const result = await model.generateContent(geminiPrompt);
       const text = result?.response?.text?.() ?? "";
-      return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: text };
+      const meta = result?.response?.usageMetadata;
+      const tokenUsage: TokenUsage | undefined = meta
+        ? { input: meta.promptTokenCount ?? 0, output: meta.candidatesTokenCount ?? 0 }
+        : undefined;
+      return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: text, tokenUsage };
     } catch (e: any) {
       return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: "", error: `[engine] Gemini failed: ${e?.message ?? String(e)}` };
     }
@@ -202,7 +211,7 @@ async function runPromptModuleV2(
     return { promptKey, engineType: normalizedEngineType, finalPrompt, modelOutput: "", error: llm.error };
   }
 
-  return { promptKey, engineType: llm.engineType, finalPrompt, modelOutput: llm.text };
+  return { promptKey, engineType: llm.engineType, finalPrompt, modelOutput: llm.text, tokenUsage: llm.tokenUsage };
 }
 
 /**

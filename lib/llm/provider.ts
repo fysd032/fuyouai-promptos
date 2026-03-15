@@ -11,9 +11,11 @@ export type RunLLMInput = {
   systemOverride?: string;
 };
 
+export type TokenUsage = { input: number; output: number };
+
 export type RunLLMOutput =
-  | { ok: true; engineType: EngineType; text: string }
-  | { ok: false; engineType: EngineType; error: string };
+  | { ok: true; engineType: EngineType; text: string; tokenUsage?: TokenUsage }
+  | { ok: false; engineType: EngineType; error: string; tokenUsage?: TokenUsage };
 
 export async function runLLM(input: RunLLMInput): Promise<RunLLMOutput> {
   const engineType = (input.engineType || "deepseek").toLowerCase() as EngineType;
@@ -36,7 +38,11 @@ export async function runLLM(input: RunLLMInput): Promise<RunLLMOutput> {
       });
 
       const text = completion.choices?.[0]?.message?.content?.trim() ?? "";
-      return { ok: true, engineType, text };
+      const usage = completion.usage;
+      const tokenUsage: TokenUsage | undefined = usage
+        ? { input: usage.prompt_tokens, output: usage.completion_tokens }
+        : undefined;
+      return { ok: true, engineType, text, tokenUsage };
     } catch (e: any) {
       return { ok: false, engineType, error: `[llm] DeepSeek failed: ${e?.message ?? String(e)}` };
     }
@@ -52,7 +58,11 @@ export async function runLLM(input: RunLLMInput): Promise<RunLLMOutput> {
       const geminiPrompt = input.systemOverride ? `${input.systemOverride}\n\n${prompt}` : prompt;
       const result = await model.generateContent(geminiPrompt);
       const text = result?.response?.text?.() ?? "";
-      return { ok: true, engineType, text };
+      const meta = result?.response?.usageMetadata;
+      const tokenUsage: TokenUsage | undefined = meta
+        ? { input: meta.promptTokenCount ?? 0, output: meta.candidatesTokenCount ?? 0 }
+        : undefined;
+      return { ok: true, engineType, text, tokenUsage };
     } catch (e: any) {
       return { ok: false, engineType, error: `[llm] Gemini failed: ${e?.message ?? String(e)}` };
     }

@@ -78,6 +78,7 @@ export async function runEngine({
     modelOutput: result.modelOutput,
     language,
     error: result.error ?? null,
+    tokenUsage: result.tokenUsage ?? null,
   };
 
 }
