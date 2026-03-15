@@ -318,9 +318,9 @@ const CoreFrameworkPage: React.FC = () => {
         userInput: finalInput,
         engineType,
         conversationId,
+        onChunk: (chunk) => setAiOutput((prev) => prev + chunk),
       });
 
-      setAiOutput(data.output ?? "");
       setStatus("success");
 
       // Persist conversation_id for subsequent runs (continues same conversation)

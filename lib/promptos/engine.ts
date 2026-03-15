@@ -76,6 +76,22 @@ The template above is a structural guide only. Your response language MUST match
 `.trim();
 }
 
+/**
+ * Exported for streaming use: builds the final prompt without calling the LLM.
+ */
+export function buildEngineContext(
+  promptKey: string,
+  userInput: string,
+  systemOverride?: string
+): { ok: true; finalPrompt: string } | { ok: false; error: string } {
+  const key = normalizeKey(promptKey);
+  const { baseTemplate } = resolveBaseTemplate(key);
+  if (!baseTemplate) {
+    return { ok: false, error: `Unknown promptKey: ${key} (not found in PROMPT_BANK / legacy modules)` };
+  }
+  return { ok: true, finalPrompt: buildFinalPrompt(baseTemplate, userInput, systemOverride) };
+}
+
 // -------- Legacy (直连 DeepSeek/Gemini) --------
 
 async function runPromptModuleLegacy(

@@ -22,6 +22,7 @@ export type CoreFrameworkArgs = {
   industryId?: string | null;
   systemOverride?: string;
   conversationId?: string | null; // pass to continue an existing conversation
+  onChunk?: (chunk: string) => void; // called for each streamed delta
 
   timeoutMs?: number; // default 60s
   withCredentials?: boolean;
@@ -102,7 +103,8 @@ export async function callCoreFramework(args: CoreFrameworkArgs): Promise<CoreFr
     industryId = null,
     systemOverride,
     conversationId = null,
-    timeoutMs = 60_000,
+    onChunk,
+    timeoutMs = 120_000,
     withCredentials = false,
     apiBase,
   } = args;
@@ -142,32 +144,79 @@ export async function callCoreFramework(args: CoreFrameworkArgs): Promise<CoreFr
       }),
     });
 
-    const data = await safeJson(res);
-
-    if (!res.ok || data?.ok === false) {
-      if (data?.error?.code === "NON_JSON_RESPONSE") {
-        const text = await safeText(res);
-        const extra = text ? ` | body: ${text.slice(0, 500)}` : "";
-        throw new Error(`[POST /api/core/run] Non-JSON response${extra}`);
-      }
+    // Non-2xx: try to parse error JSON
+    if (!res.ok) {
+      const data = await safeJson(res);
       throw new Error(buildErrorMessage(res, data));
+    }
+
+    // Parse SSE stream
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("text/event-stream")) {
+      // Fallback: non-streaming JSON response
+      const data = await safeJson(res);
+      if (data?.ok === false) throw new Error(buildErrorMessage(res, data));
+      return {
+        ok: true,
+        output: normalizeOutput(data),
+        finalPrompt: data?.finalPrompt,
+        mode: data?.mode,
+        language: data?.language,
+        conversationId: data?.conversationId ?? null,
+        meta: data?.meta,
+        raw: data,
+      };
+    }
+
+    // SSE streaming path
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullOutput = "";
+    let doneEvent: any = null;
+
+    outer: while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop()!; // keep incomplete last line
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        let event: any;
+        try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (event.type === "delta" && event.content) {
+          fullOutput += event.content;
+          onChunk?.(event.content);
+        } else if (event.type === "done") {
+          doneEvent = event;
+          break outer;
+        } else if (event.type === "error") {
+          throw new Error(`[POST /api/core/run] ${event.message ?? "Stream error"} | url: ${url}`);
+        }
+      }
+    }
+
+    if (!doneEvent) {
+      throw new Error(`[POST /api/core/run] Stream ended without done event | url: ${url}`);
     }
 
     return {
       ok: true,
-      output: normalizeOutput(data),
-      finalPrompt: data?.finalPrompt,
-      mode: data?.mode,
-      language: data?.language,
-      conversationId: data?.conversationId ?? null,
-      meta: data?.meta,
-      raw: data,
+      output: fullOutput,
+      mode: doneEvent.mode,
+      language: doneEvent.language,
+      conversationId: doneEvent.conversationId ?? null,
+      meta: doneEvent.meta,
+      raw: doneEvent,
     };
   } catch (e: any) {
     if (e?.name === "AbortError") {
       throw new Error(`[POST /api/core/run] Request timeout after ${timeoutMs}ms. | url: ${url}`);
     }
-    if (e instanceof Error) {
+    if (e instanceof Error && !e.message.includes("| url:")) {
       e.message = `${e.message} | url: ${url}`;
     }
     throw e;

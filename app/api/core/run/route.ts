@@ -1,6 +1,6 @@
 // app/api/core/run/route.ts
 import { NextResponse } from "next/server";
-import { runEngine } from "@/lib/promptos/run-engine";
+import { runEngineStream } from "@/lib/promptos/run-engine";
 import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
 import type { CoreKey, PlanTier } from "@/lib/promptos/core/core-map";
 import { withDailyLimit, requestGateTier, requestUserId } from "@/lib/billing/with-daily-limit";
@@ -8,6 +8,10 @@ import { recordCoreRun, recordFailedRun } from "@/lib/db/conversations";
 import { createClient } from "@/lib/supabase/server";
 import { detectLanguage } from "@/lib/lang/detectLanguage";
 
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
+// ── CORS ────────────────────────────────────────────────────────────────
 const allowedOrigins = new Set([
   "https://fuyouai-promptos.vercel.app",
   "https://fuyouai.com",
@@ -20,7 +24,7 @@ function isAllowedOrigin(origin: string | null) {
   return /^https:\/\/fuyouai-promptos.*\.vercel\.app$/i.test(origin);
 }
 
-function getCorsHeaders(origin: string | null) {
+function getCorsHeaders(origin: string | null): Record<string, string> {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -32,260 +36,235 @@ function getCorsHeaders(origin: string | null) {
   return headers;
 }
 
-/**
- * ✅ Highest-priority language mirroring rule.
- * This MUST be injected as the very first system message (messages[0]).
- */
-const LANGUAGE_GUARD = `
-SYSTEM OVERRIDE - LANGUAGE MIRRORING (HIGHEST PRIORITY)
-You are a professional AI assistant. Provide detailed, actionable, and professional advice.
+// ── SSE helpers ──────────────────────────────────────────────────────────
+const encoder = new TextEncoder();
 
-- Detect the primary language of the user's input.
-- The output language MUST strictly match the user's input language.
-- Do NOT translate between languages.
-- Do NOT mix multiple languages in a single response.
-- If the input contains multiple languages, follow the dominant language.
-- If dominance cannot be determined, follow the language of the last user message.
-- This rule has higher priority than any module descriptions, titles, bullets, examples, or templates.
-- Apply to ALL outputs, including clarifying questions and error messages.
-
-CRITICAL INSTRUCTION - LANGUAGE MIRRORING (HIGHEST PRIORITY):
-You MUST respond in the EXACT SAME LANGUAGE as the user's input.
-- If user input is in English → respond entirely in English
-- If user input is in Chinese (中文) → respond entirely in Chinese
-- If user input is in Japanese (日本語) → respond entirely in Japanese
-- If user input is in Korean (한국어) → respond entirely in Korean
-- If user input is in Russian (Русский) → respond entirely in Russian
-- If user input is in Arabic (عربي) → respond entirely in Arabic
-- If user input is in German (Deutsch) → respond entirely in German
-- If user input is in French (Français) → respond entirely in French
-- If user input is in Spanish (Español) → respond entirely in Spanish
-- If user input is in Portuguese (Português) → respond entirely in Portuguese
-- If user input is in Italian (Italiano) → respond entirely in Italian
-- For any other language → match the input language exactly
-
-Do NOT translate between languages. Do NOT mix languages.
-This language matching requirement overrides ALL other instructions.
-`.trim();
-
-function classifyZhEn(text: string): "zh" | "en" | "other" {
-  if (/[\u4E00-\u9FFF]/.test(text)) return "zh";
-  if (/[A-Za-z]/.test(text)) return "en";
-  return "other";
+function sseEvent(obj: Record<string, unknown>): Uint8Array {
+  return encoder.encode(`data: ${JSON.stringify(obj)}\n\n`);
 }
 
-// 把原来的 POST 内容改名为 handler（内容基本不动）
-async function handler(req: Request) {
+// ── Core handler ─────────────────────────────────────────────────────────
+async function handler(req: Request): Promise<Response> {
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
+
+  // ── Parse body ──────────────────────────────────────────────────────
+  let body: any;
   try {
-    const body = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
+  }
 
-    const t0 = Date.now();
-    const coreKey = body?.coreKey as CoreKey;
-    const conversationId: string | null = typeof body?.conversationId === "string" ? body.conversationId : null;
+  const t0 = Date.now();
+  const coreKey = body?.coreKey as CoreKey;
+  const conversationId: string | null =
+    typeof body?.conversationId === "string" ? body.conversationId : null;
 
-    // Resolve userId: middleware sets it when billing is enabled; fallback for dev/bypass mode
-    let resolvedUserId: string | null = requestUserId.get(req) ?? null;
-    if (!resolvedUserId) {
-      try {
-        const authHeader = req.headers.get("authorization") ?? "";
-        const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-        if (token) {
-          const supabase = await createClient();
-          const { data } = await supabase.auth.getUser(token);
-          resolvedUserId = data.user?.id ?? null;
-        }
-      } catch { /* best-effort */ }
-    }
-    // ── Tier 上限校验：gate tier 由 withDailyLimit 注入，防止 trial/free 用户伪造 "pro"
-    const gateTier = requestGateTier.get(req) ?? "free";
-    const tierRequested = (body?.tier as PlanTier) ?? "basic";
-    // 只有 paid 用户可以使用 pro tier；其他用户强制降级为 basic
-    const effectiveTier: PlanTier =
-      tierRequested === "pro" && gateTier !== "paid" ? "basic" : tierRequested;
-    const userInput = String(body?.userInput ?? "").trim();
-    const engineType = String(body?.engineType ?? "deepseek").trim();
-    const systemOverride =
-      typeof body?.systemOverride === "string" && body.systemOverride.trim()
-        ? body.systemOverride.trim()
-        : "";
-    const language = detectLanguage(userInput);
-    const langClass = classifyZhEn(userInput);
-    console.log("[core-lang] class=", langClass);
-
-    // 基础参数校验
-    if (!coreKey || !userInput) {
-      return NextResponse.json(
-        { ok: false, error: "Missing coreKey or userInput" },
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // ✅ 统一入口：解析 promptKey（包含校验 + 降级 + tried），使用服务端校验后的 effectiveTier
-    const resolved = resolveCorePromptKey(coreKey, effectiveTier);
-
-    if (!resolved.ok) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: resolved.error,
-          meta: {
-            coreKey: resolved.coreKey,
-            tierRequested: effectiveTier,
-            tried: resolved.tried,
-          },
-        },
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    const { promptKey, tier: tierUsed, tried } = resolved;
-    const degraded = tierUsed !== effectiveTier;
-
-    // ✅ 调用引擎，直接传递 systemOverride
-    const engineResult = await runEngine({
-      moduleId: coreKey,
-      promptKey,
-      engineType,
-      mode: "core",
-      userInput,
-      systemOverride,
-      language,
-    });
-
-    if (!engineResult.ok) {
-      console.error("[api/core/run] engine failed", {
-        requestId: engineResult.requestId,
-        coreKey,
-        tierRequested,
-        tierUsed,
-        degraded,
-        promptKey,
-        engineType,
-        error: engineResult.error,
-      });
-
-      // Record the failed run
-      if (resolvedUserId) {
-        recordFailedRun({
-          userId: resolvedUserId,
-          conversationId,
-          userInput,
-          coreKey,
-          engineType,
-          errorMessage: engineResult.error || "Engine failed",
-          latencyMs: Date.now() - t0,
-        });
+  // ── Resolve userId (middleware-injected or fallback from token) ──────
+  let resolvedUserId: string | null = requestUserId.get(req) ?? null;
+  if (!resolvedUserId) {
+    try {
+      const authHeader = req.headers.get("authorization") ?? "";
+      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+      if (token) {
+        const supabase = await createClient();
+        const { data } = await supabase.auth.getUser(token);
+        resolvedUserId = data.user?.id ?? null;
       }
+    } catch { /* best-effort */ }
+  }
 
-      return NextResponse.json(
-        {
-          ok: false,
-          error: engineResult.error || "Engine failed",
-          meta: {
-            coreKey,
-            tierRequested: effectiveTier,
-            tierUsed,
-            degraded,
-            promptKey,
-            tried,
-            requestId: engineResult.requestId,
-          },
-        },
-        { status: 500, headers: corsHeaders }
-      );
-    }
+  // ── Tier resolution ──────────────────────────────────────────────────
+  const gateTier = requestGateTier.get(req) ?? "free";
+  const tierRequested = (body?.tier as PlanTier) ?? "basic";
+  const effectiveTier: PlanTier =
+    tierRequested === "pro" && gateTier !== "paid" ? "basic" : tierRequested;
 
-    const out = String(engineResult.modelOutput ?? "").trim();
-    if (!out) {
-      if (resolvedUserId) {
-        recordFailedRun({
-          userId: resolvedUserId,
-          conversationId,
-          userInput,
-          coreKey,
-          engineType,
-          errorMessage: "Model returned empty output",
-          latencyMs: Date.now() - t0,
-        });
-      }
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Model returned empty output",
-          meta: {
-            coreKey,
-            tierRequested: effectiveTier,
-            tierUsed,
-            degraded,
-            promptKey,
-            tried,
-            requestId: engineResult.requestId,
-          },
-        },
-        { status: 500, headers: corsHeaders }
-      );
-    }
+  const userInput = String(body?.userInput ?? "").trim();
+  const engineType = String(body?.engineType ?? "deepseek").trim();
+  const systemOverride =
+    typeof body?.systemOverride === "string" && body.systemOverride.trim()
+      ? body.systemOverride.trim()
+      : "";
+  const language = detectLanguage(userInput);
 
-    // ── Record conversation / messages / module_run (best-effort) ──
-    let newConversationId: string | null = conversationId;
-    if (resolvedUserId) {
-      try {
-        const record = await recordCoreRun({
-          userId: resolvedUserId,
-          conversationId,
-          userInput,
-          coreKey,
-          engineType,
-          output: out,
-          latencyMs: Date.now() - t0,
-          tokenUsageInput: engineResult.tokenUsage?.input,
-          tokenUsageOutput: engineResult.tokenUsage?.output,
-        });
-        newConversationId = record.conversationId;
-      } catch (e) {
-        // Non-fatal: log but don't break response
-        console.error("[api/core/run] recordCoreRun failed:", e);
-      }
-    }
-
+  // ── Basic validation ─────────────────────────────────────────────────
+  if (!coreKey || !userInput) {
     return NextResponse.json(
-      {
-        ok: true,
-        output: out,
-        text: out,
-        content: out,
-        modelOutput: out,
-        language,
-        mode: engineResult.mode,
-        conversationId: newConversationId,
-        meta: {
-          coreKey,
-          tierRequested,
-          tierUsed,
-          degraded,
-          promptKey,
-          tried,
-          requestId: engineResult.requestId,
-        },
-      },
-      { headers: corsHeaders }
-    );
-  } catch (e: any) {
-    console.error("[api/core/run]", e);
-    return NextResponse.json(
-      { ok: false, error: e?.message ?? "Internal error" },
-      { status: 500, headers: corsHeaders }
+      { ok: false, error: "Missing coreKey or userInput" },
+      { status: 400, headers: corsHeaders }
     );
   }
+
+  // ── Prompt key resolution ────────────────────────────────────────────
+  const resolved = resolveCorePromptKey(coreKey, effectiveTier);
+  if (!resolved.ok) {
+    return NextResponse.json(
+      { ok: false, error: resolved.error, meta: { coreKey: resolved.coreKey, tierRequested: effectiveTier, tried: resolved.tried } },
+      { status: 400, headers: corsHeaders }
+    );
+  }
+
+  const { promptKey, tier: tierUsed, tried } = resolved;
+  const degraded = tierUsed !== effectiveTier;
+
+  console.log("[api/core/run] start", { coreKey, engineType, tier: effectiveTier, userId: resolvedUserId ?? "anon" });
+
+  // ── Build SSE streaming response ─────────────────────────────────────
+  const stream = new ReadableStream({
+    async start(controller) {
+      const enqueue = (obj: Record<string, unknown>) => {
+        try { controller.enqueue(sseEvent(obj)); } catch { /* stream already closed */ }
+      };
+
+      try {
+        enqueue({ type: "start" });
+
+        // ── [HOOK] conversation / message write — start ──────────────
+        // Future: create conversation row here if needed before first chunk
+
+        // Accumulate output for DB write + clarification detection
+        let fullOutput = "";
+
+        const engineResult = await runEngineStream(
+          {
+            moduleId: coreKey,
+            promptKey,
+            engineType,
+            mode: "core",
+            userInput,
+            systemOverride,
+            language,
+          },
+          (chunk) => {
+            fullOutput += chunk;
+            enqueue({ type: "delta", content: chunk });
+          }
+        );
+
+        // ── Engine failed ────────────────────────────────────────────
+        if (!engineResult.ok) {
+          const errMsg = engineResult.error ?? "Engine failed";
+          console.error("[api/core/run] engine failed", {
+            requestId: engineResult.requestId,
+            coreKey,
+            engineType,
+            error: errMsg,
+          });
+
+          // [HOOK] module_runs write — failed
+          if (resolvedUserId) {
+            recordFailedRun({
+              userId: resolvedUserId,
+              conversationId,
+              userInput,
+              coreKey,
+              engineType,
+              errorMessage: errMsg,
+              latencyMs: Date.now() - t0,
+            });
+          }
+
+          enqueue({ type: "error", message: errMsg });
+          controller.close();
+          return;
+        }
+
+        // ── Empty output ─────────────────────────────────────────────
+        const out = fullOutput.trim();
+        if (!out) {
+          const errMsg = "Model returned empty output";
+          if (resolvedUserId) {
+            recordFailedRun({
+              userId: resolvedUserId,
+              conversationId,
+              userInput,
+              coreKey,
+              engineType,
+              errorMessage: errMsg,
+              latencyMs: Date.now() - t0,
+            });
+          }
+          enqueue({ type: "error", message: errMsg });
+          controller.close();
+          return;
+        }
+
+        // ── [HOOK] conversations + messages + module_runs write ───────
+        let newConversationId: string | null = conversationId;
+        if (resolvedUserId) {
+          try {
+            const record = await recordCoreRun({
+              userId: resolvedUserId,
+              conversationId,
+              userInput,
+              coreKey,
+              engineType,
+              output: out,
+              latencyMs: Date.now() - t0,
+              tokenUsageInput: engineResult.tokenUsage?.input,
+              tokenUsageOutput: engineResult.tokenUsage?.output,
+            });
+            newConversationId = record.conversationId;
+          } catch (e) {
+            // Non-fatal — DB write failure must not break the stream
+            console.error("[api/core/run] recordCoreRun failed:", e);
+          }
+        }
+
+        const latencyMs = Date.now() - t0;
+        console.log("[api/core/run] done", {
+          coreKey,
+          engineType,
+          latencyMs,
+          tokens: engineResult.tokenUsage,
+          conversationId: newConversationId,
+        });
+
+        enqueue({
+          type: "done",
+          language,
+          mode: engineResult.mode ?? "normal",
+          conversationId: newConversationId,
+          meta: {
+            coreKey,
+            tierRequested,
+            tierUsed,
+            degraded,
+            promptKey,
+            tried,
+            requestId: engineResult.requestId,
+            latencyMs,
+          },
+        });
+
+      } catch (e: any) {
+        console.error("[api/core/run] unexpected error:", e);
+        try {
+          controller.enqueue(sseEvent({ type: "error", message: e?.message ?? "Internal error" }));
+        } catch { /* already closed */ }
+      } finally {
+        try { controller.close(); } catch { /* already closed */ }
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no", // Disable Nginx buffering on Vercel
+      ...corsHeaders,
+    },
+  });
 }
 
-// ✅ 只保留一个 POST 导出（文件顶层）
 export const POST = withDailyLimit(handler, { scope: "core" });
 
 export async function OPTIONS(req: Request) {
   const origin = req.headers.get("origin");
-  const corsHeaders = getCorsHeaders(origin);
-  return new NextResponse(null, { status: 204, headers: corsHeaders });
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(origin) });
 }

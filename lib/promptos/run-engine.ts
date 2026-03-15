@@ -1,6 +1,7 @@
 import { frontendModuleIdMap } from "./frontendModuleIdMap";
-import { runPromptModule } from "./engine";
+import { runPromptModule, buildEngineContext } from "./engine";
 import { resolvePromptKey } from "./module-map.generated";
+import { runLLMStream, type EngineType, type TokenUsage } from "../llm/provider";
 
 export async function runEngine({
   moduleId,
@@ -81,6 +82,95 @@ export async function runEngine({
     tokenUsage: result.tokenUsage ?? null,
   };
 
+}
+
+export type RunEngineStreamResult = {
+  ok: boolean;
+  requestId: string;
+  tokenUsage?: TokenUsage | null;
+  error?: string | null;
+  mode?: "clarification" | "normal";
+  finalPrompt?: string;
+};
+
+/**
+ * Streaming variant of runEngine.
+ * Calls onChunk for every text delta received from the AI provider.
+ * Returns metadata (tokenUsage, mode, etc.) after the stream finishes.
+ * Does NOT call the LLM non-streaming path — always uses provider streaming.
+ */
+export async function runEngineStream(
+  args: {
+    moduleId?: string;
+    promptKey?: string;
+    engineType?: string;
+    mode?: string;
+    industryId?: string | null;
+    userInput: any;
+    systemOverride?: string;
+    language?: string;
+  },
+  onChunk: (chunk: string) => void
+): Promise<RunEngineStreamResult> {
+  const requestId = crypto.randomUUID();
+  const finalEngineType = (args.engineType ?? "deepseek").toString();
+
+  const normalizedModuleId =
+    args.moduleId && (frontendModuleIdMap as any)[args.moduleId]
+      ? (frontendModuleIdMap as any)[args.moduleId]
+      : args.moduleId;
+
+  const realKey = resolvePromptKey({
+    moduleId: normalizedModuleId,
+    promptKey: args.promptKey,
+    engineType: finalEngineType,
+    mode: (args.mode ?? "default").toString(),
+  });
+
+  if (!realKey) {
+    return {
+      ok: false,
+      requestId,
+      error: `无法解析 promptKey，请检查：moduleId=${normalizedModuleId}, promptKey=${args.promptKey}`,
+    };
+  }
+
+  const userInputStr =
+    typeof args.userInput === "string"
+      ? args.userInput
+      : JSON.stringify(args.userInput ?? {}, null, 2);
+
+  const langGuard = buildLanguageGuard(args.language);
+  const effectiveOverride = langGuard || args.systemOverride;
+
+  // Build the prompt without calling the LLM
+  const ctx = buildEngineContext(realKey, userInputStr, effectiveOverride);
+  if (!ctx.ok) {
+    return { ok: false, requestId, error: ctx.error };
+  }
+
+  // Stream from provider
+  const streamResult = await runLLMStream(
+    {
+      engineType: finalEngineType as EngineType,
+      prompt: ctx.finalPrompt,
+      temperature: 0.7,
+      systemOverride: effectiveOverride,
+    },
+    onChunk
+  );
+
+  if (streamResult.error) {
+    return { ok: false, requestId, error: streamResult.error };
+  }
+
+  return {
+    ok: true,
+    requestId,
+    tokenUsage: streamResult.tokenUsage ?? null,
+    mode: "normal", // clarification detection requires full output — done in route
+    finalPrompt: ctx.finalPrompt,
+  };
 }
 
 function normalizeLanguageName(lang: string) {
