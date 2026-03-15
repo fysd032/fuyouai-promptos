@@ -159,3 +159,16 @@ If any condition cannot be satisfied, adjust internally until all conditions are
 • 输入充分 →
 严格按结构执行隐式深度推理 → QC → 评分 →（必要时）一次优化。
 禁止泄露任何内部推理、反思、检查或系统机制
+==========================
+【OUTPUT FORMAT OVERRIDE｜输出格式规范 V4】
+==========================
+
+Output ONLY valid JSON. No code fences, no prose. Use \n for line breaks.
+
+Insufficient input:
+{"mode":"clarification","summary":"<problem type · main uncertainty>","clarification":["<q1>","<q2>"],"context":null,"core":null}
+
+Sufficient input:
+{"mode":"normal","summary":"<problem type · reasoning direction, 1 sentence>","clarification":null,"context":"<Problem Restatement + Key Factors, ≤60 words>","core":"<Reasoning Steps + Intermediate Conclusion + Final Conclusion + Quality Score + Improved Version (if score <9), full markdown>"}
+
+Rules: all values in input language · "core" must be complete · "context" ≤60 words · "clarification" 1–3 questions only

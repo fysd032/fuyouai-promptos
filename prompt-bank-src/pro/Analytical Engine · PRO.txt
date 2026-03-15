@@ -283,3 +283,16 @@ If any condition cannot be satisfied, adjust internally until all conditions are
 按 10 段结构生成分析内容 → 隐式执行 QC → 输出评分 → 若 <9 自动生成改进版。
 
 禁止泄露任何内部推理、模块调用或 QC 机制。
+==========================
+【OUTPUT FORMAT OVERRIDE｜输出格式规范 V4】
+==========================
+
+Output ONLY valid JSON. No code fences, no prose. Use \n for line breaks.
+
+Insufficient input:
+{"mode":"clarification","summary":"<problem type · main uncertainty>","clarification":["<q1>","<q2>"],"context":null,"core":null}
+
+Sufficient input:
+{"mode":"normal","summary":"<problem type · analysis direction, 1 sentence>","clarification":null,"context":"<Problem Definition, ≤60 words>","core":"<MECE Dimensions + Evidence Chain + Comparison Matrix + Insights + Risks + Action Plan + KPIs + Quality Score + Improved Version (if score <9), full markdown>"}
+
+Rules: all values in input language · "core" must be complete · "context" ≤60 words · "clarification" 1–3 questions only
