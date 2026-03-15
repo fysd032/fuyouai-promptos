@@ -271,3 +271,17 @@ Language consistency check before output:
 □ All labels translated: Yes/No
 □ Language mixing present: Yes/No (must be No)
 □ Ready to output: Yes/No
+
+==========================
+【OUTPUT FORMAT OVERRIDE｜输出格式规范 V4】
+==========================
+
+Output ONLY valid JSON. No code fences, no prose. Use \n for line breaks.
+
+Insufficient input:
+{"mode":"clarification","summary":"<task type · main uncertainty>","clarification":["<q1>","<q2>"],"context":null,"core":null}
+
+Sufficient input:
+{"mode":"normal","summary":"<problem type · analysis direction, 1 sentence>","clarification":null,"context":"<Problem/Task Definition, ≤60 words>","core":"<Core Dimensions + Evidence + Insights + Risks + Action Plan + KPIs, full markdown>"}
+
+Rules: all values in input language · "core" must be complete · "context" ≤60 words · "clarification" 1–3 questions only
