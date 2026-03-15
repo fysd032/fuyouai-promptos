@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { callCoreFramework, type CoreParsedOutput } from "@/src/lib/coreframework-api";
+import { supabase } from "@/src/lib/supabaseClient";
 import { CORE_TAB_TO_COREKEY } from "@/src/data/ui-corekey-map";
 import Link from "next/link";
 import { Sparkles, Copy, Check, Play, Loader2, Cpu, Terminal, Info, Upload, X, Trash2, Mic } from "lucide-react";
@@ -145,6 +146,77 @@ const CoreFrameworkPage: React.FC = () => {
   const [conversationId, setConversationId] = useState<string | null>(
     () => searchParams?.get("conv") ?? null
   );
+
+  // Reverse map: coreKey → UITabKey
+  const COREKEY_TO_TAB: Record<string, CoreFrameworkUIKey> = {
+    task_breakdown: "task-decomposition-v3",
+    cot_reasoning: "reasoning-engine-v3",
+    content_builder: "content-builder-v3",
+    analytical_engine: "analytical-engine-v3",
+    task_tree: "task-tree-v3",
+  };
+
+  // Load last output when arriving from history page (?conv=)
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    const convId = searchParams?.get("conv");
+    if (!convId || restoredRef.current) return;
+    restoredRef.current = true;
+
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) return;
+
+        const res = await fetch(`/api/conversations/${convId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+
+        const messages: { role: string; content: string; module_name?: string }[] =
+          json.messages ?? [];
+
+        // Restore tab from module_name
+        const anyMsg = messages.find((m) => m.module_name);
+        if (anyMsg?.module_name && COREKEY_TO_TAB[anyMsg.module_name]) {
+          setActiveKey(COREKEY_TO_TAB[anyMsg.module_name]);
+        }
+
+        // Restore user input from last user message
+        const lastUser = [...messages].reverse().find((m) => m.role === "user");
+        if (lastUser?.content) setUserInput(lastUser.content);
+
+        // Restore output from last assistant message
+        const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+        if (lastAssistant?.content) {
+          try {
+            const stripped = lastAssistant.content
+              .replace(/^```(?:json)?\s*/i, "")
+              .replace(/\s*```$/i, "")
+              .trim();
+            const parsed = JSON.parse(stripped);
+            if (parsed?.mode) {
+              setParsedOutput(parsed as CoreParsedOutput);
+              setStatus("success");
+              setActiveTab("output");
+              setCurrentStep(2);
+            }
+          } catch {
+            // Plain text fallback
+            setAiOutput(lastAssistant.content);
+            setStatus("success");
+            setActiveTab("output");
+            setCurrentStep(2);
+          }
+        }
+      } catch (e) {
+        console.error("[restore conv]", e);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [userInput, setUserInput] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
