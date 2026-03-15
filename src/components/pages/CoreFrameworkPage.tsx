@@ -849,10 +849,9 @@ const CoreFrameworkPage: React.FC = () => {
                             </li>
                           ))}
                         </ul>
-                        {parsedOutput.quick_direction && (
-                          <div className="mt-4 p-3 bg-[#1F2937]/50 rounded-lg border border-[#374151] text-xs text-[#9CA3AF] space-y-1">
-                            <p><span className="text-[#6B7280]">Task type:</span> {parsedOutput.quick_direction.task_type}</p>
-                            <p><span className="text-[#6B7280]">Direction:</span> {parsedOutput.quick_direction.current_direction}</p>
+                        {parsedOutput.summary && (
+                          <div className="mt-4 p-3 bg-[#1F2937]/50 rounded-lg border border-[#374151] text-xs text-[#9CA3AF]">
+                            {parsedOutput.summary}
                           </div>
                         )}
                       </div>
@@ -861,11 +860,10 @@ const CoreFrameworkPage: React.FC = () => {
                     {/* Normal mode — core content first */}
                     {parsedOutput.mode === "normal" && (
                       <div className="space-y-4">
-                        {/* Quick direction badge */}
-                        {parsedOutput.quick_direction && (
-                          <div className="p-3 bg-[#1F2937]/50 rounded-lg border border-[#374151] text-xs text-[#9CA3AF] space-y-1">
-                            <p><span className="text-[#6B7280]">Task type:</span> {parsedOutput.quick_direction.task_type}</p>
-                            <p><span className="text-[#6B7280]">Direction:</span> {parsedOutput.quick_direction.current_direction}</p>
+                        {/* Summary badge */}
+                        {parsedOutput.summary && (
+                          <div className="p-3 bg-[#1F2937]/50 rounded-lg border border-[#374151] text-xs text-[#9CA3AF]">
+                            {parsedOutput.summary}
                           </div>
                         )}
 

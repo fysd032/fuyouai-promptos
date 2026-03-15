@@ -31,11 +31,7 @@ export type CoreFrameworkArgs = {
 
 export type CoreParsedOutput = {
   mode: "normal" | "clarification";
-  quick_direction?: {
-    task_type: string;
-    core_difficulty: string;
-    current_direction: string;
-  } | null;
+  summary?: string | null;
   clarification?: string[] | null;
   context?: string | null;
   core?: string | null;
