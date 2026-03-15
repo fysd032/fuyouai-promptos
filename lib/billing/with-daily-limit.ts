@@ -20,7 +20,7 @@ import { requireSubscription } from "./guard";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { redis } from "./redis";
 
-type Handler = (req: Request) => Promise<NextResponse>;
+type Handler = (req: Request) => Promise<NextResponse | Response>;
 
 /**
  * 记录每个 Request 对应的 gate tier，供下游 handler 读取。
