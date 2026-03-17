@@ -78,6 +78,7 @@ async function callDeepSeek({
       { role: "user", content: userInput },
     ],
     temperature: 0.7,
+    max_tokens: 4000,
   };
 
   const r = await fetch(url, {

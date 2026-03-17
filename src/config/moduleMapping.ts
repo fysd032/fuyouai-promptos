@@ -1,4 +1,4 @@
-import mappingJson from "./module_mapping.v2.json";
+import mappingJson from "../../module_mapping.v2.json";
 
 export interface BackendModule {
   moduleId: string;

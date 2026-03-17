@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import { ArrowLeft, Play, Copy, Check, Upload, X, Trash2, Mic } from "lucide-react";
-import { callPromptOS } from "../lib/promptos";
+import { supabase } from "../lib/supabaseClient";
 import type { FeedbackStatus } from "./StatusFeedback";
 
 type Attachment = {
@@ -26,6 +27,7 @@ interface ModuleRunnerProps {
     [key: string]: unknown;
   };
   onBack?: () => void;
+  initialInput?: string;
 }
 
 function makeId(): string {
@@ -53,8 +55,13 @@ export const ModuleRunner: React.FC<ModuleRunnerProps> = ({
   moduleKey,
   moduleData,
   onBack,
+  initialInput = "",
 }) => {
-  const [userInput, setUserInput] = useState("");
+  const params = useParams();
+  const frontModuleId = Array.isArray(params?.moduleId) ? params.moduleId[0] : (params?.moduleId ?? null);
+  const variantId = Array.isArray(params?.variantId) ? params.variantId[0] : (params?.variantId ?? null);
+
+  const [userInput, setUserInput] = useState(initialInput);
   const [status, setStatus] = useState<FeedbackStatus>("idle");
   const [result, setResult] = useState("");
   const [copied, setCopied] = useState(false);
@@ -97,7 +104,7 @@ export const ModuleRunner: React.FC<ModuleRunnerProps> = ({
   useEffect(() => {
     setResult("");
     setStatus("idle");
-    setUserInput("");
+    setUserInput(initialInput);
     setAttachments([]);
     setActiveAttachmentId(null);
 
@@ -107,7 +114,7 @@ export const ModuleRunner: React.FC<ModuleRunnerProps> = ({
     } catch {}
     setIsListening(false);
     setSpeechInterim("");
-  }, [moduleKey]);
+  }, [moduleKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ✅ 初始化 Web Speech API（仅前端）
   useEffect(() => {
@@ -274,16 +281,33 @@ setActiveAttachmentId(att.id);
     setStatus("loading");
     setResult("");
 
-    // 运行时建议停止语音（避免边跑边写导致输入变化）
     if (isListening) stopListening();
 
     try {
-      const res = await callPromptOS({
-        promptKey: moduleKey,
-        userInput: finalInput,
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      const response = await fetch("/api/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          plan_id: `plan_${Date.now()}`,
+          text: finalInput,
+          answers: {},
+          frontModuleId,
+          variantId,
+          coreEngine: null,
+          routerAnswers: {},
+        }),
       });
 
-      const output = res.output ?? "";
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Request failed");
+
+      const output = data?.output ?? "";
       setResult(output.trim() ? output : "AI returned empty response.");
       setStatus("success");
     } catch (e: unknown) {

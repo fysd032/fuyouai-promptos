@@ -1,9 +1,15 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { suggestions } from "../config/suggestions";
+import { supabase } from "@/src/lib/supabaseClient";
+import { useIntentRouter, RouterResult } from "@/src/hooks/useIntentRouter";
+
+// ============================
+// 常量
+// ============================
 
 const MODULE_ENTRIES = [
   { href: "/modules/core", label: "Core", desc: "5 core methodology engines" },
@@ -17,14 +23,50 @@ const placeholderOptions = [
   "Tell me what you want to accomplish…",
 ];
 
+// ============================
+// 组件
+// ============================
+
 const MobileEntry: React.FC = () => {
   const router = useRouter();
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showHint, setShowHint] = useState(false);
-  const [status, setStatus] = useState("");
 
   const placeholder = useMemo(() => placeholderOptions[0], []);
+
+  async function onConfirm(result: RouterResult, text: string) {
+    sessionStorage.setItem(
+      "mobile-run-state",
+      JSON.stringify({
+        text,
+        planId: `plan_${Date.now()}`,
+        summary: result.moduleReason,
+        questions: [],
+        frontModuleId: result.frontModuleId,
+        variantId: result.variantId,
+        coreEngine: result.coreEngine,
+        answers: {},
+      })
+    );
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      router.push("/m2/run");
+    } else {
+      router.push("/login?from=/m2/run");
+    }
+  }
+
+  const {
+    input,
+    setInput,
+    showHint,
+    setShowHint,
+    stage,
+    routerResult,
+    errorMsg,
+    handleSubmit,
+    handleConfirm,
+    resetError,
+  } = useIntentRouter(onConfirm);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -36,60 +78,106 @@ const MobileEntry: React.FC = () => {
     }
   }, [router]);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const text = input.trim();
-    if (!text) {
-      setShowHint(true);
-      return;
-    }
+  // ============================
+  // 阶段渲染
+  // ============================
 
-    setLoading(true);
-    setStatus("Connecting to the planner...");
+  // stage: loading
+  if (stage === "loading") {
+    return (
+      <div className="min-h-[100dvh] bg-[#0A0F1C] text-[#F9FAFB] overflow-x-hidden">
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center px-4 bg-[radial-gradient(1200px_700px_at_50%_-10%,rgba(59,130,246,0.2),rgba(10,15,28,0)_60%),linear-gradient(180deg,rgba(10,15,28,0.95),rgba(10,15,28,1))]">
+          <p className="text-sm text-[#9CA3AF]">Understanding your request...</p>
+        </div>
+      </div>
+    );
+  }
 
-    try {
-      const response = await fetch("/api/intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const data = await response.json();
+  // stage: hinting
+  if (stage === "hinting" && routerResult) {
+    return (
+      <div className="min-h-[100dvh] bg-[#0A0F1C] text-[#F9FAFB] overflow-x-hidden">
+        <div className="min-h-[100dvh] flex flex-col px-4 pt-10 pb-12 bg-[radial-gradient(1200px_700px_at_50%_-10%,rgba(59,130,246,0.2),rgba(10,15,28,0)_60%),linear-gradient(180deg,rgba(10,15,28,0.95),rgba(10,15,28,1))]">
+          <div className="w-full max-w-xl mx-auto flex flex-col gap-6">
+            <header className="space-y-3">
+              <p className="text-xs uppercase tracking-[0.3em] text-[#6B7280]">Studio</p>
+              <h1 className="text-2xl sm:text-3xl font-semibold text-white">
+                What do you want to do?
+              </h1>
+            </header>
 
-      if (!response.ok) {
-        throw new Error(data?.error || "Request failed");
-      }
+            <div className="space-y-2">
+              <textarea
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                rows={4}
+                placeholder={placeholder}
+                className="w-full rounded-2xl border border-[#1F2937] bg-[#0F172A] p-4 text-sm text-white placeholder:text-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/60"
+              />
+              {routerResult.hint && (
+                <p className="text-xs text-[#9CA3AF] px-1">
+                  💡 {routerResult.hint}
+                </p>
+              )}
+            </div>
 
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(
-          "mobile-run-state",
-          JSON.stringify({
-            text,
-            planId: data.plan_id,
-            summary: data.summary,
-            questions: data.questions ?? [],
-          })
-        );
-      }
-      router.push("/m2/run");
-    } catch (error) {
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(
-          "mobile-run-state",
-          JSON.stringify({
-            text,
-            planId: "plan_local",
-            summary: "We are setting up your plan.",
-            questions: [],
-          })
-        );
-      }
-      router.push("/m2/run");
-    } finally {
-      setLoading(false);
-      setStatus("");
-    }
-  };
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="w-full rounded-xl bg-[#3B82F6] py-3 text-sm font-semibold text-white shadow-lg shadow-[#1D4ED8]/20 transition hover:bg-[#2563EB]"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  // stage: confirmed
+  if (stage === "confirmed" && routerResult) {
+    return (
+      <div className="min-h-[100dvh] bg-[#0A0F1C] text-[#F9FAFB] overflow-x-hidden">
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center px-4 bg-[radial-gradient(1200px_700px_at_50%_-10%,rgba(59,130,246,0.2),rgba(10,15,28,0)_60%),linear-gradient(180deg,rgba(10,15,28,0.95),rgba(10,15,28,1))]">
+          <div className="w-full max-w-xl flex flex-col gap-4">
+            <p className="text-sm text-[#9CA3AF]">
+              Ready ·{" "}
+              <span className="text-[#60A5FA] font-mono">{routerResult.frontModuleId}</span>
+            </p>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="w-full rounded-xl bg-[#3B82F6] py-3 text-sm font-semibold text-white shadow-lg shadow-[#1D4ED8]/20 transition hover:bg-[#2563EB]"
+            >
+              Start
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // stage: error
+  if (stage === "error") {
+    return (
+      <div className="min-h-[100dvh] bg-[#0A0F1C] text-[#F9FAFB] overflow-x-hidden">
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center px-4 bg-[radial-gradient(1200px_700px_at_50%_-10%,rgba(59,130,246,0.2),rgba(10,15,28,0)_60%),linear-gradient(180deg,rgba(10,15,28,0.95),rgba(10,15,28,1))]">
+          <div className="w-full max-w-xl flex flex-col gap-4">
+            <p className="text-sm text-[#F87171]">{errorMsg}</p>
+            <button
+              type="button"
+              onClick={resetError}
+              className="w-full rounded-xl border border-[#3B82F6] py-3 text-sm font-semibold text-[#3B82F6] transition hover:bg-[#1D4ED8]/10"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // stage: idle
   return (
     <div className="min-h-[100dvh] bg-[#0A0F1C] text-[#F9FAFB] overflow-x-hidden">
       <div className="min-h-[100dvh] flex flex-col px-4 pt-10 pb-12 bg-[radial-gradient(1200px_700px_at_50%_-10%,rgba(59,130,246,0.2),rgba(10,15,28,0)_60%),linear-gradient(180deg,rgba(10,15,28,0.95),rgba(10,15,28,1))]">
@@ -141,16 +229,11 @@ const MobileEntry: React.FC = () => {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-[#3B82F6] py-3 text-sm font-semibold text-white shadow-lg shadow-[#1D4ED8]/20 transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-xl bg-[#3B82F6] py-3 text-sm font-semibold text-white shadow-lg shadow-[#1D4ED8]/20 transition hover:bg-[#2563EB]"
             >
-              {loading ? "Preparing..." : "Continue"}
+              Continue
             </button>
           </form>
-
-          {status && (
-            <div className="text-xs text-[#6B7280] text-center">{status}</div>
-          )}
 
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.2em] text-[#6B7280]">Modules</p>

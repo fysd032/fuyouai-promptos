@@ -32,6 +32,18 @@ export default function GeneralModuleRunPage() {
     : params?.variantId;
   const [modules, setModules] = useState<RegistryModule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialInput, setInitialInput] = useState("");
+
+  // 读取首页 Router 传来的预填文本，与手机端 MobileRun 完全相同的方式
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = sessionStorage.getItem("mobile-run-state");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.text) setInitialInput(parsed.text);
+    } catch {}
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -104,6 +116,7 @@ export default function GeneralModuleRunPage() {
         variant: selectedVariant,
       }}
       onBack={() => router.back()}
+      initialInput={initialInput}
     />
   );
 }

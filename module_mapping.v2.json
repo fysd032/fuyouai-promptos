@@ -230,8 +230,8 @@
         "description": "Rewrite while preserving meaning, transferring to a specified tone or brand voice.",
         "backendModules": [
           {
-            "moduleId": "A4-06",
-            "promptKey": "A4-06",
+            "moduleId": "B2-01",
+            "promptKey": "B2-01",
             "weight": 1
           }
         ]
@@ -242,8 +242,8 @@
         "description": "Rewrite technical/obscure content into clear, easy-to-understand explanations.",
         "backendModules": [
           {
-            "moduleId": "A4-06",
-            "promptKey": "A4-06",
+            "moduleId": "B1-03",
+            "promptKey": "B1-03",
             "weight": 1
           },
           {
@@ -259,8 +259,8 @@
         "description": "Rewrite casual language into formal, standard written style.",
         "backendModules": [
           {
-            "moduleId": "A4-06",
-            "promptKey": "A4-06",
+            "moduleId": "B1-01",
+            "promptKey": "B1-01",
             "weight": 1
           }
         ]
@@ -278,8 +278,8 @@
         "description": "Improve wording, fix grammar, and make expressions more natural for existing text.",
         "backendModules": [
           {
-            "moduleId": "A4-06",
-            "promptKey": "A4-06",
+            "moduleId": "B1-01",
+            "promptKey": "B1-01",
             "weight": 1
           }
         ]
@@ -489,8 +489,8 @@
         "description": "Generate well-structured, properly toned email drafts in Chinese and English.",
         "backendModules": [
           {
-            "moduleId": "A1-01",
-            "promptKey": "A1-01",
+            "moduleId": "A2-01",
+            "promptKey": "A2-01",
             "weight": 1
           }
         ]
@@ -501,8 +501,8 @@
         "description": "Rewrite and improve the user’s draft email and provide brief suggestions.",
         "backendModules": [
           {
-            "moduleId": "A1-01",
-            "promptKey": "A1-01",
+            "moduleId": "A2-03",
+            "promptKey": "A2-03",
             "weight": 1
           },
           {
@@ -518,8 +518,8 @@
         "description": "Generate bilingual business emails with aligned information in both languages.",
         "backendModules": [
           {
-            "moduleId": "A1-01",
-            "promptKey": "A1-01",
+            "moduleId": "A6-01",
+            "promptKey": "A6-01",
             "weight": 0.7
           },
           {
@@ -930,8 +930,8 @@
         "description": "Generate a standard PRD structure from a natural-language requirements brief.",
         "backendModules": [
           {
-            "moduleId": "A1-01",
-            "promptKey": "A1-01",
+            "moduleId": "E2-07",
+            "promptKey": "E2-07",
             "weight": 1
           }
         ]

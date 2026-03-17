@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/src/lib/supabaseClient";
 
 type PlanQuestion = {
   id: string;
@@ -66,13 +67,11 @@ const MobileRun: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const force = params.get("force") === "1";
-    const isMobile = window.matchMedia("(max-width: 900px)").matches;
-    if (!isMobile && !force) {
-      router.replace("/modules/core");
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.replace("/login?from=/m2/run");
+      }
+    });
   }, [router]);
 
   if (!runState?.text) {
@@ -106,9 +105,14 @@ const MobileRun: React.FC = () => {
   const runRequest = async (payload: Record<string, unknown>) => {
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const response = await fetch("/api/run", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(payload),
       });
       const data = await response.json();
@@ -124,21 +128,46 @@ const MobileRun: React.FC = () => {
   };
 
   const handleGenerate = () => {
+    const stored = sessionStorage.getItem("mobile-run-state");
+    const routerData = stored ? JSON.parse(stored) : {};
+    const {
+      frontModuleId = null,
+      variantId = null,
+      coreEngine = null,
+      answers: routerAnswers = {},
+    } = routerData;
+
     runRequest({
       plan_id: planId,
       text,
       answers,
+      frontModuleId,
+      variantId,
+      coreEngine,
+      routerAnswers,
     });
   };
 
   const handleRefine = () => {
     if (!refineInstruction.trim()) return;
+
+    const stored = sessionStorage.getItem("mobile-run-state");
+    const routerData = stored ? JSON.parse(stored) : {};
+    const {
+      frontModuleId = null,
+      variantId = null,
+      coreEngine = null,
+    } = routerData;
+
     runRequest({
       plan_id: planId,
       text,
       answers,
       refineInstruction: refineInstruction.trim(),
       previousOutput: output,
+      frontModuleId,
+      variantId,
+      coreEngine,
     });
   };
 

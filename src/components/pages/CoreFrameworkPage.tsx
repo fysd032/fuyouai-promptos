@@ -71,6 +71,20 @@ function detectLanguage(text: string): string {
   return "en";
 }
 
+const CLARIFICATION_LABELS: Record<string, string> = {
+  zh: "需要补充以下信息：",
+  ja: "以下の情報を補足してください：",
+  ko: "다음 정보를 보완해 주세요：",
+  ru: "Для продолжения нужна дополнительная информация：",
+  ar: "يرجى تقديم المعلومات التالية：",
+  de: "Bitte ergänzen Sie folgende Angaben：",
+  fr: "Veuillez préciser les points suivants ：",
+  es: "Se necesita información adicional：",
+  pt: "São necessárias mais informações：",
+  it: "Sono necessarie ulteriori informazioni：",
+  en: "Need more information to proceed:",
+};
+
 // --- Data Configuration ---
 const CORE_FRAMEWORKS = [
   {
@@ -950,7 +964,7 @@ const CoreFrameworkPage: React.FC = () => {
                     {/* Clarification mode */}
                     {parsedOutput.mode === "clarification" && parsedOutput.clarification && (
                       <div className="space-y-3">
-                        <p className="text-sm text-amber-400 font-medium">Need more information to proceed:</p>
+                        <p className="text-sm text-amber-400 font-medium">{CLARIFICATION_LABELS[lang] ?? CLARIFICATION_LABELS.en}</p>
                         <ul className="space-y-2">
                           {parsedOutput.clarification.map((q, i) => (
                             <li key={i} className="flex gap-2 text-sm text-[#E5E7EB]">

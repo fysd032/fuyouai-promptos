@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Layers, Box, Briefcase, ChevronRight, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Layers, Box, Briefcase, ChevronRight, X, Plus, ArrowRight, Loader2, Check } from "lucide-react";
+import { useIntentRouter, type RouterResult } from "@/src/hooks/useIntentRouter";
+import { supabase } from "@/src/lib/supabaseClient";
 
 type SidebarProps = {
   forceMobile?: boolean;
@@ -13,8 +15,45 @@ type SidebarProps = {
 
 const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const drawerEnabled = typeof isOpen === "boolean";
   const drawerOpen = Boolean(isOpen);
+  const [showModal, setShowModal] = useState(false);
+
+  const onConfirm = useCallback(async (result: RouterResult, text: string) => {
+    sessionStorage.setItem(
+      "mobile-run-state",
+      JSON.stringify({
+        text,
+        planId: `plan_${Date.now()}`,
+        summary: result.moduleReason,
+        questions: [],
+        frontModuleId: result.frontModuleId,
+        variantId: result.variantId,
+        coreEngine: result.coreEngine,
+        answers: {},
+      })
+    );
+    setShowModal(false);
+    onClose?.();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      router.push(`/modules/general/${result.frontModuleId}/${result.variantId}/run`);
+    } else {
+      router.push("/login?from=/modules/core");
+    }
+  }, [router, onClose]);
+
+  const {
+    input: routerInput,
+    setInput: setRouterInput,
+    stage: routerStage,
+    routerResult,
+    errorMsg: routerError,
+    handleSubmit: handleRouterSubmit,
+    handleConfirm: handleRouterConfirm,
+    resetError: resetRouterError,
+  } = useIntentRouter(onConfirm);
 
   useEffect(() => {
     if (!drawerEnabled || !drawerOpen) return;
@@ -101,6 +140,15 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
               </button>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="mt-4 w-full flex items-center justify-center gap-2 bg-[#1E9FFF] hover:bg-[#4CB2FF] active:scale-[0.98] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-[0_2px_10px_rgba(30,159,255,0.25)]"
+          >
+            <Plus size={16} />
+            New Task
+          </button>
         </div>
 
         <nav className="flex-1 px-3 space-y-1.5">
@@ -178,6 +226,105 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
           </div>
         </div>
       </aside>
+
+      {/* New Task Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowModal(false)}
+          />
+
+          {/* Card */}
+          <div className="relative z-10 w-full max-w-lg bg-[#0F141C] border border-[#1F2937] rounded-2xl shadow-2xl p-6">
+            {/* Close */}
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-[#6B7280] hover:text-white hover:bg-[#1F2937] transition-colors"
+              aria-label="Close"
+            >
+              <X size={16} />
+            </button>
+
+            <h2 className="text-lg font-semibold text-white mb-1">What do you want to do?</h2>
+            <p className="text-xs text-[#6B7280] mb-5">Describe your task and we'll route it to the right module.</p>
+
+            <form onSubmit={handleRouterSubmit} className="flex flex-col gap-3">
+              <input
+                autoFocus
+                type="text"
+                value={routerInput}
+                onChange={(e) => setRouterInput(e.target.value)}
+                placeholder="e.g. Write a product launch email, Build a project plan..."
+                className="w-full rounded-xl border border-[#1F2937] bg-[#111827] px-4 py-3 text-sm text-white placeholder:text-[#4B5563] focus:outline-none focus:ring-2 focus:ring-[#1E9FFF]/40 focus:border-[#1E9FFF]/50 transition-all"
+              />
+
+              {/* Hint */}
+              {routerStage === "hinting" && routerResult?.hint && (
+                <p className="text-xs text-slate-400 pl-1">💡 {routerResult.hint}</p>
+              )}
+
+              {/* Error */}
+              {routerStage === "error" && routerError && (
+                <p className="text-xs text-red-400 pl-1">{routerError}</p>
+              )}
+
+              <div className="flex gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-[#1F2937] text-[#9CA3AF] hover:text-white hover:bg-[#1F2937] transition-colors"
+                >
+                  Cancel
+                </button>
+
+                {routerStage === "loading" ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1E9FFF]/60 text-white cursor-not-allowed"
+                  >
+                    <Loader2 size={14} className="animate-spin" /> Routing...
+                  </button>
+                ) : routerStage === "confirmed" ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-emerald-500 text-white"
+                  >
+                    <Check size={14} /> Ready
+                  </button>
+                ) : routerStage === "hinting" ? (
+                  <button
+                    type="button"
+                    onClick={handleRouterConfirm}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white transition-colors"
+                  >
+                    Start <ArrowRight size={14} />
+                  </button>
+                ) : routerStage === "error" ? (
+                  <button
+                    type="button"
+                    onClick={resetRouterError}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white transition-colors"
+                  >
+                    Try again
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white transition-colors"
+                  >
+                    Continue <ArrowRight size={14} />
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

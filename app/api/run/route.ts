@@ -1,44 +1,98 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { runEngine } from "@/lib/promptos/run-engine";
+import { getBackendModules } from "@/src/config/moduleMapping";
+import { detectLanguage } from "@/lib/lang/detectLanguage";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 200 });
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
-  const { plan_id, text, answers, refineInstruction, previousOutput } = body || {};
-
-  if (!plan_id || !text) {
-    return NextResponse.json({ error: "Missing plan_id or text." }, { status: 400 });
+  // ── Auth ──────────────────────────────────────────────────────────────
+  const authHeader = req.headers.get("Authorization");
+  const token = authHeader?.replace("Bearer ", "").trim();
+  if (!token) {
+    return NextResponse.json(
+      { error: "unauthorized", message: "Login required" },
+      { status: 401 }
+    );
   }
 
-  const answerLines = Object.entries(answers || {})
-    .filter(([, value]) => Boolean(value))
-    .map(([key, value]) => `- ${key}: ${value}`)
-    .join("\n");
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser(token);
+  if (!user) {
+    return NextResponse.json(
+      { error: "unauthorized", message: "Login required" },
+      { status: 401 }
+    );
+  }
 
-  const refinement = refineInstruction
-    ? `\nRefinement request:\n${refineInstruction}\n`
-    : "";
+  // ── Parse body ────────────────────────────────────────────────────────
+  const body = await req.json().catch(() => ({}));
+  const {
+    text,
+    answers = {},
+    frontModuleId,
+    variantId,
+    routerAnswers = {},
+  } = body || {};
 
-  const previous = previousOutput
-    ? `\nPrevious output summary:\n${String(previousOutput).slice(0, 300)}\n`
-    : "";
+  if (!text || !frontModuleId || !variantId) {
+    return NextResponse.json(
+      { error: "missing_fields", message: "text, frontModuleId and variantId are required" },
+      { status: 400 }
+    );
+  }
 
-  const output = [
-    "Here is a structured response based on your request:",
-    "",
-    `Request: ${text}`,
-    answerLines ? `\nAnswers:\n${answerLines}` : "",
-    refinement,
-    previous,
-    "Next steps:",
-    "1) Draft the first version.",
-    "2) Review for clarity and tone.",
-    "3) Finalize and deliver.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  // ── Resolve promptKey ─────────────────────────────────────────────────
+  const modules = getBackendModules(frontModuleId, variantId);
+  const promptKey = modules[0]?.promptKey;
 
-  return NextResponse.json({ output });
+  if (!promptKey) {
+    return NextResponse.json(
+      { error: "invalid_module", message: "Module not found" },
+      { status: 400 }
+    );
+  }
+
+  // ── Build userInput ───────────────────────────────────────────────────
+  const combinedContext = { ...answers, ...routerAnswers };
+  const hasContext = Object.values(combinedContext).some(Boolean);
+  const userInput = hasContext
+    ? `${text}\n\nAdditional context:\n${JSON.stringify(combinedContext)}`
+    : text;
+
+  // ── Run engine ────────────────────────────────────────────────────────
+  const language = detectLanguage(text);
+
+  let result;
+  try {
+    result = await runEngine({
+      promptKey,
+      userInput,
+      engineType: "deepseek",
+      language,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Engine error";
+    return NextResponse.json(
+      { error: "engine_failed", message },
+      { status: 500 }
+    );
+  }
+
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: "engine_failed", message: result.error ?? "Engine failed" },
+      { status: 500 }
+    );
+  }
+
+  // ── Return ────────────────────────────────────────────────────────────
+  return NextResponse.json({
+    output: result.modelOutput,
+    promptKey,
+    frontModuleId,
+  });
 }
