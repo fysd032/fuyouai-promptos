@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { runEngine } from "@/lib/promptos/run-engine";
 import { getBackendModules } from "@/src/config/moduleMapping";
 import { detectLanguage } from "@/lib/lang/detectLanguage";
+import { recordCoreRun } from "@/lib/db/conversations";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 200 });
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
     frontModuleId,
     variantId,
     routerAnswers = {},
+    conversationId = null,
   } = body || {};
 
   if (!text || !frontModuleId || !variantId) {
@@ -89,10 +91,31 @@ export async function POST(req: Request) {
     );
   }
 
+  // ── Save to history (non-fatal) ───────────────────────────────────────
+  let savedConversationId: string | null = null;
+  try {
+    const record = await recordCoreRun({
+      userId: user.id,
+      conversationId: typeof conversationId === "string" ? conversationId : null,
+      userInput,
+      coreKey: `${frontModuleId}::${variantId}`,
+      engineType: result.engineTypeUsed ?? "deepseek",
+      output: String(result.modelOutput ?? ""),
+      latencyMs: 0,
+      tokenUsageInput: result.tokenUsage?.input,
+      tokenUsageOutput: result.tokenUsage?.output,
+      source: "general",
+    });
+    savedConversationId = record.conversationId;
+  } catch (e) {
+    console.error("[api/run] recordCoreRun failed (non-fatal):", e);
+  }
+
   // ── Return ────────────────────────────────────────────────────────────
   return NextResponse.json({
     output: result.modelOutput,
     promptKey,
     frontModuleId,
+    conversationId: savedConversationId,
   });
 }

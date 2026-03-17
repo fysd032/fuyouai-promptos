@@ -31,20 +31,61 @@ function formatTime(iso: string): string {
 
 function moduleLabel(module: string | null): string {
   if (!module) return "Core";
-  const map: Record<string, string> = {
+  // General module format: "frontModuleId::variantId"
+  if (module.includes("::")) {
+    const [frontId] = module.split("::");
+    const generalMap: Record<string, string> = {
+      writing_master: "Writing Master",
+      summarizer: "Summarizer",
+      copywriter: "Copywriter",
+      role_playing: "Role Playing",
+      storyteller: "Storyteller",
+      rewriter: "Rewriter",
+      writing_editor_inspector: "Writing Editor",
+      deep_analysis: "Deep Analysis",
+      researcher: "Researcher",
+      data_interpreter: "Data Interpreter",
+      market_insights: "Market Insights",
+      interview_gen: "Interview Gen",
+      email_pro: "Email Pro",
+      pitch_deck: "Pitch Deck",
+      decision_maker: "Decision Maker",
+      sop_engine: "SOP Engine",
+      pm_okr: "PM / OKR",
+      biz_model: "Biz Model",
+      meta_prompt: "Meta Prompt",
+      multi_agent: "Multi-Agent",
+      nocode_automation: "No-Code Automation",
+      risk_control: "Risk Control",
+      knowledge_base: "Knowledge Base",
+      ppt_architect: "PPT Architect",
+      product_spec: "Product Spec",
+      paper_reader: "Paper Reader",
+      academic_study: "Academic Study",
+      course_design: "Course Design",
+      explainer: "Explainer",
+      tech_stack: "Tech Stack",
+      debugger: "Debugger",
+    };
+    return generalMap[frontId] ?? frontId;
+  }
+  // Core framework format
+  const coreMap: Record<string, string> = {
     task_breakdown: "Task Decomposition",
     cot_reasoning: "CoT Reasoning",
     content_builder: "Content Generation",
     analytical_engine: "Deep Analysis",
     task_tree: "Complex Task Tree",
   };
-  return map[module] ?? module;
+  return coreMap[module] ?? module;
 }
 
 function continueUrl(conv: Conversation): string {
-  // Navigate to the appropriate module page with conv param
-  const base = "/modules/core";
-  return `${base}?conv=${conv.id}`;
+  if (conv.source === "general" && conv.current_module?.includes("::")) {
+    const [frontModuleId, variantId] = conv.current_module.split("::");
+    return `/modules/general/${frontModuleId}/${variantId}/run`;
+  }
+  return `/modules/core?conv=${conv.id}`;
 }
 
 export default function HistoryPage() {

@@ -159,13 +159,14 @@ export async function recordCoreRun(params: {
   latencyMs: number;
   tokenUsageInput?: number;
   tokenUsageOutput?: number;
+  source?: string;
 }): Promise<{ conversationId: string; runId: string }> {
   const title = params.userInput.slice(0, 80).replace(/\s+/g, " ").trim();
   const conversationId =
     params.conversationId ??
     (await createConversation(params.userId, {
       title,
-      source: "core",
+      source: params.source ?? "core",
       currentModule: params.coreKey,
     }));
 

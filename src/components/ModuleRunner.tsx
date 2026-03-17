@@ -65,6 +65,7 @@ export const ModuleRunner: React.FC<ModuleRunnerProps> = ({
   const [status, setStatus] = useState<FeedbackStatus>("idle");
   const [result, setResult] = useState("");
   const [copied, setCopied] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   // ✅ 附件：列表 + 当前预览
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -301,6 +302,7 @@ setActiveAttachmentId(att.id);
           variantId,
           coreEngine: null,
           routerAnswers: {},
+          conversationId,
         }),
       });
 
@@ -310,6 +312,7 @@ setActiveAttachmentId(att.id);
       const output = data?.output ?? "";
       setResult(output.trim() ? output : "AI returned empty response.");
       setStatus("success");
+      if (data?.conversationId) setConversationId(data.conversationId);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Execution failed";
       setResult(msg);
