@@ -55,7 +55,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </p>
 
       <h1 className="text-5xl lg:text-[60px] font-semibold leading-[1.1] tracking-tight text-white mb-8">
-        One input.<br />Get real work done.
+        AI tool to turn ideas into actionable plans
       </h1>
 
       <p className="text-lg lg:text-xl leading-[1.7] text-slate-400 font-normal max-w-xl mx-auto mb-16">
