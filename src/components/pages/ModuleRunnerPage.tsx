@@ -193,6 +193,7 @@ const ModuleRunnerPage: React.FC = () => {
                 placeholder="Enter your specific task requirements here..."
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
+                maxLength={4000}
               />
 
               <div className="mt-5 flex justify-end">

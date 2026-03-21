@@ -4,12 +4,13 @@ import { runEngine } from "@/lib/promptos/run-engine";
 import { getBackendModules } from "@/src/config/moduleMapping";
 import { detectLanguage } from "@/lib/lang/detectLanguage";
 import { recordCoreRun } from "@/lib/db/conversations";
+import { withRouteError } from "@/lib/api/withRouteError";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 200 });
 }
 
-export async function POST(req: Request) {
+async function handler(req: Request) {
   // ── Auth ──────────────────────────────────────────────────────────────
   const authHeader = req.headers.get("Authorization");
   const token = authHeader?.replace("Bearer ", "").trim();
@@ -40,9 +41,17 @@ export async function POST(req: Request) {
     conversationId = null,
   } = body || {};
 
-  if (!text || !frontModuleId || !variantId) {
+  const trimmedText = typeof text === "string" ? text.trim() : "";
+  if (!trimmedText || !frontModuleId || !variantId) {
     return NextResponse.json(
       { error: "missing_fields", message: "text, frontModuleId and variantId are required" },
+      { status: 400 }
+    );
+  }
+
+  if (trimmedText.length > 4000) {
+    return NextResponse.json(
+      { error: "input_too_long", message: "Input must be 4000 characters or fewer" },
       { status: 400 }
     );
   }
@@ -62,11 +71,11 @@ export async function POST(req: Request) {
   const combinedContext = { ...answers, ...routerAnswers };
   const hasContext = Object.values(combinedContext).some(Boolean);
   const userInput = hasContext
-    ? `${text}\n\nAdditional context:\n${JSON.stringify(combinedContext)}`
-    : text;
+    ? `${trimmedText}\n\nAdditional context:\n${JSON.stringify(combinedContext)}`
+    : trimmedText;
 
   // ── Run engine ────────────────────────────────────────────────────────
-  const language = detectLanguage(text);
+  const language = detectLanguage(trimmedText);
 
   let result;
   try {
@@ -119,3 +128,5 @@ export async function POST(req: Request) {
     conversationId: savedConversationId,
   });
 }
+
+export const POST = withRouteError(handler);

@@ -491,6 +491,7 @@ setActiveAttachmentId(att.id);
           placeholder="Enter your task requirements... (voice input available; attachments will be included automatically)"
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
+          maxLength={4000}
         />
 
         {/* Run */}

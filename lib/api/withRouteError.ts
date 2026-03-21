@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 
-export type RouteHandler = (req: Request, ctx?: any) => Promise<Response>;
+export type RouteHandler = (req: Request, ctx?: Record<string, unknown>) => Promise<Response>;
 
 export function withRouteError(handler: RouteHandler): RouteHandler {
   return async (req, ctx) => {

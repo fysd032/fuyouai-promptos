@@ -130,6 +130,7 @@ export function WritingMaster() {
           placeholder="Enter writing topic, background, key points, etc..."
           value={text}
           onChange={(e) => setText(e.target.value)}
+          maxLength={4000}
         />
       </div>
 

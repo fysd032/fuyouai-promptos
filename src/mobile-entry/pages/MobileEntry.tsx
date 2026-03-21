@@ -113,6 +113,7 @@ const MobileEntry: React.FC = () => {
                 rows={4}
                 placeholder={placeholder}
                 className="w-full rounded-2xl border border-[#1F2937] bg-[#0F172A] p-4 text-sm text-white placeholder:text-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/60"
+                maxLength={4000}
               />
               {routerResult.hint && (
                 <p className="text-xs text-[#9CA3AF] px-1">

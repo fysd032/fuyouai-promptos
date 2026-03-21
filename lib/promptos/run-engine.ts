@@ -18,7 +18,7 @@ export async function runEngine({
   engineType?: string;
   mode?: string;
   industryId?: string | null;
-  userInput: any;
+  userInput: string;
   systemOverride?: string;
   language?: string;
 }) {
@@ -49,10 +49,7 @@ export async function runEngine({
     };
   }
 
-  const userInputStr =
-    typeof userInput === "string"
-      ? userInput
-      : JSON.stringify(userInput ?? {}, null, 2);
+  const userInputStr = userInput;
 
   const langGuard = buildLanguageGuard(language);
   const result = await runPromptModule(
@@ -106,7 +103,7 @@ export async function runEngineStream(
     engineType?: string;
     mode?: string;
     industryId?: string | null;
-    userInput: any;
+    userInput: string;
     systemOverride?: string;
     language?: string;
   },
@@ -135,10 +132,7 @@ export async function runEngineStream(
     };
   }
 
-  const userInputStr =
-    typeof args.userInput === "string"
-      ? args.userInput
-      : JSON.stringify(args.userInput ?? {}, null, 2);
+  const userInputStr = args.userInput;
 
   const langGuard = buildLanguageGuard(args.language);
   const effectiveOverride = langGuard || args.systemOverride;

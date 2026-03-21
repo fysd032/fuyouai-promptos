@@ -4,6 +4,7 @@ import { runEngineStream } from "@/lib/promptos/run-engine";
 import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
 import type { CoreKey, PlanTier } from "@/lib/promptos/core/core-map";
 import { withDailyLimit, requestGateTier, requestUserId } from "@/lib/billing/with-daily-limit";
+import { withRouteError } from "@/lib/api/withRouteError";
 import { recordCoreRun, recordFailedRun } from "@/lib/db/conversations";
 import { createClient } from "@/lib/supabase/server";
 import { detectLanguage } from "@/lib/lang/detectLanguage";
@@ -49,7 +50,7 @@ async function handler(req: Request): Promise<Response> {
   const corsHeaders = getCorsHeaders(origin);
 
   // ── Parse body ──────────────────────────────────────────────────────
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -93,6 +94,13 @@ async function handler(req: Request): Promise<Response> {
   if (!coreKey || !userInput) {
     return NextResponse.json(
       { ok: false, error: "Missing coreKey or userInput" },
+      { status: 400, headers: corsHeaders }
+    );
+  }
+
+  if (userInput.length > 4000) {
+    return NextResponse.json(
+      { ok: false, error: "Input must be 4000 characters or fewer" },
       { status: 400, headers: corsHeaders }
     );
   }
@@ -278,7 +286,7 @@ async function handler(req: Request): Promise<Response> {
   });
 }
 
-export const POST = withDailyLimit(handler, { scope: "core" });
+export const POST = withDailyLimit(withRouteError(handler), { scope: "core" });
 
 export async function OPTIONS(req: Request) {
   const origin = req.headers.get("origin");

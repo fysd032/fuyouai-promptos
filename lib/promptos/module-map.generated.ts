@@ -46,7 +46,7 @@ export function resolvePromptKey(params: {
   // 后面你要做 Pro / 多模型时再用
 
   if (promptKey) return promptKey;
-  if (moduleId) return moduleId;
+  if (moduleId) return MODULE_KEY_MAP[moduleId] ?? moduleId;
 
   return null;
 }

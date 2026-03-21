@@ -100,6 +100,7 @@ export default function GuestTrialPage() {
             disabled={limitReached || status === "loading"}
             placeholder={`Describe what you want to accomplish...\n\nExample: "Help me plan a product launch for a new SaaS tool targeting small businesses."`}
             className="w-full h-[180px] bg-[#111827] border border-[#1F2937] rounded-xl p-4 text-sm text-[#F9FAFB] placeholder:text-[#4B5563] focus:outline-none focus:border-[#3B82F6]/50 focus:ring-1 focus:ring-[#3B82F6]/20 transition-all resize-none leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed"
+            maxLength={4000}
           />
 
           <div className="flex justify-end">

@@ -1,4 +1,7 @@
 // scripts/server.ts
+// ⚠️  LOCAL DEVELOPMENT ONLY — Do NOT run this in production.
+//    This server has no authentication or rate limiting.
+//    Use the Next.js API routes (app/api/) for production deployments.
 import express from "express";
 import cors from "cors";
 import type { Request, Response, NextFunction } from "express";
@@ -108,7 +111,6 @@ if (!promptKey) {
       text: outputText || "（模型未返回内容）",
       mode: outputMode,
       language,
-      prompt: result.finalPrompt ?? "",
       meta: {
         requestId: result.requestId,
         coreKey,
