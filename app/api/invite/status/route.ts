@@ -47,6 +47,58 @@ export async function GET(req: Request) {
         : null;
       const now = new Date();
       const expired = expiresAt !== null && now >= expiresAt;
+
+      // invite 未过期 → 直接放行（原逻辑不变）
+      if (!expired) {
+        return NextResponse.json({
+          ok: true,
+          verified: true,
+          expired: false,
+          expiresAt: expiresAt?.toISOString() ?? null,
+        });
+      }
+
+      // invite 已过期 → 兜底检查 lifetime 永久权限
+      const { data: lt } = await db
+        .from("user_entitlements")
+        .select("expires_at")
+        .eq("user_id", userId)
+        .eq("type", "lifetime")
+        .maybeSingle();
+
+      if (lt) {
+        const ltExpires = lt.expires_at ? new Date(lt.expires_at) : null;
+        if (!ltExpires || now < ltExpires) {
+          return NextResponse.json({
+            ok: true,
+            verified: true,
+            expired: false,
+            expiresAt: ltExpires?.toISOString() ?? null,
+          });
+        }
+      }
+
+      // 无 lifetime → 返回过期（原逻辑）
+      return NextResponse.json({
+        ok: true,
+        verified: false,
+        expired: true,
+        expiresAt: expiresAt?.toISOString() ?? null,
+      });
+    }
+
+    // 2. Check user_entitlements: lifetime (永久权限，优先)
+    const { data: lifetime } = await db
+      .from("user_entitlements")
+      .select("expires_at")
+      .eq("user_id", userId)
+      .eq("type", "lifetime")
+      .maybeSingle();
+
+    if (lifetime) {
+      const expiresAt = lifetime.expires_at ? new Date(lifetime.expires_at) : null;
+      const now = new Date();
+      const expired = expiresAt !== null && now >= expiresAt;
       return NextResponse.json({
         ok: true,
         verified: !expired,
@@ -55,7 +107,7 @@ export async function GET(req: Request) {
       });
     }
 
-    // 2. Check user_entitlements (all registered users' 15-day trial)
+    // 3. Check user_entitlements: beta_trial (15-day trial)
     const { data: entitlement } = await db
       .from("user_entitlements")
       .select("expires_at")

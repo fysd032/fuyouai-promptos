@@ -114,9 +114,27 @@ export async function requireSubscription(
     return { ok: true, userId, tier: "paid" };
   }
 
-  // 3b. Subscription absent/expired → check user_entitlements (beta_trial)
+  // 3b. Check user_entitlements for lifetime access (永久权限)
   type EntRow = { expires_at: string | null };
 
+  const { data: lifetime } = await admin
+    .from("user_entitlements")
+    .select("expires_at")
+    .eq("user_id", userId)
+    .eq("type", "lifetime")
+    .maybeSingle<EntRow>();
+
+  if (lifetime !== null) {
+    const expiresAt = lifetime.expires_at ? new Date(lifetime.expires_at) : null;
+    // lifetime 类型：无 expires_at 或未过期均视为有效
+    if (!expiresAt || new Date() < expiresAt) {
+      await setEntitlement(userId, { allowed: true, tier: "paid" });
+      if (GATE_LOG) console.log(`[gate] userId=${userId} source=lifetime cache_hit=false result=ok ms=${Date.now() - t0}`);
+      return { ok: true, userId, tier: "paid" };
+    }
+  }
+
+  // 3c. Check user_entitlements for beta_trial
   const { data: ent } = await admin
     .from("user_entitlements")
     .select("expires_at")
@@ -133,7 +151,7 @@ export async function requireSubscription(
     }
   }
 
-  // 3c. Fallback: check invite_code_usage (beta access via invite code, 15-day trial)
+  // 3d. Fallback: check invite_code_usage (beta access via invite code, 15-day trial)
   const TRIAL_DAYS = 15;
   type InviteUsageRow = { id: number; used_at: string | null };
 

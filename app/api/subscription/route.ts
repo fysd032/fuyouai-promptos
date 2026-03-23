@@ -142,9 +142,46 @@ export async function GET(req: Request) {
       );
     }
 
-    // 没有订阅记录 → 检查 user_entitlements (beta_trial)
+    // 没有订阅记录 → 检查 user_entitlements
     if (!sub) {
       type EntRow = { expires_at: string | null };
+
+      // 优先检查 lifetime 永久权限
+      const { data: lifetime } = await supabaseAdmin
+        .from("user_entitlements")
+        .select("expires_at")
+        .eq("user_id", user.id)
+        .eq("type", "lifetime")
+        .maybeSingle<EntRow>();
+
+      if (lifetime !== null) {
+        const expiresAt = lifetime.expires_at ? new Date(lifetime.expires_at) : null;
+        const isActive = !expiresAt || new Date() < expiresAt;
+        if (DEBUG) {
+          console.log("[Subscription] lifetime found, expiresAt:", lifetime.expires_at, "active:", isActive);
+        }
+        if (isActive) {
+          return NextResponse.json(
+            {
+              ok: true,
+              subscription: {
+                plan: "pro",
+                status: "active",
+                trialEnd: null,
+                cancel_at_period_end: false,
+                current_period_end: lifetime.expires_at ?? null,
+                creem_customer_id: null,
+                creem_subscription_id: null,
+                updated_at: null,
+              },
+              ...(debugInfo ? { debug: debugInfo } : {}),
+            },
+            { headers: corsHeaders }
+          );
+        }
+      }
+
+      // 检查 beta_trial
       const { data: ent } = await supabaseAdmin
         .from("user_entitlements")
         .select("expires_at")
@@ -191,6 +228,41 @@ export async function GET(req: Request) {
     // 返回订阅信息（统一结构）
     const normalizedPlan = normalizePlan(sub.plan);
     const normalizedStatus = normalizeStatus(sub.status, sub.cancel_at_period_end);
+
+    // sub 存在但 plan 为 free → 兜底检查 lifetime 永久权限
+    if (normalizedPlan === "free") {
+      type EntRow = { expires_at: string | null };
+      const { data: lt } = await supabaseAdmin
+        .from("user_entitlements")
+        .select("expires_at")
+        .eq("user_id", user.id)
+        .eq("type", "lifetime")
+        .maybeSingle<EntRow>();
+
+      if (lt) {
+        const ltExpires = lt.expires_at ? new Date(lt.expires_at) : null;
+        if (!ltExpires || new Date() < ltExpires) {
+          return NextResponse.json(
+            {
+              ok: true,
+              subscription: {
+                plan: "pro",
+                status: "active",
+                trialEnd: null,
+                cancel_at_period_end: false,
+                current_period_end: ltExpires?.toISOString() ?? null,
+                creem_customer_id: sub.creem_customer_id || null,
+                creem_subscription_id: sub.creem_subscription_id || null,
+                updated_at: sub.updated_at || null,
+              },
+              ...(debugInfo ? { debug: debugInfo } : {}),
+            },
+            { headers: corsHeaders }
+          );
+        }
+      }
+    }
+
     return NextResponse.json(
       {
         ok: true,
