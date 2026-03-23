@@ -312,6 +312,8 @@ export default function UniversalModulesPage() {
         <ModuleRunner
           moduleType="general"
           moduleKey={resolvedPromptKey}
+          frontModuleId={activeModule?.frontModuleId}
+          variantId={selectedVariant?.variantId}
           moduleData={{
             title: activeModule?.frontModuleLabel || "",
             desc: selectedVariant?.label || "",

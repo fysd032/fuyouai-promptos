@@ -28,6 +28,8 @@ interface ModuleRunnerProps {
   };
   onBack?: () => void;
   initialInput?: string;
+  frontModuleId?: string;
+  variantId?: string;
 }
 
 function makeId(): string {
@@ -56,10 +58,12 @@ export const ModuleRunner: React.FC<ModuleRunnerProps> = ({
   moduleData,
   onBack,
   initialInput = "",
+  frontModuleId: propFrontModuleId,
+  variantId: propVariantId,
 }) => {
   const params = useParams();
-  const frontModuleId = Array.isArray(params?.moduleId) ? params.moduleId[0] : (params?.moduleId ?? null);
-  const variantId = Array.isArray(params?.variantId) ? params.variantId[0] : (params?.variantId ?? null);
+  const frontModuleId = propFrontModuleId ?? (Array.isArray(params?.moduleId) ? params.moduleId[0] : (params?.moduleId ?? null));
+  const variantId = propVariantId ?? (Array.isArray(params?.variantId) ? params.variantId[0] : (params?.variantId ?? null));
 
   const [userInput, setUserInput] = useState(initialInput);
   const [status, setStatus] = useState<FeedbackStatus>("idle");
