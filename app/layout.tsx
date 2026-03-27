@@ -1,6 +1,8 @@
 // app/layout.tsx
 import type { Metadata } from "next";
+import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
+import enMessages from "../messages/en.json";
 
 export const metadata: Metadata = {
   title: "FuyouAI",
@@ -16,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-background text-foreground antialiased">
-        {children}
+        <NextIntlClientProvider locale="en" messages={enMessages}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );
