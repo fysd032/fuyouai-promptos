@@ -160,16 +160,6 @@
     "chatgptSpeed": "Trial and error",
     "fuyouSpeed": "First output in under 60 seconds"
   },
-  "Features": {
-    "sectionTag": "Core capabilities",
-    "headline": "What makes it different",
-    "feature1Title": "31 modules, zero setup",
-    "feature1Desc": "Every professional task covered. Pick a goal — the right framework activates automatically.",
-    "feature2Title": "Auto-routes your intent",
-    "feature2Desc": "Describe the task once. The system selects the workflow, structures the input, and runs it.",
-    "feature3Title": "Reusable from day one",
-    "feature3Desc": "Built from real workflows. Start from proven structure — never from a blank page."
-  },
   "Blog": {
     "sectionTag": "Insights",
     "headline": "Learn how to do real work with AI",
@@ -384,21 +374,12 @@
     "headline": "What they say",
     "t1name": "Michael Z.",
     "t1role": "Founder",
-    "t1text": "Writing a business plan used to take a full day. Now I type one sentence and get an MVP scope, go-to-market strategy, and 30-day plan in 10 minutes. This isn't AI chat — it's something you can actually use.",
+    "t1text": "One sentence in, full business plan in 10 minutes.",
     "t2name": "Sarah L.",
     "t2role": "Product Manager",
-    "t2text": "No more starting PRDs from a blank page. Enter the feature description and get requirements, edge cases, and metrics — already formatted and ready to hand off to engineering.",
+    "t2text": "PRDs no longer start from a blank page — just describe and go.",
     "t3name": "Alex W.",
     "t3role": "AI Developer",
-    "t3text": "Prompt optimization finally has structure. Feed it an unstable prompt, get back a system prompt plus edge-case variants. Reusable and saved me hours of debugging.",
-    "t4name": "Emily C.",
-    "t4role": "Content Creator",
-    "t4text": "Writer's block used to be the norm — not anymore. Enter a topic and get an outline, intro, and full draft in one session. My publishing frequency doubled overnight.",
-    "t5name": "David L.",
-    "t5role": "Entrepreneur",
-    "t5text": "In three days I finished a business plan I'd been putting off for two months. The AI didn't write it for me — it helped me think through the structure.",
-    "t6name": "Chris Z.",
-    "t6role": "Indie Developer",
-    "t6text": "Project planning used to be pure gut feeling. Now I enter an idea and get actionable steps and risk points. Saved me from so many wrong turns."
+    "t3text": "Prompt optimization finally has structure. Saved me hours."
   }
 }

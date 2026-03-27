@@ -14,7 +14,6 @@ import { UseCasesSection } from "./sections/UseCasesSection";
 import { HowItWorksSection } from "./sections/HowItWorksSection";
 import { OutputPreviewSection } from "./sections/OutputPreviewSection";
 import { WhyNotChatGPTSection } from "./sections/WhyNotChatGPTSection";
-import { FeaturesSection } from "./sections/FeaturesSection";
 import { BlogPreviewSection } from "./sections/BlogPreviewSection";
 import { TestimonialsSection } from "./sections/TestimonialsSection";
 import { FinalCTASection } from "./sections/FinalCTASection";
@@ -43,7 +42,8 @@ export const Landing: React.FC = () => {
     if (session) {
       router.push(`/modules/general/${result.frontModuleId}/${result.variantId}/run`);
     } else {
-      router.push("/login?from=/modules/core");
+      // Let guest users experience full output first, then prompt login
+      router.push("/try");
     }
   };
 
@@ -148,10 +148,6 @@ export const Landing: React.FC = () => {
       {/* Why Not ChatGPT */}
       <div className="w-full border-t border-white/[0.04]" />
       <WhyNotChatGPTSection />
-
-      {/* Features */}
-      <div className="w-full border-t border-white/[0.04]" />
-      <FeaturesSection />
 
       {/* Blog Preview / Testimonials */}
       <div className="w-full border-t border-white/[0.04]" />

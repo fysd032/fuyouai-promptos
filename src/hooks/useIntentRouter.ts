@@ -53,11 +53,9 @@ export function useIntentRouter(
       const data = await callIntent(input);
       if (!data) throw new Error("No response");
       setRouterResult(data);
-      if (data.hint) {
-        setStage("hinting");
-      } else {
-        setStage("confirmed");
-      }
+      // Skip hinting — go directly to confirmed for seamless flow
+      setStage("confirmed");
+      onConfirm(data, input);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong";
       setErrorMsg(message);

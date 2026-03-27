@@ -44,36 +44,6 @@ export const useCasesData: UseCaseItem[] = [
   },
 ];
 
-// ─── Features ─────────────────────────────────────────────────────────────────
-
-export type FeatureItem = {
-  iconName: "Layers" | "Terminal" | "RefreshCw";
-  title: string;
-  desc: string;
-  color: "blue" | "purple" | "emerald";
-};
-
-export const featuresData: FeatureItem[] = [
-  {
-    iconName: "Layers",
-    title: "31 modules, zero setup",
-    desc: "Every professional task covered. Pick a goal — the right framework activates automatically.",
-    color: "blue",
-  },
-  {
-    iconName: "Terminal",
-    title: "Auto-routes your intent",
-    desc: "Describe the task once. The system selects the workflow, structures the input, and runs it.",
-    color: "purple",
-  },
-  {
-    iconName: "RefreshCw",
-    title: "Reusable from day one",
-    desc: "Built from real workflows. Start from proven structure — never from a blank page.",
-    color: "emerald",
-  },
-];
-
 // ─── Blog Preview ─────────────────────────────────────────────────────────────
 
 export type BlogPostPreview = {

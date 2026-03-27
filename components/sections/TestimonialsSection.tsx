@@ -3,7 +3,7 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 
-const testimonialKeys = ["t1", "t2", "t3", "t4", "t5", "t6"] as const;
+const testimonialKeys = ["t1", "t2", "t3"] as const;
 
 export const TestimonialsSection: React.FC = () => {
   const t = useTranslations("Testimonials");
