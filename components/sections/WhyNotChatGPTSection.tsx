@@ -1,39 +1,42 @@
 "use client";
 
 import React from "react";
-
-const comparisons = [
-  {
-    topic: "Output",
-    chatgpt: "A chat response",
-    fuyou: "A structured deliverable",
-  },
-  {
-    topic: "Workflow",
-    chatgpt: "Requires prompting skills",
-    fuyou: "Auto-selects the right workflow",
-  },
-  {
-    topic: "Reusability",
-    chatgpt: "One-off answers",
-    fuyou: "Reusable task system",
-  },
-  {
-    topic: "Speed",
-    chatgpt: "Trial and error",
-    fuyou: "First output in under 60 seconds",
-  },
-];
+import { useTranslations } from "next-intl";
 
 export const WhyNotChatGPTSection: React.FC = () => {
+  const t = useTranslations("WhyNotChatGPT");
+
+  const comparisons = [
+    {
+      topic: t("topicOutput"),
+      chatgpt: t("chatgptOutput"),
+      fuyou: t("fuyouOutput"),
+    },
+    {
+      topic: t("topicWorkflow"),
+      chatgpt: t("chatgptWorkflow"),
+      fuyou: t("fuyouWorkflow"),
+    },
+    {
+      topic: t("topicReusability"),
+      chatgpt: t("chatgptReusability"),
+      fuyou: t("fuyouReusability"),
+    },
+    {
+      topic: t("topicSpeed"),
+      chatgpt: t("chatgptSpeed"),
+      fuyou: t("fuyouSpeed"),
+    },
+  ];
+
   return (
     <section className="max-w-4xl mx-auto px-6 py-24 relative z-10">
       <div className="text-center mb-14">
         <p className="text-xs font-medium tracking-[0.25em] text-slate-500 uppercase mb-4">
-          Why FuyouAI
+          {t("sectionTag")}
         </p>
         <h2 className="text-3xl lg:text-4xl font-semibold text-white tracking-tight">
-          ChatGPT gives answers<br />We deliver outcomes
+          {t("headline1")}<br />{t("headline2")}
         </h2>
       </div>
 
@@ -42,10 +45,10 @@ export const WhyNotChatGPTSection: React.FC = () => {
         <div className="grid grid-cols-3 bg-slate-900/60 border-b border-slate-800/60">
           <div className="px-6 py-4" />
           <div className="px-6 py-4 border-l border-slate-800/60">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">ChatGPT</p>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{t("colChatGPT")}</p>
           </div>
           <div className="px-6 py-4 border-l border-[#1E9FFF]/20 bg-[#1E9FFF]/[0.03]">
-            <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">FuyouAI</p>
+            <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">{t("colFuyouAI")}</p>
           </div>
         </div>
 

@@ -1,4 +1,8 @@
-export default function TermsPage() {
+import { useTranslations } from "next-intl";
+
+export default function PrivacyPage() {
+  const t = useTranslations("Privacy");
+
   return (
     <div style={{ minHeight: "100vh", background: "#070b12", padding: "48px 20px" }}>
       <main
@@ -14,30 +18,12 @@ export default function TermsPage() {
         }}
       >
         <h1 style={{ color: "#fff", fontSize: 36, marginBottom: 16 }}>
-          Terms of Service
+          {t("title")}
         </h1>
-        <p>
-          The service is operated by Fuyouai. By using this service, you agree to
-          these Terms of Service.
-        </p>
-        <p>
-          Subscription access is required for paid features, and access remains active
-          only while your subscription is in good standing.
-        </p>
-        <p>
-          Acceptable use: you agree not to misuse the service, attempt unauthorized
-          access, or disrupt other users.
-        </p>
-        <p>
-          Limitation of liability: the service is provided on an &quot;as is&quot;
-          basis and we are not liable for indirect, incidental, or consequential
-          damages to the maximum extent permitted by law.
-        </p>
-        <p>
-          Termination or suspension: we may suspend or terminate access for violations
-          of these terms or for legal or operational reasons.
-        </p>
-        <p>Contact: admin@fuyouai.com</p>
+        <p>{t("paragraph1")}</p>
+        <p>{t("paragraph2")}</p>
+        <p>{t("paragraph3")}</p>
+        <p>{t("paragraph4")}</p>
 
         <div style={{ marginTop: 28, fontSize: 14 }}>
           <div style={{ color: "rgba(255,255,255,0.6)", marginBottom: 8 }}>

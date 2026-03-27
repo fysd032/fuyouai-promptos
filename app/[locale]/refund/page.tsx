@@ -1,4 +1,8 @@
-export default function AboutPage() {
+import { useTranslations } from "next-intl";
+
+export default function RefundPage() {
+  const t = useTranslations("Refund");
+
   return (
     <div style={{ minHeight: "100vh", background: "#070b12", padding: "48px 20px" }}>
       <main
@@ -13,21 +17,21 @@ export default function AboutPage() {
           lineHeight: 1.7,
         }}
       >
-        <h1 style={{ color: "#fff", fontSize: 36, marginBottom: 16 }}>About</h1>
-        <p>
-          FuyouAI turns ambiguous requirements into stable, automated workflows. We
-          focus on task understanding, structured breakdown, and execution-ready
-          outputs.
+        <h1 style={{ color: "#fff", fontSize: 36, marginBottom: 16 }}>
+          {t("title")}
+        </h1>
+        <p style={{ color: "#fff", fontWeight: 600 }}>
+          {t("paragraph1")}
         </p>
-        <p>
-          Our goal is to help teams ship consistent results faster, with reusable
-          task templates and reliable execution paths.
-        </p>
-        <p>Contact: admin@fuyouai.com</p>
+        <p>{t("paragraph2")}</p>
+        <p>{t("paragraph3")}</p>
+        <p>{t("paragraph4")}</p>
+        <p>{t("paragraph5")}</p>
+        <p>{t("contactLabel")}</p>
 
         <div style={{ marginTop: 28, fontSize: 14 }}>
           <div style={{ color: "rgba(255,255,255,0.6)", marginBottom: 8 }}>
-            Links
+            Legal links
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <a href="/pricing" style={{ color: "#fff" }}>

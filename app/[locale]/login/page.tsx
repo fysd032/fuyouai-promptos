@@ -1,4 +1,4 @@
-// app/login/page.tsx
+// app/[locale]/login/page.tsx
 "use client";
 
 import { Suspense } from "react";

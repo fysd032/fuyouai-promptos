@@ -1,4 +1,8 @@
-export default function PrivacyPage() {
+import { useTranslations } from "next-intl";
+
+export default function TermsPage() {
+  const t = useTranslations("Terms");
+
   return (
     <div style={{ minHeight: "100vh", background: "#070b12", padding: "48px 20px" }}>
       <main
@@ -14,15 +18,15 @@ export default function PrivacyPage() {
         }}
       >
         <h1 style={{ color: "#fff", fontSize: 36, marginBottom: 16 }}>
-          Privacy Policy
+          {t("title")}
         </h1>
-        <p>
-          We collect your email and basic usage data to provide the service,
-          maintain accounts, and improve performance.
-        </p>
-        <p>This information is used only to provide the service.</p>
-        <p>We do not sell user data.</p>
-        <p>Contact: admin@fuyouai.com</p>
+        <p>{t("paragraph1")}</p>
+        <p>{t("paragraph2")}</p>
+        <p>{t("paragraph3")}</p>
+        <p>{t("paragraph4")}</p>
+        <p>{t("paragraph5")}</p>
+        <p>{t("paragraph6")}</p>
+        <p>{t("contactEmail")}</p>
 
         <div style={{ marginTop: 28, fontSize: 14 }}>
           <div style={{ color: "rgba(255,255,255,0.6)", marginBottom: 8 }}>

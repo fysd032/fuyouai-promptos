@@ -2,46 +2,49 @@
 
 import React from "react";
 import { MessageSquare, GitBranch, FileText, ArrowRight } from "lucide-react";
-
-const steps = [
-  {
-    number: "01",
-    Icon: MessageSquare,
-    title: "Describe your task",
-    desc: "Plain language. No commands, no prompt engineering.",
-    iconBg: "bg-blue-500/10",
-    iconText: "text-blue-400",
-    numText: "text-blue-400/30",
-  },
-  {
-    number: "02",
-    Icon: GitBranch,
-    title: "AI picks the right workflow",
-    desc: "31 modules. The correct one activates automatically.",
-    iconBg: "bg-purple-500/10",
-    iconText: "text-purple-400",
-    numText: "text-purple-400/30",
-  },
-  {
-    number: "03",
-    Icon: FileText,
-    title: "Get a usable deliverable",
-    desc: "Formatted. Structured. Ready to send or publish.",
-    iconBg: "bg-emerald-500/10",
-    iconText: "text-emerald-400",
-    numText: "text-emerald-400/30",
-  },
-];
+import { useTranslations } from "next-intl";
 
 export const HowItWorksSection: React.FC = () => {
+  const t = useTranslations("HowItWorks");
+
+  const steps = [
+    {
+      number: "01",
+      Icon: MessageSquare,
+      title: t("step1Title"),
+      desc: t("step1Desc"),
+      iconBg: "bg-blue-500/10",
+      iconText: "text-blue-400",
+      numText: "text-blue-400/30",
+    },
+    {
+      number: "02",
+      Icon: GitBranch,
+      title: t("step2Title"),
+      desc: t("step2Desc"),
+      iconBg: "bg-purple-500/10",
+      iconText: "text-purple-400",
+      numText: "text-purple-400/30",
+    },
+    {
+      number: "03",
+      Icon: FileText,
+      title: t("step3Title"),
+      desc: t("step3Desc"),
+      iconBg: "bg-emerald-500/10",
+      iconText: "text-emerald-400",
+      numText: "text-emerald-400/30",
+    },
+  ];
+
   return (
     <section className="max-w-7xl mx-auto px-6 py-24 relative z-10">
       <div className="text-center mb-16">
         <p className="text-xs font-medium tracking-[0.25em] text-slate-500 uppercase mb-4">
-          How it works
+          {t("sectionTag")}
         </p>
         <h2 className="text-3xl lg:text-4xl font-semibold text-white tracking-tight">
-          Three steps. Real output.
+          {t("headline")}
         </h2>
       </div>
 

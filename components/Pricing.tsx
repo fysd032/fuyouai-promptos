@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { SiteFooter } from "./SiteFooter";
 import { supabase } from "../src/lib/supabaseClient";
 import {
@@ -12,6 +13,7 @@ import {
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
 export const Pricing: React.FC = () => {
+  const t = useTranslations("Pricing");
   const router = useRouter();
   const [loading, setLoading] = useState<"basic" | "pro" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,11 +79,11 @@ export const Pricing: React.FC = () => {
     if (!subscription) return null;
 
     if (isCanceling && subscription.current_period_end) {
-      return `Active until ${formatExpiryDate(subscription.current_period_end)}`;
+      return t("activeUntil", { date: formatExpiryDate(subscription.current_period_end) });
     }
 
-    if (isActive) return "Active";
-    return "Inactive";
+    if (isActive) return t("statusActive");
+    return t("statusInactive");
   };
 
   // ✅ 获取状态颜色
@@ -96,10 +98,10 @@ export const Pricing: React.FC = () => {
       <main className="max-w-5xl mx-auto px-6 py-20">
         <div className="mb-10">
           <h1 className="text-4xl sm:text-5xl font-semibold text-white">
-            Pricing
+            {t("title")}
           </h1>
           <p className="mt-3 text-slate-400">
-            Simple, transparent pricing. Cancel anytime.
+            {t("subtitle")}
           </p>
         </div>
 
@@ -107,17 +109,17 @@ export const Pricing: React.FC = () => {
         {!subLoading && isAuthenticated && subscription && (
           <div className="mb-6 rounded-lg bg-slate-800/50 border border-slate-700/50 px-4 py-3 text-sm text-slate-300">
             <div className="flex items-center gap-2 flex-wrap">
-              <span>Current plan:</span>
+              <span>{t("currentPlan")}</span>
               <span
                 className={`font-medium ${
                   isActive ? "text-green-400" : "text-slate-400"
                 }`}
               >
                 {currentPlan === "basic"
-                  ? "Basic"
+                  ? t("planBasic")
                   : currentPlan === "pro"
-                  ? "Pro"
-                  : "Free"}
+                  ? t("planPro")
+                  : t("planFree")}
               </span>
               <span className="text-slate-500">|</span>
               <span className={getStatusColor()}>{getStatusText()}</span>
@@ -126,7 +128,7 @@ export const Pricing: React.FC = () => {
                 <>
                   <span className="text-slate-500">|</span>
                   <span className="text-yellow-400 text-xs">
-                    Renewal canceled
+                    {t("renewalCanceled")}
                   </span>
                 </>
               )}
@@ -134,9 +136,7 @@ export const Pricing: React.FC = () => {
 
             {isCanceling && subscription.current_period_end && (
               <div className="mt-2 pt-2 border-t border-slate-700/50 text-xs text-slate-400">
-                You'll have full access until{" "}
-                {formatExpiryDate(subscription.current_period_end)}. You can
-                resubscribe after your current period ends.
+                {t("accessUntilNote", { date: formatExpiryDate(subscription.current_period_end) })}
               </div>
             )}
           </div>
@@ -152,26 +152,26 @@ export const Pricing: React.FC = () => {
           {/* Basic */}
           <div className="rounded-2xl border border-slate-800/60 bg-slate-900/40 p-6">
             <div className="inline-flex items-center rounded-full border border-brand-500/40 bg-brand-900/30 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-brand-200">
-              Most popular
+              {t("basicBadge")}
             </div>
-            <h2 className="mt-4 text-2xl font-semibold text-white">Basic</h2>
+            <h2 className="mt-4 text-2xl font-semibold text-white">{t("basicName")}</h2>
             <p className="mt-2 text-sm text-slate-400">
-              For individuals building structured AI workflows.
+              {t("basicDesc")}
             </p>
 
             <div className="mt-6 flex items-end gap-2">
-              <span className="text-5xl font-semibold text-white">$29</span>
-              <span className="text-sm text-slate-400 mb-1">/ month</span>
+              <span className="text-5xl font-semibold text-white">{t("basicPrice")}</span>
+              <span className="text-sm text-slate-400 mb-1">{t("basicPeriod")}</span>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Early access. Cancel anytime.
+              {t("basicNote")}
             </p>
 
             <ul className="mt-6 space-y-2 text-sm text-slate-300">
-              <li>All general modules</li>
-              <li>Standard core modules</li>
-              <li>Standard usage limits</li>
-              <li>Email support</li>
+              <li>{t("basicFeature1")}</li>
+              <li>{t("basicFeature2")}</li>
+              <li>{t("basicFeature3")}</li>
+              <li>{t("basicFeature4")}</li>
             </ul>
 
             <button
@@ -181,40 +181,40 @@ export const Pricing: React.FC = () => {
               className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#1E9FFF] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#4CB2FF] shadow-[0_4px_14px_rgba(30,159,255,0.28)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading === "basic"
-                ? "Processing..."
+                ? t("basicBtnProcessing")
                 : isBasicActive
                 ? isCanceling
-                  ? "Active Until Period End"
-                  : "Current Plan"
+                  ? t("basicBtnActiveUntil")
+                  : t("basicBtnCurrent")
                 : isProActive
-                ? "Included in Pro"
-                : "Get Basic"}
+                ? t("basicBtnIncluded")
+                : t("basicBtnGet")}
             </button>
           </div>
 
           {/* Pro */}
           <div className="rounded-2xl border border-slate-700/70 bg-slate-900/40 p-6 ring-1 ring-brand-500/30">
             <div className="inline-flex items-center rounded-full border border-brand-500/40 bg-brand-900/30 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-brand-200">
-              Advanced
+              {t("proBadge")}
             </div>
-            <h2 className="mt-4 text-2xl font-semibold text-white">Pro</h2>
+            <h2 className="mt-4 text-2xl font-semibold text-white">{t("proName")}</h2>
             <p className="mt-2 text-sm text-slate-400">
-              For advanced users requiring deeper system control.
+              {t("proDesc")}
             </p>
 
             <div className="mt-6 flex items-end gap-2">
-              <span className="text-5xl font-semibold text-white">$69</span>
-              <span className="text-sm text-slate-400 mb-1">/ month</span>
+              <span className="text-5xl font-semibold text-white">{t("proPrice")}</span>
+              <span className="text-sm text-slate-400 mb-1">{t("proPeriod")}</span>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Early access. Cancel anytime.
+              {t("proNote")}
             </p>
 
             <ul className="mt-6 space-y-2 text-sm text-slate-300">
-              <li>All general modules</li>
-              <li>Pro core modules</li>
-              <li>Expanded usage limits</li>
-              <li>Priority support</li>
+              <li>{t("proFeature1")}</li>
+              <li>{t("proFeature2")}</li>
+              <li>{t("proFeature3")}</li>
+              <li>{t("proFeature4")}</li>
             </ul>
 
             <button
@@ -224,28 +224,26 @@ export const Pricing: React.FC = () => {
               className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#1E9FFF] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#4CB2FF] shadow-[0_4px_14px_rgba(30,159,255,0.28)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading === "pro"
-                ? "Processing..."
+                ? t("proBtnProcessing")
                 : isProActive
                 ? isCanceling
-                  ? "Active Until Period End"
-                  : "Current Plan"
+                  ? t("proBtnActiveUntil")
+                  : t("proBtnCurrent")
                 : isBasicActive
-                ? "Upgrade to Pro"
-                : "Get Pro"}
+                ? t("proBtnUpgrade")
+                : t("proBtnGet")}
             </button>
           </div>
         </div>
 
         <div className="mt-8 rounded-2xl border border-slate-800/60 bg-slate-900/40 p-5 text-xs text-slate-500 space-y-2">
           <ul className="space-y-1">
-            <li>Cancel anytime.</li>
-            <li>Renews monthly until canceled.</li>
-            <li>Manage billing via the customer portal.</li>
+            <li>{t("footerLine1")}</li>
+            <li>{t("footerLine2")}</li>
+            <li>{t("footerLine3")}</li>
           </ul>
           <p className="pt-2 border-t border-slate-800/60">
-            Access depth, module versions, and system capabilities may change
-            over time and are defined by the active subscription at the time of
-            billing.
+            {t("footerDisclaimer")}
           </p>
         </div>
       </main>

@@ -2,13 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type RouterResult, type Stage } from "../../src/hooks/useIntentRouter";
-
-const PLACEHOLDERS = [
-  "Write a follow-up email to a client about next steps",
-  "Build a business plan for an AI startup",
-  "Analyze our competitors' market strategy",
-];
 
 interface HeroSectionProps {
   routerInput: string;
@@ -33,6 +28,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   resetRouterError,
   scrollToFeatures,
 }) => {
+  const t = useTranslations("Hero");
+
+  const PLACEHOLDERS = [
+    t("placeholder1"),
+    t("placeholder2"),
+    t("placeholder3"),
+  ];
+
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -51,20 +54,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   return (
     <header className="max-w-4xl mx-auto px-6 pt-32 pb-8 text-center relative z-10">
       <p className="text-xs font-medium tracking-[0.3em] text-slate-500 uppercase mb-8">
-        FuyouAI · Prompt OS
+        {t("badge")}
       </p>
 
       <h1 className="text-5xl lg:text-[60px] font-semibold leading-[1.1] tracking-tight text-white mb-8">
-        AI tool to turn ideas into actionable plans
+        {t("headline")}
       </h1>
 
       <p className="text-lg lg:text-xl leading-[1.7] text-slate-400 font-normal max-w-xl mx-auto mb-16">
-        Auto-route tasks to the right workflow.<br />
-        Get structured output — not just chat.
+        {t("subheadline1")}<br />
+        {t("subheadline2")}
       </p>
 
       <div className="max-w-4xl mx-auto flex flex-col gap-4">
-        <p className="text-xs text-slate-500 text-left pl-1">Tell me what you want to accomplish</p>
+        <p className="text-xs text-slate-500 text-left pl-1">{t("inputLabel")}</p>
 
         <form onSubmit={handleRouterSubmit} className="flex flex-col gap-2">
           <div className="relative flex items-center">
@@ -80,7 +83,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="absolute right-2 flex items-center gap-2">
               {isLoading ? (
                 <span className="flex items-center gap-2 bg-[#1E9FFF]/70 text-white text-sm font-medium px-7 py-3 rounded-lg cursor-not-allowed">
-                  <Loader2 size={15} className="animate-spin" /> Routing...
+                  <Loader2 size={15} className="animate-spin" /> {t("routing")}
                 </span>
               ) : isConfirmed ? (
                 <span className="flex items-center gap-2 bg-emerald-500 text-white text-sm font-medium px-7 py-3 rounded-lg">
@@ -92,7 +95,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   onClick={resetRouterError}
                   className="flex items-center gap-2 bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white text-sm font-medium px-7 py-3 rounded-lg transition-colors"
                 >
-                  Try again
+                  {t("tryAgain")}
                 </button>
               ) : isHinting ? (
                 <button
@@ -100,14 +103,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   onClick={handleRouterConfirm}
                   className="flex items-center gap-2 bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white text-sm font-medium px-7 py-3 rounded-lg transition-colors"
                 >
-                  Start <ArrowRight size={15} />
+                  {t("start")} <ArrowRight size={15} />
                 </button>
               ) : (
                 <button
                   type="submit"
                   className="flex items-center gap-2 bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white text-sm font-medium px-7 py-3 rounded-lg transition-colors shadow-[0_2px_10px_rgba(30,159,255,0.3)]"
                 >
-                  Start <ArrowRight size={15} />
+                  {t("start")} <ArrowRight size={15} />
                 </button>
               )}
             </div>
@@ -122,13 +125,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         </form>
 
         <p className="text-xs text-slate-600 text-center mt-4">
-          31 professional modules · Auto intent routing · Structured output
+          {t("moduleInfo")}
         </p>
 
         {/* Trust line */}
         <div className="flex items-center justify-center gap-2 flex-wrap mt-5">
-          <span className="text-[11px] text-slate-600">Used by</span>
-          {["Founders", "Product Managers", "AI Builders", "Creators"].map((role) => (
+          <span className="text-[11px] text-slate-600">{t("usedBy")}</span>
+          {[t("roleFounders"), t("roleProductManagers"), t("roleAIBuilders"), t("roleCreators")].map((role) => (
             <span
               key={role}
               className="text-[11px] text-slate-500 bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 rounded-full"
@@ -139,13 +142,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         </div>
 
         <div className="flex items-center justify-center gap-6 mt-4">
-          <span className="text-xs text-slate-600">Preview first step free</span>
+          <span className="text-xs text-slate-600">{t("previewFree")}</span>
           <button
             type="button"
             onClick={scrollToFeatures}
             className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-4"
           >
-            View Features
+            {t("viewFeatures")}
           </button>
         </div>
       </div>

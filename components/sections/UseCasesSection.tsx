@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useCasesData } from "./landingData";
+import { useTranslations } from "next-intl";
 
 const colorMap = {
   blue: {
@@ -35,17 +35,54 @@ const colorMap = {
 };
 
 export const UseCasesSection: React.FC = () => {
+  const t = useTranslations("UseCases");
+
+  const useCasesData = [
+    {
+      tag: t("foundersTag"),
+      title: t("foundersTitle"),
+      desc: t("foundersDesc"),
+      input: t("foundersInput"),
+      output: t("foundersOutput"),
+      color: "blue" as const,
+    },
+    {
+      tag: t("aiBuildersTag"),
+      title: t("aiBuildersTitle"),
+      desc: t("aiBuildersDesc"),
+      input: t("aiBuildersInput"),
+      output: t("aiBuildersOutput"),
+      color: "purple" as const,
+    },
+    {
+      tag: t("pmTag"),
+      title: t("pmTitle"),
+      desc: t("pmDesc"),
+      input: t("pmInput"),
+      output: t("pmOutput"),
+      color: "emerald" as const,
+    },
+    {
+      tag: t("creatorsTag"),
+      title: t("creatorsTitle"),
+      desc: t("creatorsDesc"),
+      input: t("creatorsInput"),
+      output: t("creatorsOutput"),
+      color: "amber" as const,
+    },
+  ];
+
   return (
     <section className="max-w-7xl mx-auto px-6 py-24 relative z-10">
       <div className="text-center mb-14">
         <p className="text-xs font-medium tracking-[0.25em] text-slate-500 uppercase mb-4">
-          Who it&apos;s for
+          {t("sectionTag")}
         </p>
         <h2 className="text-3xl lg:text-4xl font-semibold text-white tracking-tight mb-4">
-          Built for people who ship
+          {t("headline")}
         </h2>
         <p className="text-base text-slate-500 max-w-md mx-auto">
-          Not a chatbot. Structured output, every time.
+          {t("subheadline")}
         </p>
       </div>
 
@@ -78,7 +115,7 @@ export const UseCasesSection: React.FC = () => {
               <div className="mt-auto flex flex-col gap-2.5 pt-4 border-t border-white/5">
                 <div className="flex items-start gap-2.5">
                   <span className="text-[10px] font-medium text-slate-600 uppercase tracking-wider mt-0.5 w-10 shrink-0">
-                    In
+                    {t("inputLabel")}
                   </span>
                   <p className="text-xs text-slate-400 italic leading-relaxed">
                     &quot;{item.input}&quot;
@@ -86,7 +123,7 @@ export const UseCasesSection: React.FC = () => {
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[10px] font-medium text-slate-600 uppercase tracking-wider mt-0.5 w-10 shrink-0">
-                    Out
+                    {t("outputLabel")}
                   </span>
                   <p className={`text-xs font-semibold ${c.outputText}`}>{item.output}</p>
                 </div>

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Post = {
   title: string;
@@ -11,7 +12,7 @@ type Post = {
   category: string;
 };
 
-function BlogCard({ post }: { post: Post }) {
+function BlogCard({ post, readLabel }: { post: Post; readLabel: string }) {
   return (
     <Link
       href={post.href}
@@ -22,7 +23,7 @@ function BlogCard({ post }: { post: Post }) {
         hover:-translate-y-1 hover:shadow-xl hover:shadow-black/50
         transition-all duration-300 ease-out"
     >
-      {/* Top highlight — 顶部高光线 */}
+      {/* Top highlight */}
       <div
         className="absolute top-0 left-0 right-0 h-[2px]
           bg-gradient-to-r from-blue-500 via-blue-400/60 to-transparent
@@ -64,7 +65,7 @@ function BlogCard({ post }: { post: Post }) {
       {/* Read link */}
       <div className="flex items-center gap-1 text-xs text-slate-600
         group-hover:text-blue-400 transition-colors duration-200 mt-auto">
-        Read
+        {readLabel}
         <ArrowRight
           size={12}
           className="group-hover:translate-x-0.5 transition-transform duration-200"
@@ -75,6 +76,7 @@ function BlogCard({ post }: { post: Post }) {
 }
 
 export const BlogPreviewSection: React.FC = () => {
+  const t = useTranslations("Blog");
   const [posts, setPosts] = useState<Post[]>([]);
 
   useEffect(() => {
@@ -91,10 +93,10 @@ export const BlogPreviewSection: React.FC = () => {
       <div className="flex items-end justify-between mb-12">
         <div>
           <p className="text-xs font-medium tracking-[0.25em] text-slate-500 uppercase mb-4">
-            Insights
+            {t("sectionTag")}
           </p>
           <h2 className="text-3xl lg:text-4xl font-semibold text-white tracking-tight">
-            Learn how to do real work with AI
+            {t("headline")}
           </h2>
         </div>
         <Link
@@ -102,13 +104,13 @@ export const BlogPreviewSection: React.FC = () => {
           target="_blank"
           className="hidden md:flex items-center gap-1.5 text-sm text-slate-500 hover:text-white transition-colors"
         >
-          All posts <ArrowRight size={14} />
+          {t("allPosts")} <ArrowRight size={14} />
         </Link>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
         {posts.map((post) => (
-          <BlogCard key={post.title} post={post} />
+          <BlogCard key={post.title} post={post} readLabel={t("read")} />
         ))}
       </div>
     </section>

@@ -10,9 +10,11 @@ import {
   Loader2,
   ArrowRight,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { supabase } from "../src/lib/supabaseClient";
 
 export const Login: React.FC = () => {
+  const t = useTranslations("Login");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -235,7 +237,7 @@ export const Login: React.FC = () => {
             size={18}
             className="group-hover:-translate-x-1 transition-transform"
           />
-          Back to Home
+          {t("backToHome")}
         </button>
       </div>
 
@@ -247,17 +249,17 @@ export const Login: React.FC = () => {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">
             {step === "email"
-              ? "Welcome to Prompt OS"
+              ? t("welcomeTitle")
               : isInviteFlow
-              ? "Check your email"
-              : "Enter verification code"}
+              ? t("checkEmail")
+              : t("enterCode")}
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
             {step === "email" ? (
-              "Log in to start your 15-day free trial, no password needed"
+              t("loginSubtitle")
             ) : (
               <span>
-                {isInviteFlow ? "Sign-in link sent to " : "Code sent to "}
+                {isInviteFlow ? t("signInLinkSent") : t("codeSent")}
                 <span className="text-slate-800 font-medium">{email}</span>
               </span>
             )}
@@ -278,7 +280,7 @@ export const Login: React.FC = () => {
           >
             <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                Work Email
+                {t("workEmail")}
               </label>
               <div className="relative">
                 <Mail
@@ -294,7 +296,7 @@ export const Login: React.FC = () => {
                     setError(null);
                   }}
                   className="w-full pl-10 pr-4 py-3 bg-white border border-[#6BB7FF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E9FFF] focus:border-[#1E9FFF] transition-all text-slate-900 placeholder:text-slate-400"
-                  placeholder="name@company.com"
+                  placeholder={t("emailPlaceholder")}
                   autoFocus
                 />
               </div>
@@ -308,15 +310,15 @@ export const Login: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  Sending...
+                  {t("sending")}
                 </>
               ) : isInviteFlow ? (
                 <>
-                  Send sign-in link<ArrowRight size={18} />
+                  {t("sendSignInLink")}<ArrowRight size={18} />
                 </>
               ) : (
                 <>
-                  Get verification code<ArrowRight size={18} />
+                  {t("getVerificationCode")}<ArrowRight size={18} />
                 </>
               )}
             </button>
@@ -332,14 +334,13 @@ export const Login: React.FC = () => {
             <div className="flex items-start gap-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-slate-600">
               <Mail className="text-[#1E9FFF] mt-0.5 shrink-0" size={16} />
               <span>
-                Click the <span className="font-semibold text-slate-800">sign-in link</span> in your email,
-                or enter the code below.
+                {t("clickSignInLink")} <span className="font-semibold text-slate-800">{t("signInLink")}</span> {t("orEnterCode")}
               </span>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                Verification Code
+                {t("verificationCode")}
               </label>
               <div className="relative">
                 <Lock
@@ -355,7 +356,7 @@ export const Login: React.FC = () => {
                     setError(null);
                   }}
                   className="w-full pl-10 pr-4 py-3 bg-white border border-[#6BB7FF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E9FFF] focus:border-[#1E9FFF] transition-all text-slate-900 placeholder:text-slate-400 tracking-widest font-mono text-lg"
-                  placeholder="12345678"
+                  placeholder={t("codePlaceholder")}
                   maxLength={8}
                   autoFocus
                 />
@@ -370,11 +371,11 @@ export const Login: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  Verifying...
+                  {t("verifying")}
                 </>
               ) : (
                 <>
-                  Enter Prompt OS <CheckCircle size={18} />
+                  {t("enterPromptOS")} <CheckCircle size={18} />
                 </>
               )}
             </button>
@@ -385,7 +386,7 @@ export const Login: React.FC = () => {
                 onClick={() => setStep("email")}
                 className="text-slate-400 hover:text-slate-600 transition-colors"
               >
-                Change email
+                {t("changeEmail")}
               </button>
               <button
                 type="button"
@@ -397,7 +398,7 @@ export const Login: React.FC = () => {
                     : "text-[#1E9FFF] hover:text-[#4CB2FF]"
                 }`}
               >
-                {countdown > 0 ? `Resend in ${countdown}s` : "Resend link"}
+                {countdown > 0 ? t("resendIn", { seconds: countdown }) : t("resendLink")}
               </button>
             </div>
           </form>
@@ -411,7 +412,7 @@ export const Login: React.FC = () => {
           >
             <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                Verification Code
+                {t("verificationCode")}
               </label>
               <div className="relative">
                 <Lock
@@ -427,7 +428,7 @@ export const Login: React.FC = () => {
                     setError(null);
                   }}
                   className="w-full pl-10 pr-4 py-3 bg-white border border-[#6BB7FF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E9FFF] focus:border-[#1E9FFF] transition-all text-slate-900 placeholder:text-slate-400 tracking-widest font-mono text-lg"
-                  placeholder="12345678"
+                  placeholder={t("codePlaceholder")}
                   maxLength={8}
                   autoFocus
                 />
@@ -442,11 +443,11 @@ export const Login: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  Verifying...
+                  {t("verifying")}
                 </>
               ) : (
                 <>
-                  Enter Prompt OS <CheckCircle size={18} />
+                  {t("enterPromptOS")} <CheckCircle size={18} />
                 </>
               )}
             </button>
@@ -457,7 +458,7 @@ export const Login: React.FC = () => {
                 onClick={() => setStep("email")}
                 className="text-slate-400 hover:text-slate-600 transition-colors"
               >
-                Change email
+                {t("changeEmail")}
               </button>
               <button
                 type="button"
@@ -470,8 +471,8 @@ export const Login: React.FC = () => {
                 }`}
               >
                 {countdown > 0
-                  ? `Resend in ${countdown}s`
-                  : "Resend verification code"}
+                  ? t("resendIn", { seconds: countdown })
+                  : t("resendCode")}
               </button>
             </div>
           </form>
@@ -481,7 +482,7 @@ export const Login: React.FC = () => {
         <div className="mt-8 border-t border-slate-100 pt-6">
           <details className="group text-sm text-slate-500 cursor-pointer">
             <summary className="text-center text-slate-400 hover:text-[#1E9FFF] font-medium list-none flex items-center justify-center gap-1 transition-colors select-none">
-              View 15-day trial details
+              {t("trialDetails")}
               <span className="group-open:rotate-180 transition-transform text-xs">
                 v
               </span>
@@ -489,26 +490,26 @@ export const Login: React.FC = () => {
             <div className="mt-4 space-y-2 bg-slate-50/80 p-4 rounded-xl text-slate-600 text-xs leading-relaxed border border-slate-100 animate-in fade-in slide-in-from-top-2">
               <p className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-[#1E9FFF] rounded-full"></span>{" "}
-                Access all 7 frameworks and 70 modules
+                {t("trialFeature1")}
               </p>
               <p className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-[#1E9FFF] rounded-full"></span>{" "}
-                Full access to Prompt Optimizer
+                {t("trialFeature2")}
               </p>
               <p className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-[#1E9FFF] rounded-full"></span>{" "}
-                Auto-downgrade to Free after trial ends
+                {t("trialFeature3")}
               </p>
               <p className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-[#1E9FFF] rounded-full"></span>{" "}
-                No credit card required, no auto charge
+                {t("trialFeature4")}
               </p>
             </div>
           </details>
         </div>
 
         <p className="text-[10px] text-center mt-8 text-slate-300">
-          By logging in, you agree to the User Agreement and Privacy Policy
+          {t("agreement")}
         </p>
       </div>
     </div>

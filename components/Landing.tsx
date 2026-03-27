@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import { supabase } from "../src/lib/supabaseClient";
 import { SiteFooter } from "./SiteFooter";
 import { useIntentRouter, type RouterResult } from "../src/hooks/useIntentRouter";
@@ -15,9 +16,12 @@ import { OutputPreviewSection } from "./sections/OutputPreviewSection";
 import { WhyNotChatGPTSection } from "./sections/WhyNotChatGPTSection";
 import { FeaturesSection } from "./sections/FeaturesSection";
 import { BlogPreviewSection } from "./sections/BlogPreviewSection";
+import { TestimonialsSection } from "./sections/TestimonialsSection";
 import { FinalCTASection } from "./sections/FinalCTASection";
 
 export const Landing: React.FC = () => {
+  const t = useTranslations("Nav");
+  const locale = useLocale();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const router = useRouter();
 
@@ -86,29 +90,29 @@ export const Landing: React.FC = () => {
 
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
           <button onClick={scrollToFeatures} className="hover:text-white transition-colors">
-            Features
+            {t("features")}
           </button>
-          <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
-          <Link href="/modules" className="hover:text-white transition-colors">Modules</Link>
+          <Link href="/pricing" className="hover:text-white transition-colors">{t("pricing")}</Link>
+          <Link href="/modules" className="hover:text-white transition-colors">{t("modules")}</Link>
 
           {userEmail ? (
             <Link
               href="/modules"
               className="bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white px-5 py-2 rounded-xl transition-all shadow-[0_4px_14px_rgba(30,159,255,0.28)] flex items-center gap-2 group font-semibold"
             >
-              Dashboard
+              {t("dashboard")}
               <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
           ) : (
             <>
               <Link href="/login" className="hover:text-white transition-colors whitespace-nowrap">
-                Sign in
+                {t("signIn")}
               </Link>
               <Link
                 href="/login"
                 className="bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white font-semibold px-5 py-2 rounded-xl transition-all shadow-[0_10px_30px_rgba(30,159,255,0.28)] active:scale-[0.98] inline-flex items-center gap-2"
               >
-                Get Started
+                {t("getStarted")}
                 <ArrowRight size={14} />
               </Link>
             </>
@@ -149,9 +153,9 @@ export const Landing: React.FC = () => {
       <div className="w-full border-t border-white/[0.04]" />
       <FeaturesSection />
 
-      {/* Blog Preview */}
+      {/* Blog Preview / Testimonials */}
       <div className="w-full border-t border-white/[0.04]" />
-      <BlogPreviewSection />
+      {locale === "zh" ? <TestimonialsSection /> : <BlogPreviewSection />}
 
       {/* Final CTA */}
       <div className="w-full border-t border-white/[0.04]" />

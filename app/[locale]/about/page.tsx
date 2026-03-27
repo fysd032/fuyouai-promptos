@@ -1,4 +1,8 @@
-export default function RefundPage() {
+import { useTranslations } from "next-intl";
+
+export default function AboutPage() {
+  const t = useTranslations("About");
+
   return (
     <div style={{ minHeight: "100vh", background: "#070b12", padding: "48px 20px" }}>
       <main
@@ -13,44 +17,27 @@ export default function RefundPage() {
           lineHeight: 1.7,
         }}
       >
-        <h1 style={{ color: "#fff", fontSize: 36, marginBottom: 16 }}>
-          Refund Policy
-        </h1>
-        <p style={{ color: "#fff", fontWeight: 600 }}>
-          7-day refund for first-time purchases.
-        </p>
-        <p>
-          Refunds are available only for first-time purchases requested within 7 days.
-        </p>
-        <p>
-          To request a refund, email admin@fuyouai.com with your account email and
-          purchase details.
-        </p>
-        <p>
-          Refunds are processed to the original payment method and may take time
-          depending on the provider.
-        </p>
-        <p>
-          After the 7-day window, refunds are not provided because this is a digital
-          service.
-        </p>
+        <h1 style={{ color: "#fff", fontSize: 36, marginBottom: 16 }}>{t("title")}</h1>
+        <p>{t("paragraph1")}</p>
+        <p>{t("paragraph2")}</p>
+        <p>{t("contact")}</p>
 
         <div style={{ marginTop: 28, fontSize: 14 }}>
           <div style={{ color: "rgba(255,255,255,0.6)", marginBottom: 8 }}>
-            Legal links
+            {t("links")}
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <a href="/pricing" style={{ color: "#fff" }}>
-              Pricing
+              {t("pricing")}
             </a>
             <a href="/privacy" style={{ color: "#fff" }}>
-              Privacy
+              {t("privacy")}
             </a>
             <a href="/terms" style={{ color: "#fff" }}>
-              Terms
+              {t("terms")}
             </a>
             <a href="/refund" style={{ color: "#fff" }}>
-              Refund
+              {t("refund")}
             </a>
           </div>
         </div>
