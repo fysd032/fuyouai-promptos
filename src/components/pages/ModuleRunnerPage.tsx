@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { copyToClipboard } from "@/lib/utils/clipboard";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Play, Sparkles, Terminal, Copy, Check } from "lucide-react";
@@ -127,9 +128,9 @@ const ModuleRunnerPage: React.FC = () => {
     }
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!result) return;
-    navigator.clipboard.writeText(result);
+    await copyToClipboard(result);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

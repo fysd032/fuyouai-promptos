@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { copyToClipboard } from "@/lib/utils/clipboard";
 import { Copy, RefreshCw, Wand2, Layers, MessageSquare, ShieldAlert, FileText } from 'lucide-react';
 
 export const PromptOptimizer: React.FC = () => {
@@ -35,8 +36,8 @@ export const PromptOptimizer: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generatedPrompt);
+  const handleCopy = async () => {
+    await copyToClipboard(generatedPrompt);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };

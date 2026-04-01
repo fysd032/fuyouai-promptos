@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Play, Loader2, Copy, Check, Sparkles, ArrowRight } from "lucide-react";
+import { copyToClipboard } from "@/lib/utils/clipboard";
 
 type RunState = {
   text: string;
@@ -88,12 +89,11 @@ export default function GuestTrialPage() {
     handleRun();
   }, [userInput, frontModuleId, variantId, autoTriggered, handleRun]);
 
-  const handleCopy = useCallback(() => {
+  const handleCopy = useCallback(async () => {
     if (!output) return;
-    navigator.clipboard.writeText(output).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    await copyToClipboard(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }, [output]);
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { copyToClipboard } from "@/lib/utils/clipboard";
 
 // A lightweight component to render our structured markdown without heavy deps
 // In a real production app, use 'react-markdown' or 'remark'
@@ -62,8 +63,8 @@ export const SimpleMarkdown: React.FC<{ content: string }> = ({ content }) => {
 export const CodeBlockViewer: React.FC<{ code: string; language?: string }> = ({ code }) => {
   const [copied, setCopied] = React.useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code);
+  const handleCopy = async () => {
+    await copyToClipboard(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

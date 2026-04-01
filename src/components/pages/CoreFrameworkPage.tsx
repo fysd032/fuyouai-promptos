@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { copyToClipboard } from "@/lib/utils/clipboard";
 import { useSearchParams } from "next/navigation";
 import { callCoreFramework, type CoreParsedOutput } from "@/src/lib/coreframework-api";
 import { supabase } from "@/src/lib/supabaseClient";
@@ -575,28 +576,9 @@ const CoreFrameworkPage: React.FC = () => {
 
     if (!textToCopy.trim()) return;
 
-    try {
-      await navigator.clipboard.writeText(textToCopy);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1200);
-    } catch {
-      try {
-        const textarea = document.createElement("textarea");
-        textarea.value = textToCopy;
-        textarea.style.position = "fixed";
-        textarea.style.left = "-9999px";
-        textarea.style.top = "-9999px";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1200);
-      } catch (err) {
-        console.error("Copy failed", err);
-      }
-    }
+    await copyToClipboard(textToCopy);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
   }, [activeTab, generatedPrompt, aiOutput, activeItem.prompt]);
 
   return (

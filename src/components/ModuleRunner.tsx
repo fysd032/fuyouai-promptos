@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { copyToClipboard } from "@/lib/utils/clipboard";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Play, Copy, Check, Upload, X, Trash2, Mic } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
@@ -326,13 +327,9 @@ setActiveAttachmentId(att.id);
 
   const handleCopy = async () => {
     if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // 可选：提示用户手动复制
-    }
+    await copyToClipboard(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
