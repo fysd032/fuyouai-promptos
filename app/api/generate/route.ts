@@ -197,12 +197,10 @@ async function guestAwareHandler(req: Request): Promise<Response> {
     cloned.headers.set("X-Guest-Remaining", String(GUEST_TOTAL_LIMIT - count));
     return cloned;
   } catch (err) {
-    // Redis down → fail-closed for guests (deny access to protect API quota)
-    console.error("[generate] Redis unavailable for guest rate-limit, denying request:", err);
-    return NextResponse.json(
-      { ok: false, code: "SERVICE_UNAVAILABLE", error: "Service temporarily unavailable. Please try again later." },
-      { status: 503, headers: corsHeaders }
-    );
+    // Redis down → fail-open with warning (blocking all guests is worse for UX)
+    console.warn("[generate] Redis unavailable for guest rate-limit, allowing request:", err);
+    const res = await handler(req);
+    return res;
   }
 }
 

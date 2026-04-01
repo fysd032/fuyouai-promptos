@@ -18,9 +18,9 @@ async function consumeGuestCall(ip: string): Promise<{ ok: boolean; count: numbe
     if (count === 1) redis.expire(key, GUEST_WINDOW_SECONDS).catch(() => {});
     return { ok: count <= GUEST_LIMIT, count };
   } catch (err) {
-    // fail-closed: deny guest access when Redis is unavailable to protect API quota
-    console.error("[run-guest] Redis unavailable for guest rate-limit:", err);
-    return { ok: false, count: 0 };
+    // Redis down → fail-open with warning (blocking all guests is worse for UX)
+    console.warn("[run-guest] Redis unavailable for guest rate-limit, allowing request:", err);
+    return { ok: true, count: 0 };
   }
 }
 
