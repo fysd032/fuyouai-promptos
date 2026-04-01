@@ -11,9 +11,9 @@ Turn messy ideas into clear, structured, executable instructions. A production-r
 ## ✨ Features
 
 ### 🆓 Guest Trial (No Sign-up Required)
-- **2 Free Runs**: Unauthenticated users can try the core engine at `/try` without registering
-- **IP-based Rate Limiting**: Server enforces 2 calls/IP/24h via Redis (`rl:guest:core:{ip}`)
-- **Conversion Card**: After 2 runs, a sign-up prompt replaces the run button — user sees their last output while being invited to register
+- **Output-First Experience**: Unauthenticated users type a task on the homepage → AI auto-detects intent and matches a module → redirected to `/try` → full output generated automatically via `/api/generate` — no login required
+- **1 Free Run**: After seeing the complete result, a sign-up CTA appears below the output
+- **Seamless Flow**: Intent router skips the hinting step — user goes directly from input to output
 - **Isolated Route**: `/try` bypasses InviteGate entirely; `/modules/*` remains fully protected
 
 ### 🎯 Core Methodologies
@@ -190,7 +190,7 @@ fuyouai-promptos/
 │   ├── components/
 │   │   ├── pages/                # Page-level components
 │   │   │   ├── CoreFrameworkPage.tsx     # 5 AI engines with file & voice
-│   │   │   ├── GuestTrialPage.tsx        # Lightweight guest trial (2 free runs)
+│   │   │   ├── GuestTrialPage.tsx        # Output-first guest trial (auto-run via /api/generate)
 │   │   │   ├── UniversalModulesPage.tsx  # 50+ templates
 │   │   │   └── IndustryTemplatesPage.tsx
 │   │   ├── InviteGate.tsx        # Beta access gate with auto-submit
@@ -378,60 +378,64 @@ ORDER BY u.used_at DESC;
 
 ---
 
-## 🆓 Guest Trial Flow
+## 🆓 Guest Trial Flow (Output-First)
 
 ### Overview
 
-Unauthenticated visitors can try the core engine at `/try` without signing up. After 2 free runs, a sign-up card replaces the run button.
+Unauthenticated visitors experience the full product value before being asked to sign up. The homepage input directly routes to a free generation page — users see a complete AI output first, then decide whether to register.
 
 ### User Flow
 
 ```
-1. Visitor clicks "Generate Now" on the homepage
-   → Redirected to /try (no login required)
+1. Visitor types a task on the homepage
+   → e.g. "Help me write a product launch plan"
 
-2. Enters a prompt → clicks "Generate Now"
-   → Frontend calls POST /api/core/run-guest (no Bearer token)
-   → Server checks Redis key rl:guest:core:{ip}
-   → If count ≤ 2: runs Task Breakdown engine, returns output
-   → Frontend increments localStorage fuyou_guest_calls
+2. Clicks "Start" → Intent router detects module
+   → POST /api/intent → returns { frontModuleId, variantId }
+   → Skips hinting step, goes directly to confirmed
 
-3. After 2nd run:
-   → Sign-up card appears above output:
-     "You've used your 2 free runs — Sign Up Free →"
-   → Run button disabled
-   → User sees their last result while being prompted to register
+3. Redirected to /try (no login required)
+   → sessionStorage carries: text, frontModuleId, variantId, summary
+   → Page auto-runs generation on load via POST /api/generate
+   → User sees full output with copy button
 
-4. User clicks "Sign Up Free →"
-   → Redirected to /login
+4. Below output: login CTA appears
+   → "Like what you see? Sign up to save your results"
+   → "Sign Up Free →" button → /login?from=/modules/core
+
+5. After 1 free run:
+   → localStorage fuyou_guest_calls incremented
+   → Subsequent visits show "You've used your free trial" card
 ```
 
 ### Architecture
 
 | Component | File | Role |
 |-----------|------|------|
-| Guest page | `app/try/page.tsx` + `GuestTrialPage.tsx` | UI, localStorage tracking, sign-up card |
-| Guest API | `app/api/core/run-guest/route.ts` | No-auth endpoint, IP rate limit via Redis |
-| Guest client | `src/lib/coreframework-api.ts` → `callCoreFrameworkGuest()` | Calls `/api/core/run-guest` without Bearer token |
+| Homepage input | `components/sections/HeroSection.tsx` | Captures user task, triggers intent router |
+| Intent router | `src/hooks/useIntentRouter.ts` | Calls `/api/intent`, skips hinting, fires `onConfirm` |
+| Landing confirm | `components/Landing.tsx` | Saves state to sessionStorage, redirects to `/try` |
+| Guest page | `app/try/page.tsx` + `GuestTrialPage.tsx` | Auto-runs `/api/generate`, shows output + login CTA |
+| Generate API | `app/api/generate/route.ts` | Public endpoint, resolves `frontModuleId+variantId` → promptKey → DeepSeek |
 
 ### Rate Limiting
 
-- **Frontend**: `localStorage` key `fuyou_guest_calls` tracks count client-side
-- **Backend**: Redis key `rl:guest:core:{ip}` enforces hard limit of 2 per IP per 24h
-- **Fail-open**: If Redis is unavailable, requests pass through (no blocking)
+- **Frontend**: `localStorage` key `fuyou_guest_calls` tracks count (limit: 1)
+- **Backend**: `/api/generate` wrapped with `withDailyLimit` middleware
+- Logged-in users go through `/modules/*` (InviteGate protected) instead
 
-### API: Guest Run
+### API: Guest Generation
 
-**Endpoint**: `POST /api/core/run-guest`
+**Endpoint**: `POST /api/generate`
 
 **No Authorization header required.**
 
 **Request**:
 ```json
 {
-  "coreKey": "task_breakdown",
-  "userInput": "Help me plan a product launch",
-  "engineType": "deepseek"
+  "frontModuleId": "writing_master",
+  "variantId": "blog_post_standard",
+  "userInput": "Help me write a blog post about AI trends"
 }
 ```
 
@@ -440,26 +444,10 @@ Unauthenticated visitors can try the core engine at `/try` without signing up. A
 {
   "ok": true,
   "output": "...",
-  "language": "en",
-  "mode": "normal"
+  "promptKey": "writing_master_blog_post_standard",
+  "engineType": "deepseek"
 }
 ```
-
-**Response (limit reached)**:
-```json
-{
-  "ok": false,
-  "code": "GUEST_LIMIT_REACHED",
-  "error": "Free preview limit reached. Sign up to continue.",
-  "count": 3,
-  "limit": 2
-}
-```
-
-**Error codes**:
-- `402 GUEST_LIMIT_REACHED` — IP has exhausted free runs
-- `400` — Missing `coreKey` or `userInput`
-- `500` — Engine execution error
 
 ---
 
@@ -1064,7 +1052,8 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## 🎯 Roadmap
 
-- [ ] Multi-language support (i18n)
+- [x] Multi-language support (i18n) — next-intl with en/zh
+- [x] Output-first guest trial — homepage → intent → free generation → login CTA
 - [ ] Custom prompt templates
 - [ ] Team collaboration features
 - [ ] API rate limiting
@@ -1076,5 +1065,5 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 **Built with ❤️ by the FuyouAI Team**
 
-**Version**: 1.1.0
-**Last Updated**: February 2026
+**Version**: 1.2.0
+**Last Updated**: March 2026

@@ -7,7 +7,8 @@ export type Entitlement = {
 };
 
 const PREFIX = "entitlement:";
-const DEFAULT_TTL = Number(process.env.ENTITLEMENT_TTL_SECONDS) || 120;
+const MAX_TTL = 600; // 10 minutes — prevents stale cache blocking subscription changes
+const DEFAULT_TTL = Math.min(Number(process.env.ENTITLEMENT_TTL_SECONDS) || 120, MAX_TTL);
 
 export async function getEntitlement(userId: string): Promise<Entitlement | null> {
   try {
@@ -24,8 +25,9 @@ export async function setEntitlement(
   payload: Entitlement,
   ttl: number = DEFAULT_TTL
 ): Promise<void> {
+  const safeTtl = Math.min(Math.max(ttl, 1), MAX_TTL);
   try {
-    await redis.set(`${PREFIX}${userId}`, payload, { ex: ttl });
+    await redis.set(`${PREFIX}${userId}`, payload, { ex: safeTtl });
   } catch (e) {
     console.warn("[entitlement_cache] redis set failed, ignore");
   }

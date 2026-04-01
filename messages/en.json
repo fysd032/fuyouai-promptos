@@ -9,9 +9,9 @@
   },
   "Hero": {
     "badge": "FuyouAI · Prompt OS",
-    "headline": "AI tool to turn ideas into actionable plans",
-    "subheadline1": "Auto-route tasks to the right workflow.",
-    "subheadline2": "Get structured output — not just chat.",
+    "headline": "Describe your task. Get a ready-to-use result",
+    "subheadline1": "Emails, business plans, PRDs, weekly reports, pitch decks, market analysis —",
+    "subheadline2": "31 modules, done in 60 seconds, no prompt skills needed",
     "inputLabel": "Tell me what you want to accomplish",
     "placeholder1": "Write a follow-up email to a client about next steps",
     "placeholder2": "Build a business plan for an AI startup",

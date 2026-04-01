@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getCorsHeaders as _getCorsHeaders } from "@/lib/api/cors";
 
 const DEBUG = process.env.DEBUG_SUBSCRIPTION === "true";
 
@@ -24,30 +25,10 @@ type SubscriptionRow = {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const allowedOrigins = new Set([
-  "https://fuyouai-promptos.vercel.app",
-  "https://fuyouai.com",
-  "https://www.fuyouai.com",
-]);
-
-function isAllowedOrigin(origin: string | null) {
-  if (!origin) return false;
-  if (allowedOrigins.has(origin)) return true;
-  return /^https:\/\/fuyouai-promptos.*\.vercel\.app$/i.test(origin);
-}
-
 function getCorsHeaders(origin: string | null) {
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
-    Vary: "Origin",
-  };
-  if (isAllowedOrigin(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin as string;
-  }
-  return headers;
+  return _getCorsHeaders(origin, { methods: "GET, OPTIONS", credentials: true });
 }
+
 
 // 规范化 plan 字段：只允许 "basic" | "pro" | "free"
 // 数据库里的 "starter" 映射为 "basic"

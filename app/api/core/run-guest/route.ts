@@ -6,33 +6,10 @@ import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
 import type { CoreKey } from "@/lib/promptos/core/core-map";
 import { detectLanguage } from "@/lib/lang/detectLanguage";
 import { redis } from "@/lib/billing/redis";
+import { getCorsHeaders } from "@/lib/api/cors";
 
 const GUEST_LIMIT = 2;
 const GUEST_WINDOW_SECONDS = 86400; // 24h
-
-const allowedOrigins = new Set([
-  "https://fuyouai-promptos.vercel.app",
-  "https://fuyouai.com",
-  "https://www.fuyouai.com",
-]);
-
-function isAllowedOrigin(origin: string | null) {
-  if (!origin) return false;
-  if (allowedOrigins.has(origin)) return true;
-  return /^https:\/\/fuyouai-promptos.*\.vercel\.app$/i.test(origin);
-}
-
-function getCorsHeaders(origin: string | null) {
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    Vary: "Origin",
-  };
-  if (isAllowedOrigin(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin as string;
-  }
-  return headers;
-}
 
 async function consumeGuestCall(ip: string): Promise<{ ok: boolean; count: number }> {
   try {
@@ -40,8 +17,10 @@ async function consumeGuestCall(ip: string): Promise<{ ok: boolean; count: numbe
     const count = await redis.incr(key);
     if (count === 1) redis.expire(key, GUEST_WINDOW_SECONDS).catch(() => {});
     return { ok: count <= GUEST_LIMIT, count };
-  } catch {
-    return { ok: true, count: 0 }; // fail-open if Redis unavailable
+  } catch (err) {
+    // fail-closed: deny guest access when Redis is unavailable to protect API quota
+    console.error("[run-guest] Redis unavailable for guest rate-limit:", err);
+    return { ok: false, count: 0 };
   }
 }
 

@@ -4,9 +4,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Play, Loader2, Copy, Check, Sparkles, ArrowRight } from "lucide-react";
 
-const GUEST_CALL_LIMIT = 1;
-const STORAGE_KEY = "fuyou_guest_calls";
-
 type RunState = {
   text: string;
   frontModuleId: string;
@@ -23,14 +20,12 @@ export default function GuestTrialPage() {
   const [output, setOutput] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState(false);
-  const [guestCallCount, setGuestCallCount] = useState(0);
+  const [limitReached, setLimitReached] = useState(false);
+  const [remaining, setRemaining] = useState<number | null>(null);
   const [autoTriggered, setAutoTriggered] = useState(false);
 
   // Read intent router state from sessionStorage
   useEffect(() => {
-    const stored = parseInt(localStorage.getItem(STORAGE_KEY) ?? "0", 10);
-    setGuestCallCount(isNaN(stored) ? 0 : stored);
-
     if (typeof window === "undefined") return;
     const raw = sessionStorage.getItem("mobile-run-state");
     if (!raw) return;
@@ -42,8 +37,6 @@ export default function GuestTrialPage() {
       if (parsed.summary) setSummary(parsed.summary);
     } catch {}
   }, []);
-
-  const limitReached = guestCallCount >= GUEST_CALL_LIMIT;
 
   const handleRun = useCallback(async () => {
     if (!userInput.trim() || !frontModuleId || !variantId) return;
@@ -64,6 +57,14 @@ export default function GuestTrialPage() {
       });
 
       const data = await res.json();
+
+      // Guest limit reached
+      if (data?.code === "GUEST_LIMIT_REACHED") {
+        setLimitReached(true);
+        setStatus("idle");
+        return;
+      }
+
       if (!res.ok || data?.ok === false) {
         throw new Error(data?.error || "Generation failed");
       }
@@ -71,27 +72,21 @@ export default function GuestTrialPage() {
       setOutput(data.output ?? "");
       setStatus("success");
 
-      const newCount = guestCallCount + 1;
-      localStorage.setItem(STORAGE_KEY, String(newCount));
-      setGuestCallCount(newCount);
+      // Read remaining count from header
+      const rem = res.headers.get("X-Guest-Remaining");
+      if (rem !== null) setRemaining(parseInt(rem, 10));
     } catch (err: any) {
       setStatus("error");
       setErrorMsg(err?.message ?? "Something went wrong. Please try again.");
     }
-  }, [userInput, frontModuleId, variantId, guestCallCount]);
+  }, [userInput, frontModuleId, variantId]);
 
   // Auto-run when coming from homepage with intent router data
   useEffect(() => {
-    if (
-      autoTriggered ||
-      limitReached ||
-      !userInput.trim() ||
-      !frontModuleId ||
-      !variantId
-    ) return;
+    if (autoTriggered || !userInput.trim() || !frontModuleId || !variantId) return;
     setAutoTriggered(true);
     handleRun();
-  }, [userInput, frontModuleId, variantId, autoTriggered, limitReached, handleRun]);
+  }, [userInput, frontModuleId, variantId, autoTriggered, handleRun]);
 
   const handleCopy = useCallback(() => {
     if (!output) return;
@@ -127,9 +122,12 @@ export default function GuestTrialPage() {
             {status === "loading"
               ? "Generating your result..."
               : status === "success"
-                ? "Here's your result. Sign up to save it and keep using FuyouAI."
+                ? "Here's your result — copy it, use it, it's yours."
                 : "Enter your task and see the full output — no sign-up required."}
           </p>
+          {remaining !== null && remaining > 0 && status === "success" && (
+            <p className="text-xs text-slate-500">{remaining} free {remaining === 1 ? "try" : "tries"} remaining</p>
+          )}
         </div>
 
         {/* Input */}
@@ -194,47 +192,40 @@ export default function GuestTrialPage() {
               </div>
             </div>
 
-            {/* Login CTA after output */}
-            <div className="bg-[#111827] border border-blue-500/20 rounded-2xl p-6 text-center space-y-3">
-              <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto">
-                <Sparkles size={18} className="text-blue-400" />
-              </div>
-              <div>
-                <p className="text-white font-medium text-base">
-                  Like what you see?
-                </p>
-                <p className="text-slate-400 text-sm mt-1">
-                  Sign up to save your results, access all 31 modules, and keep generating.
-                </p>
-              </div>
+            {/* Soft nudge — not a wall */}
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+              <p className="text-xs text-slate-500">
+                Want to save results and access all modules?
+              </p>
               <Link
                 href="/login?from=/modules/core"
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#3B82F6] hover:bg-blue-600 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5"
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors whitespace-nowrap ml-4"
               >
-                Sign Up Free <ArrowRight size={15} />
+                Create free account &rarr;
               </Link>
             </div>
           </>
         )}
 
-        {/* Limit reached without output */}
-        {limitReached && !output && (
-          <div className="bg-[#111827] border border-blue-500/20 rounded-2xl p-6 text-center space-y-3">
+        {/* Limit reached */}
+        {limitReached && (
+          <div className="bg-[#111827] border border-blue-500/20 rounded-2xl p-8 text-center space-y-4">
             <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto">
               <Sparkles size={18} className="text-blue-400" />
             </div>
             <div>
-              <p className="text-white font-medium text-base">You've used your free trial</p>
-              <p className="text-slate-400 text-sm mt-1">
-                Sign up free to keep going — no credit card required.
+              <p className="text-white font-medium text-lg">You've seen what FuyouAI can do</p>
+              <p className="text-slate-400 text-sm mt-2 max-w-md mx-auto">
+                You've used all 20 free runs. Create a free account to keep going — save your results, access all 31 modules, and get 20 runs per day.
               </p>
             </div>
             <Link
               href="/login?from=/modules/core"
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#3B82F6] hover:bg-blue-600 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-[#3B82F6] hover:bg-blue-600 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5"
             >
-              Sign Up Free <ArrowRight size={15} />
+              Create Free Account <ArrowRight size={15} />
             </Link>
+            <p className="text-xs text-slate-600">No credit card required</p>
           </div>
         )}
       </div>

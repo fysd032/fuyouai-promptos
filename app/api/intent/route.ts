@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import { redis } from "@/lib/billing/redis";
+
+// IP-based rate limit: max 30 intent calls per minute per IP
+const INTENT_RATE_LIMIT = 30;
+const INTENT_RATE_WINDOW = 60; // seconds
 
 const SYSTEM_PROMPT = `You are a two-level task router for a structured AI output platform.
 
@@ -106,6 +111,31 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: Request) {
+  // IP-based rate limiting
+  const ip =
+    req.headers.get("x-real-ip") ??
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown";
+
+  try {
+    const key = `rl:intent:${ip}`;
+    const count = await redis.incr(key);
+    if (count === 1) redis.expire(key, INTENT_RATE_WINDOW).catch(() => {});
+    if (count > INTENT_RATE_LIMIT) {
+      return NextResponse.json(
+        { error: "rate_limited", message: "Too many requests. Please slow down." },
+        { status: 429 }
+      );
+    }
+  } catch (err) {
+    // Redis down → fail-closed to protect DeepSeek API quota
+    console.error("[intent] Redis unavailable for rate-limit:", err);
+    return NextResponse.json(
+      { error: "service_unavailable", message: "Service temporarily unavailable." },
+      { status: 503 }
+    );
+  }
+
   const body = await req.json().catch(() => ({}));
   const text: string = body?.text;
 

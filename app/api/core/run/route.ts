@@ -13,29 +13,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 // ── CORS ────────────────────────────────────────────────────────────────
-const allowedOrigins = new Set([
-  "https://fuyouai-promptos.vercel.app",
-  "https://fuyouai.com",
-  "https://www.fuyouai.com",
-]);
-
-function isAllowedOrigin(origin: string | null) {
-  if (!origin) return false;
-  if (allowedOrigins.has(origin)) return true;
-  return /^https:\/\/fuyouai-promptos.*\.vercel\.app$/i.test(origin);
-}
-
-function getCorsHeaders(origin: string | null): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    Vary: "Origin",
-  };
-  if (isAllowedOrigin(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin as string;
-  }
-  return headers;
-}
+import { getCorsHeaders } from "@/lib/api/cors";
 
 // ── SSE helpers ──────────────────────────────────────────────────────────
 const encoder = new TextEncoder();

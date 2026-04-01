@@ -108,13 +108,16 @@ export const Landing: React.FC = () => {
               <Link href="/login" className="hover:text-white transition-colors whitespace-nowrap">
                 {t("signIn")}
               </Link>
-              <Link
-                href="/login"
+              <button
+                onClick={() => {
+                  const el = document.getElementById("hero-input");
+                  if (el) { el.scrollIntoView({ behavior: "smooth" }); el.focus(); }
+                }}
                 className="bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white font-semibold px-5 py-2 rounded-xl transition-all shadow-[0_10px_30px_rgba(30,159,255,0.28)] active:scale-[0.98] inline-flex items-center gap-2"
               >
                 {t("getStarted")}
                 <ArrowRight size={14} />
-              </Link>
+              </button>
             </>
           )}
         </div>

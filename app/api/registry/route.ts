@@ -1,26 +1,9 @@
 import mapping from "@/module_mapping.v2.json";
 import { withRouteError } from "@/lib/api/withRouteError";
+import { getCorsHeaders as _getCorsHeaders } from "@/lib/api/cors";
 
-const allowedOrigins = new Set([
-  "https://fuyouai-promptos.vercel.app",
-  "https://fuyouai.com",
-  "https://www.fuyouai.com",
-]);
-
-function getCorsHeaders(origin: string | null): Record<string, string> {
-  const allowed =
-    origin &&
-    (allowedOrigins.has(origin) ||
-      /^https:\/\/fuyouai-promptos.*\.vercel\.app$/i.test(origin));
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    Vary: "Origin",
-  };
-  if (allowed) {
-    headers["Access-Control-Allow-Origin"] = origin as string;
-  }
-  return headers;
+function getCorsHeaders(origin: string | null) {
+  return _getCorsHeaders(origin, { methods: "GET, OPTIONS" });
 }
 
 export async function OPTIONS(req: Request) {

@@ -68,8 +68,28 @@ async function handler(req: Request) {
   }
 
   // ── Build userInput ───────────────────────────────────────────────────
-  const combinedContext = { ...answers, ...routerAnswers };
-  const hasContext = Object.values(combinedContext).some(Boolean);
+  // Whitelist and sanitize context fields to prevent prompt injection
+  const ALLOWED_CONTEXT_KEYS = new Set([
+    "audience", "tone", "format", "length", "language", "platform",
+    "industry", "goal", "style", "topic", "deadline", "budget",
+  ]);
+
+  function sanitizeContextValue(v: unknown): string {
+    if (typeof v !== "string") return "";
+    // Strip control characters and limit length
+    return v.replace(/[\x00-\x1f]/g, "").slice(0, 500);
+  }
+
+  const rawContext = { ...answers, ...routerAnswers };
+  const combinedContext: Record<string, string> = {};
+  for (const [k, v] of Object.entries(rawContext)) {
+    if (ALLOWED_CONTEXT_KEYS.has(k)) {
+      const sanitized = sanitizeContextValue(v);
+      if (sanitized) combinedContext[k] = sanitized;
+    }
+  }
+
+  const hasContext = Object.keys(combinedContext).length > 0;
   const userInput = hasContext
     ? `${trimmedText}\n\nAdditional context:\n${JSON.stringify(combinedContext)}`
     : trimmedText;

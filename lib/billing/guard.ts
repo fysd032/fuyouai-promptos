@@ -151,8 +151,8 @@ export async function requireSubscription(
     }
   }
 
-  // 3d. Fallback: check invite_code_usage (beta access via invite code, 15-day trial)
-  const TRIAL_DAYS = 15;
+  // 3d. Fallback: check invite_code_usage (beta access via invite code)
+  const { TRIAL_DAYS } = await import("./constants");
   type InviteUsageRow = { id: number; used_at: string | null };
 
   const { data: inviteUsage } = await admin
@@ -168,8 +168,9 @@ export async function requireSubscription(
       ? new Date(usedAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
       : null;
 
-    // Grant access if within trial period (or if used_at is unavailable)
-    if (!expiresAt || new Date() < expiresAt) {
+    // Grant access only if used_at is set and within trial period
+    // If used_at is NULL, treat as invalid record — do not grant permanent access
+    if (expiresAt !== null && new Date() < expiresAt) {
       await setEntitlement(userId, { allowed: true, tier: "trial" });
       if (GATE_LOG) console.log(`[gate] userId=${userId} source=invite_usage cache_hit=false result=ok ms=${Date.now() - t0}`);
       return { ok: true, userId, tier: "trial" };

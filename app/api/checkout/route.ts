@@ -10,33 +10,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCreemEnv } from "@/lib/creem/env";
+import { getCorsHeaders as _getCorsHeaders } from "@/lib/api/cors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const allowedOrigins = new Set([
-  "https://fuyouai-promptos.vercel.app",
-  "https://fuyouai.com",
-  "https://www.fuyouai.com",
-]);
-
-function isAllowedOrigin(origin: string | null) {
-  if (!origin) return false;
-  if (allowedOrigins.has(origin)) return true;
-  return /^https:\/\/fuyouai-promptos.*\.vercel\.app$/i.test(origin);
-}
-
 function getCorsHeaders(origin: string | null) {
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
-    Vary: "Origin",
-  };
-  if (isAllowedOrigin(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin as string;
-  }
-  return headers;
+  return _getCorsHeaders(origin, { methods: "POST, OPTIONS", credentials: true });
 }
 
 type PlanKey = "basic" | "starter" | "pro";
@@ -206,6 +186,25 @@ async function handler(req: Request) {
     });
 
     const appBaseUrl = (process.env.APP_URL || "https://fuyouai.com").replace(/\/$/, "");
+    // Validate APP_URL to prevent redirect to phishing domains
+    const ALLOWED_APP_HOSTS = ["fuyouai.com", "www.fuyouai.com", "fuyouai-promptos.vercel.app"];
+    try {
+      const parsedUrl = new URL(appBaseUrl);
+      const hostMatch = ALLOWED_APP_HOSTS.some(h => parsedUrl.hostname === h || parsedUrl.hostname.endsWith(".vercel.app"));
+      if (parsedUrl.protocol !== "https:" || !hostMatch) {
+        console.error(`[checkout] Suspicious APP_URL: ${appBaseUrl}`);
+        return NextResponse.json(
+          { ok: false, error: "Server misconfigured" },
+          { status: 500, headers: corsHeaders }
+        );
+      }
+    } catch {
+      console.error(`[checkout] Invalid APP_URL: ${appBaseUrl}`);
+      return NextResponse.json(
+        { ok: false, error: "Server misconfigured" },
+        { status: 500, headers: corsHeaders }
+      );
+    }
     const successUrl = `${appBaseUrl}/#/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
 
     // 🔧 FIX: 移除 cancel_url，只保留 success_url

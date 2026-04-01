@@ -72,6 +72,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <form onSubmit={handleRouterSubmit} className="flex flex-col gap-2">
           <div className="relative flex items-center">
             <input
+              id="hero-input"
               ref={inputRef}
               type="text"
               value={routerInput}

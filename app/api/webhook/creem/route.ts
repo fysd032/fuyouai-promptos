@@ -58,6 +58,8 @@ function getPlanFromProductId(productId: string | null): "starter" | "pro" | nul
 
   if (productId === starterProductId) return "starter";
   if (productId === proProductId) return "pro";
+
+  console.error(`[Webhook][ALERT] Unknown product ID: ${productId}. Expected STARTER=${starterProductId} or PRO=${proProductId}. User may have paid but will NOT receive access.`);
   return null;
 }
 
@@ -90,7 +92,8 @@ const sig = sigRaw.toLowerCase().replace(/\s+/g, "");
     }
 
     return false;
-  } catch {
+  } catch (err) {
+    console.error("[Webhook] Signature verification error:", err);
     return false;
   }
 }

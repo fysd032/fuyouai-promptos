@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -17,13 +16,16 @@ export const FinalCTASection: React.FC = () => {
         <p className="text-lg text-slate-400 mb-10 max-w-sm mx-auto leading-relaxed">
           {t("subheadline")}
         </p>
-        <Link
-          href="/login"
+        <button
+          onClick={() => {
+            const el = document.getElementById("hero-input");
+            if (el) { el.scrollIntoView({ behavior: "smooth" }); el.focus(); }
+          }}
           className="inline-flex items-center gap-2.5 bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white font-semibold px-10 py-5 rounded-xl transition-all shadow-[0_12px_50px_rgba(30,159,255,0.40)] hover:shadow-[0_12px_60px_rgba(30,159,255,0.50)] active:scale-[0.98] text-lg group"
         >
           {t("button")}
           <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
-        </Link>
+        </button>
         <p className="text-xs text-slate-600 mt-6 tracking-wide">
           {t("note")}
         </p>

@@ -9,9 +9,9 @@
   },
   "Hero": {
     "badge": "FuyouAI · Prompt OS",
-    "headline": "AI 工具，将想法变为可执行计划",
-    "subheadline1": "自动将任务路由到正确的工作流。",
-    "subheadline2": "获得结构化输出 —— 不只是聊天。",
+    "headline": "说出你要做的事，直接拿到结果",
+    "subheadline1": "写邮件、商业计划、PRD、周报、PPT 大纲、市场分析 ——",
+    "subheadline2": "31 个模块，60 秒出结果，不需要 prompt skills",
     "inputLabel": "告诉我你想完成什么",
     "placeholder1": "给客户写一封关于下一步计划的跟进邮件",
     "placeholder2": "为一个 AI 创业公司写商业计划",

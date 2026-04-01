@@ -40,12 +40,13 @@ export async function runEngine({
   });
 
   if (!realKey) {
+    console.error(`[run-engine] Failed to resolve promptKey: moduleId=${normalizedModuleId}, promptKey=${promptKey}`);
     return {
       ok: false,
       requestId,
       engineTypeRequested: finalEngineType,
       promptKeyResolved: null,
-      error: `无法解析 promptKey，请检查：moduleId=${normalizedModuleId}, promptKey=${promptKey}`,
+      error: "Module configuration error. Please try a different module.",
     };
   }
 
@@ -125,10 +126,11 @@ export async function runEngineStream(
   });
 
   if (!realKey) {
+    console.error(`[run-engine-stream] Failed to resolve promptKey: moduleId=${normalizedModuleId}, promptKey=${args.promptKey}`);
     return {
       ok: false,
       requestId,
-      error: `无法解析 promptKey，请检查：moduleId=${normalizedModuleId}, promptKey=${args.promptKey}`,
+      error: "Module configuration error. Please try a different module.",
     };
   }
 

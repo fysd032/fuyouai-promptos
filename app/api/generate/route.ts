@@ -2,37 +2,23 @@
 // ✅ 同步直出版本：不再依赖 Railway worker / 不再依赖 Redis / 不再 jobId 轮询
 
 import { NextResponse } from "next/server";
-import { withDailyLimit } from "@/lib/billing/with-daily-limit";
+import { withDailyLimit, requestGateTier, requestUserId } from "@/lib/billing/with-daily-limit";
+import { requireSubscription } from "@/lib/billing/guard";
+import { redis } from "@/lib/billing/redis";
+import { getCorsHeaders as _getCorsHeaders } from "@/lib/api/cors";
+
+function getCorsHeaders(origin: string | null) {
+  return _getCorsHeaders(origin, { methods: "POST, GET, OPTIONS" });
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Guest (unauthenticated): total 20 calls per IP, never resets
+const GUEST_TOTAL_LIMIT = 20;
+
 // 如果你要支持 frontModuleId/variantId，就需要能拿到 mapping 数据：
 import mapping from "@/module_mapping.v2.json";
-
-const allowedOrigins = new Set([
-  "https://fuyouai-promptos.vercel.app",
-  "https://fuyouai.com",
-  "https://www.fuyouai.com",
-]);
-
-function isAllowedOrigin(origin: string | null) {
-  if (!origin) return false;
-  if (allowedOrigins.has(origin)) return true;
-  return /^https:\/\/fuyouai-promptos.*\.vercel\.app$/i.test(origin);
-}
-
-function getCorsHeaders(origin: string | null) {
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    Vary: "Origin",
-  };
-  if (isAllowedOrigin(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin as string;
-  }
-  return headers;
-}
 
 function find_prompt_key_by_mapping(frontModuleId: string, variantId: string): string | null {
   const fm = (mapping as any[]).find((x) => x.frontModuleId === frontModuleId);
@@ -162,8 +148,65 @@ async function handler(req: Request) {
   }
 }
 
-// ✅ 文件顶层导出：订阅拦截统一生效
-export const POST = withDailyLimit(handler, { scope: "generate" });
+// ── Guest-aware wrapper ──────────────────────────────────────
+// Logged-in users → withDailyLimit (existing billing logic)
+// Guest (no session) → IP-based total limit (GUEST_TOTAL_LIMIT)
+const authedHandler = withDailyLimit(handler, { scope: "generate" });
+
+async function guestAwareHandler(req: Request): Promise<Response> {
+  // Check if user is logged in
+  const gate = await requireSubscription({ scope: "generate" }, req);
+
+  // Logged-in user → delegate to normal billing flow
+  if (gate.ok || gate.status !== 401) {
+    return authedHandler(req);
+  }
+
+  // Guest user → IP-based total limit
+  const ip =
+    req.headers.get("x-real-ip") ??
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown";
+
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
+  try {
+    const key = `rl:guest:generate:${ip}`;
+    const count = await redis.incr(key);
+    // No expiry — permanent per-IP limit
+
+    if (count > GUEST_TOTAL_LIMIT) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "GUEST_LIMIT_REACHED",
+          error: "You've used all 20 free tries. Sign up to keep going — it's free!",
+          count,
+          limit: GUEST_TOTAL_LIMIT,
+        },
+        { status: 403, headers: corsHeaders }
+      );
+    }
+
+    // Allow through — call the actual handler
+    const res = await handler(req);
+
+    // Attach remaining count header so frontend knows
+    const cloned = new Response(res.body, res);
+    cloned.headers.set("X-Guest-Remaining", String(GUEST_TOTAL_LIMIT - count));
+    return cloned;
+  } catch (err) {
+    // Redis down → fail-closed for guests (deny access to protect API quota)
+    console.error("[generate] Redis unavailable for guest rate-limit, denying request:", err);
+    return NextResponse.json(
+      { ok: false, code: "SERVICE_UNAVAILABLE", error: "Service temporarily unavailable. Please try again later." },
+      { status: 503, headers: corsHeaders }
+    );
+  }
+}
+
+export const POST = guestAwareHandler;
 
 export async function GET(req: Request) {
   const origin = req.headers.get("origin");
