@@ -128,12 +128,8 @@ export async function POST(req: Request) {
       );
     }
   } catch (err) {
-    // Redis down → fail-closed to protect DeepSeek API quota
-    console.error("[intent] Redis unavailable for rate-limit:", err);
-    return NextResponse.json(
-      { error: "service_unavailable", message: "Service temporarily unavailable." },
-      { status: 503 }
-    );
+    // Redis down → fail-open for intent (low cost routing call)
+    console.warn("[intent] Redis unavailable for rate-limit, allowing request:", err);
   }
 
   const body = await req.json().catch(() => ({}));
