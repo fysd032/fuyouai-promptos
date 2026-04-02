@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 import { useSearchParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import { callCoreFramework, type CoreParsedOutput } from "@/src/lib/coreframework-api";
 import { supabase } from "@/src/lib/supabaseClient";
 import { CORE_TAB_TO_COREKEY } from "@/src/data/ui-corekey-map";
@@ -87,7 +88,16 @@ const CLARIFICATION_LABELS: Record<string, string> = {
 };
 
 // --- Data Configuration ---
-const CORE_FRAMEWORKS = [
+type CoreFramework = {
+  key: string;
+  title: string;
+  fullTitle: string;
+  desc: string;
+  bullets: string[];
+  prompt: string;
+};
+
+const CORE_FRAMEWORKS_ZH: CoreFramework[] = [
   {
     key: "task-decomposition-v3",
     title: "不知从哪开始",
@@ -128,17 +138,62 @@ const CORE_FRAMEWORKS = [
     bullets: ["分清主线和支线", "按优先级排好", "一次只处理一件"],
     prompt: `(Generating...)`,
   },
-] as const;
+];
 
-type CoreFrameworkUIKey = (typeof CORE_FRAMEWORKS)[number]["key"];
+const CORE_FRAMEWORKS_EN: CoreFramework[] = [
+  {
+    key: "task-decomposition-v3",
+    title: "Task Decomposition",
+    fullTitle: "Task Decomposition",
+    desc: "Break down complex, dynamic requirements into clear execution steps, constraints, and delivery standards.",
+    bullets: ["Flexible core configuration and tag classification", "Cumulative step-by-step execution flow", "Support for nested loops and staged output"],
+    prompt: `(Generating...)`,
+  },
+  {
+    key: "reasoning-engine-v3",
+    title: "CoT Reasoning",
+    fullTitle: "CoT Deep Reasoning Framework (Chain of Thought)",
+    desc: "Force the model to reason step-by-step, avoiding intuitive errors, suitable for complex logical analysis.",
+    bullets: ["Problem restatement and key info extraction", "Multi-path logical reasoning", "Converge conclusions and verify"],
+    prompt: `(Generating...)`,
+  },
+  {
+    key: "content-builder-v3",
+    title: "Content Generation",
+    fullTitle: "Structured Content Generation Framework (Content Builder)",
+    desc: "Define target audience and outline first, then fill in content, ensuring logical consistency and unified style for long-form writing.",
+    bullets: ["Identify audience and core pain points", "Build pyramid-structured outline", "Fill content module by module"],
+    prompt: `(Generating...)`,
+  },
+  {
+    key: "analytical-engine-v3",
+    title: "Deep Analysis",
+    fullTitle: "Analytical Reasoning Framework (Analytical Engine)",
+    desc: "From a consultant's perspective, analyze business or social issues from multiple dimensions, providing evidence-based decision recommendations.",
+    bullets: ["Define problem boundaries", "MECE analysis across 3-5 dimensions", "Evidence-based action recommendations"],
+    prompt: `(Generating...)`,
+  },
+  {
+    key: "task-tree-v3",
+    title: "Complex Task Tree",
+    fullTitle: "Complex Task Structure Tree (Task Tree / ToT)",
+    desc: "For large-scale projects, build hierarchical task trees, marking dependencies and risk points.",
+    bullets: ["Level 0-2 task hierarchy division", "Identify inter-task dependencies", "Develop execution roadmap"],
+    prompt: `(Generating...)`,
+  },
+];
 
 const IS_DEV = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 
 const CoreFrameworkPage: React.FC = () => {
+  const locale = useLocale();
+  const isZh = locale === "zh";
+  const CORE_FRAMEWORKS = isZh ? CORE_FRAMEWORKS_ZH : CORE_FRAMEWORKS_EN;
+
   const { subscription } = useSubscription();
   const searchParams = useSearchParams();
 
-  const [activeKey, setActiveKey] = useState<CoreFrameworkUIKey>(CORE_FRAMEWORKS[0].key);
+  const [activeKey, setActiveKey] = useState<string>(CORE_FRAMEWORKS[0].key);
   const [activeTab, setActiveTab] = useState<"preview" | "output">("preview");
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
@@ -163,7 +218,7 @@ const CoreFrameworkPage: React.FC = () => {
   );
 
   // Reverse map: coreKey → UITabKey
-  const COREKEY_TO_TAB: Record<string, CoreFrameworkUIKey> = {
+  const COREKEY_TO_TAB: Record<string, string> = {
     task_breakdown: "task-decomposition-v3",
     cot_reasoning: "reasoning-engine-v3",
     content_builder: "content-builder-v3",
@@ -585,10 +640,10 @@ const CoreFrameworkPage: React.FC = () => {
     <div className="flex flex-col w-full h-full">
       <div className="flex items-center gap-2 text-xs sm:text-sm text-[#9CA3AF] mb-1 sm:mb-2 pt-1 sm:pt-2">
         <Link href="/modules" className="hover:text-[#F9FAFB] transition-colors">
-          Module Center
+          {isZh ? "模块中心" : "Module Center"}
         </Link>
         <span className="text-[#4B5563]">/</span>
-        <span className="text-[#F9FAFB]">Core Methodologies</span>
+        <span className="text-[#F9FAFB]">{isZh ? "核心框架" : "Core Methodologies"}</span>
       </div>
 
       {/* Dev mode control panel — only visible when NEXT_PUBLIC_DEV_MODE=true (local dev) */}
@@ -635,10 +690,12 @@ const CoreFrameworkPage: React.FC = () => {
 
       <div className="relative pt-2 sm:pt-4 pb-4 sm:pb-10 text-center z-10">
         <h1 className="text-xl sm:text-[32px] font-semibold text-[#F9FAFB] tracking-tight mb-1 sm:mb-2 drop-shadow-sm">
-          卡住了，怎么破？
+          {isZh ? "卡住了，怎么破？" : "Core Methodologies"}
         </h1>
         <p className="text-[#9CA3AF] text-xs sm:text-base max-w-2xl mx-auto mb-3 sm:mb-8">
-          不同的卡法，有不同的解法。选一个最像你现在状态的。
+          {isZh
+            ? "不同的卡法，有不同的解法。选一个最像你现在状态的。"
+            : "5 core engines based on Chain of Thought (CoT) and structured engineering, enabling ultimate AI output control."}
         </p>
 
         <div className="flex flex-row flex-nowrap overflow-x-auto sm:inline-flex sm:flex-wrap p-1 bg-[#111827] border border-[#1F2937] rounded-xl shadow-lg no-scrollbar gap-0.5 sm:gap-0">
@@ -721,8 +778,8 @@ const CoreFrameworkPage: React.FC = () => {
               {/* Toolbar: Attachments + Voice */}
               <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
                 <div className="text-xs text-[#6B7280]">
-                  Attachments: {attachments.length ? `${attachments.length} file(s)` : "None"}{" "}
-                  {attachments.length ? <span className="ml-2 text-[#4B5563]">(will be included when running)</span> : null}
+                  {isZh ? "附件" : "Attachments"}: {attachments.length ? `${attachments.length} ${isZh ? "个文件" : "file(s)"}` : (isZh ? "无" : "None")}{" "}
+                  {attachments.length ? <span className="ml-2 text-[#4B5563]">({isZh ? "运行时将一并发送" : "will be included when running"})</span> : null}
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
@@ -741,7 +798,7 @@ const CoreFrameworkPage: React.FC = () => {
                     title={speechSupported ? "Voice Input (Chrome/Edge recommended)" : "Voice input not supported in this browser"}
                   >
                     <Mic size={14} />
-                    {isListening ? "Stop" : "Voice Input"}
+                    {isListening ? (isZh ? "停止" : "Stop") : (isZh ? "语音输入" : "Voice Input")}
                   </button>
 
                   {/* Hidden File Input */}
@@ -761,7 +818,7 @@ const CoreFrameworkPage: React.FC = () => {
                     title="Upload .txt / .md / .csv / .json file"
                   >
                     <Upload size={14} />
-                    Upload
+                    {isZh ? "上传" : "Upload"}
                   </button>
 
                   {/* Clear Attachments Button */}
@@ -777,7 +834,7 @@ const CoreFrameworkPage: React.FC = () => {
                     title="Clear all attachments"
                   >
                     <Trash2 size={14} />
-                    Clear
+                    {isZh ? "清除" : "Clear"}
                   </button>
                 </div>
               </div>
@@ -833,14 +890,14 @@ const CoreFrameworkPage: React.FC = () => {
                 <div className="bg-[#0A0F1C] border border-[#1F2937] rounded-lg p-3 text-gray-200 mb-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-xs text-gray-300">
-                      Preview: <span className="text-emerald-400">{activeAttachment.name}</span>
+                      {isZh ? "预览：" : "Preview: "}<span className="text-emerald-400">{activeAttachment.name}</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setActiveAttachmentId(null)}
                       className="text-xs text-gray-400 hover:text-white"
                     >
-                      Close Preview
+                      {isZh ? "关闭" : "Close Preview"}
                     </button>
                   </div>
 
@@ -855,7 +912,9 @@ const CoreFrameworkPage: React.FC = () => {
               <textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                placeholder={`不用整理好再说。想到什么说什么，越乱越好，让我来帮你理。`}
+                placeholder={isZh
+                  ? "不用整理好再说。想到什么说什么，越乱越好，让我来帮你理。"
+                  : "TASK\nDescribe your task\n\nGOAL\nWhat outcome do you want\n\nCONSTRAINTS\nTime / budget / resources"}
                 className="w-full h-[140px] sm:h-[240px] bg-[#0A0F1C] border border-[#1F2937] rounded-xl p-3 sm:p-5 text-sm sm:text-[15px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:border-[#3B82F6]/50 focus:ring-1 focus:ring-[#3B82F6]/20 transition-all resize-none leading-relaxed"
               />
 
@@ -870,7 +929,9 @@ const CoreFrameworkPage: React.FC = () => {
                   ) : (
                     <Play size={16} fill="currentColor" />
                   )}
-                  {status === "loading" ? "生成中..." : "帮我换个角度 →"}
+                  {status === "loading"
+                    ? (isZh ? "生成中..." : "Generating...")
+                    : (isZh ? "帮我换个角度 →" : "Generate Prompt and Run")}
                 </button>
               </div>
             </div>
@@ -886,7 +947,7 @@ const CoreFrameworkPage: React.FC = () => {
               }`}
             >
               <Terminal size={16} />
-              Prompt Template
+              {isZh ? "提示词模板" : "Prompt Template"}
               {activeTab === "preview" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#3B82F6]" />}
             </button>
             <div className="w-[1px] h-6 bg-[#1F2937]" />
@@ -897,7 +958,7 @@ const CoreFrameworkPage: React.FC = () => {
               }`}
             >
               <Sparkles size={16} />
-              AI Output Results
+              {isZh ? "AI 输出结果" : "AI Output Results"}
               {activeTab === "output" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />}
             </button>
           </div>
@@ -922,7 +983,7 @@ const CoreFrameworkPage: React.FC = () => {
             {activeTab === "preview" && (
               <div className="h-full overflow-y-auto p-6 custom-scrollbar">
                 <pre className="font-mono text-xs md:text-sm text-[#D1D5DB] whitespace-pre-wrap leading-relaxed">
-                  {generatedPrompt || activeItem.prompt || "// Waiting for finalPrompt from backend after execution..."}
+                  {generatedPrompt || activeItem.prompt || (isZh ? "// 执行后将显示最终提示词..." : "// Waiting for finalPrompt from backend after execution...")}
                 </pre>
               </div>
             )}
@@ -932,7 +993,7 @@ const CoreFrameworkPage: React.FC = () => {
                 {status === "loading" && !aiOutput ? (
                   <div className="h-full flex flex-col items-center justify-center text-[#6B7280] space-y-3">
                     <Loader2 size={32} className="animate-spin text-[#3B82F6]" />
-                    <span className="text-sm">Thinking...</span>
+                    <span className="text-sm">{isZh ? "思考中..." : "Thinking..."}</span>
                   </div>
                 ) : status === "loading" && aiOutput ? (
                   // Streaming core content preview
@@ -987,7 +1048,7 @@ const CoreFrameworkPage: React.FC = () => {
                               onClick={() => setContextExpanded((v) => !v)}
                               className="w-full flex items-center justify-between px-4 py-2 bg-[#1F2937]/40 text-xs text-[#9CA3AF] hover:text-[#F9FAFB] transition-colors"
                             >
-                              <span>Background & Context</span>
+                              <span>{isZh ? "背景与上下文" : "Background & Context"}</span>
                               <span>{contextExpanded ? "▲" : "▼"}</span>
                             </button>
                             {contextExpanded && (
@@ -1010,7 +1071,7 @@ const CoreFrameworkPage: React.FC = () => {
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-[#6B7280] space-y-3">
                     <Cpu size={32} className="opacity-20" />
-                    <span className="text-sm opacity-50">Results will appear here after execution</span>
+                    <span className="text-sm opacity-50">{isZh ? "执行后结果将显示在这里" : "Results will appear here after execution"}</span>
                   </div>
                 )}
               </div>
