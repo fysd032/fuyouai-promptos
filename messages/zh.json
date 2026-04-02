@@ -10,8 +10,8 @@
   "Hero": {
     "badge": "FUYOU AI",
     "headline": "你卡住，是因为只看见了一条路",
-    "subheadline1": "每一个卡住的人，脑子里不是空的，是太满了。",
-    "subheadline2": "FUYOU AI，帮你跳出去，看见你没看见的那几条路。",
+    "subheadline1": "每一个卡住的人，脑子里不是空的，是太满了",
+    "subheadline2": "FUYOU AI，帮你跳出去，看见你没看见的那几条路",
     "inputLabel": "告诉我你卡在哪",
     "placeholder1": "想创业但方向太多，不知道从哪里开始",
     "placeholder2": "写了一堆但总觉得差点什么",
@@ -30,8 +30,8 @@
   },
   "UseCases": {
     "sectionTag": "真实场景",
-    "headline": "你认识这些瞬间吗",
-    "subheadline": "每个人都卡过。区别只是，有没有换个角度看。",
+    "headline": "你认识这些瞬间吗？",
+    "subheadline": "",
     "foundersTag": "创业方向",
     "foundersTitle": "不知道从哪里想",
     "foundersDesc": "他以为问题是「选哪个方向」",
@@ -130,7 +130,7 @@
   },
   "FinalCTA": {
     "headline": "卡住的时候，你需要的不是更努力",
-    "subheadline": "你需要的，是另一个角度。",
+    "subheadline": "",
     "button": "现在就换个角度试试",
     "note": "5套思维框架 · 30+专业模板 · 5种卡住场景"
   },
@@ -333,7 +333,7 @@
   },
   "Testimonials": {
     "sectionTag": "用户感受",
-    "headline": "他们怎么说",
+    "headline": "他们怎么说？",
     "t1name": "一位创业者",
     "t1role": "创业方向",
     "t1text": "想了两周没头绪，用了一次就看见了三个我没想到的切入点。",
