@@ -3,12 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { useLocale } from "next-intl";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { ErrorBoundary } from "@/src/components/ErrorBoundary";
 
 const ModuleShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
+  const locale = useLocale();
+  const isZh = locale === "zh";
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Close drawer on route change
@@ -53,7 +56,7 @@ const ModuleShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           }`}
         >
           <div className="h-14 px-4 flex items-center justify-between border-b border-[#1F2937] flex-shrink-0">
-            <span className="text-sm font-semibold text-[#F9FAFB]">Menu</span>
+            <span className="text-sm font-semibold text-[#F9FAFB]">{isZh ? "菜单" : "Menu"}</span>
             <button
               onClick={() => setDrawerOpen(false)}
               className="p-2 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-[#111827] transition-colors"

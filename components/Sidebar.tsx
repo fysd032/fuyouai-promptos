@@ -7,37 +7,33 @@ import { usePathname, useRouter } from "next/navigation";
 import { Layers, Box, Building2, ChevronRight, History, Plus, X, ArrowRight, Loader2, Check } from "lucide-react";
 import { useIntentRouter, type RouterResult } from "@/src/hooks/useIntentRouter";
 import { supabase } from "@/src/lib/supabaseClient";
-
-const NAV_ITEMS = [
-  {
-    path: "/modules/core",
-    label: "Core Frameworks",
-    desc: "Methodologies",
-    icon: Layers,
-  },
-  {
-    path: "/modules/general",
-    label: "General Modules",
-    desc: "General Modules",
-    icon: Box,
-  },
-  // {
-  //   path: "/modules/industry",
-  //   label: "Industry Templates",
-  //   desc: "Industry Templates",
-  //   icon: Building2,
-  // },
-  {
-    path: "/modules/history",
-    label: "Session History",
-    desc: "Past sessions",
-    icon: History,
-  },
-];
+import { useTranslations } from "next-intl";
 
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslations("Sidebar");
+
+  const NAV_ITEMS = [
+    {
+      path: "/modules/core",
+      label: t("coreFrameworks"),
+      desc: t("coreFrameworksDesc"),
+      icon: Layers,
+    },
+    {
+      path: "/modules/general",
+      label: t("generalModules"),
+      desc: t("generalModulesDesc"),
+      icon: Box,
+    },
+    {
+      path: "/modules/history",
+      label: t("sessionHistory"),
+      desc: t("sessionHistoryDesc"),
+      icon: History,
+    },
+  ];
   const [showModal, setShowModal] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -128,17 +124,17 @@ const Sidebar: React.FC = () => {
             className="w-full flex items-center justify-center gap-2 bg-[#1E9FFF] hover:bg-[#4CB2FF] active:scale-[0.98] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-[0_2px_10px_rgba(30,159,255,0.25)]"
           >
             <Plus size={16} />
-            New Task
+            {t("newTask")}
           </button>
         </div>
 
         {/* ====== Section title ====== */}
         <div className="px-5 pt-1 pb-3">
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9CA3AF]/50 mb-1">
-            MODULE CENTER
+            {t("moduleCenterTag")}
           </div>
           <h2 className="text-base font-semibold text-[#F9FAFB] tracking-tight">
-            Module Center
+            {t("moduleCenterTitle")}
           </h2>
         </div>
 
@@ -207,7 +203,7 @@ const Sidebar: React.FC = () => {
             <div className="flex items-center gap-2 mb-1">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-[10px] font-medium text-emerald-400">
-                System Online
+                {t("systemOnline")}
               </span>
             </div>
             <p className="text-[10px] text-[#6B7280]">PromptOS v1</p>
@@ -236,15 +232,15 @@ const Sidebar: React.FC = () => {
               <X size={16} />
             </button>
 
-            <h2 className="text-xl font-semibold text-white mb-1">What do you want to do?</h2>
-            <p className="text-sm text-[#6B7280] mb-6">Describe your task and we'll route it to the right module.</p>
+            <h2 className="text-xl font-semibold text-white mb-1">{t("modalTitle")}</h2>
+            <p className="text-sm text-[#6B7280] mb-6">{t("modalDesc")}</p>
 
             <form onSubmit={handleRouterSubmit} className="flex flex-col gap-4">
               <textarea
                 autoFocus
                 value={routerInput}
                 onChange={(e) => setRouterInput(e.target.value)}
-                placeholder="Describe what you want to accomplish..."
+                placeholder={t("modalPlaceholder")}
                 style={{ minHeight: "120px", resize: "vertical" }}
                 className="w-full rounded-xl border border-[#1F2937] bg-[#111827] px-5 py-4 text-base text-white placeholder:text-[#4B5563] focus:outline-none focus:ring-2 focus:ring-[#1E9FFF]/40 focus:border-[#1E9FFF]/50 transition-all"
               />
@@ -265,7 +261,7 @@ const Sidebar: React.FC = () => {
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-3 rounded-xl text-sm font-medium border border-[#1F2937] text-[#9CA3AF] hover:text-white hover:bg-[#1F2937] transition-colors"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
 
                 {routerStage === "loading" ? (
@@ -274,7 +270,7 @@ const Sidebar: React.FC = () => {
                     disabled
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium bg-[#1E9FFF]/60 text-white cursor-not-allowed"
                   >
-                    <Loader2 size={15} className="animate-spin" /> Routing...
+                    <Loader2 size={15} className="animate-spin" /> {t("routing")}
                   </button>
                 ) : routerStage === "confirmed" ? (
                   <button
@@ -282,7 +278,7 @@ const Sidebar: React.FC = () => {
                     disabled
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium bg-emerald-500 text-white"
                   >
-                    <Check size={15} /> Ready
+                    <Check size={15} /> {t("ready")}
                   </button>
                 ) : routerStage === "hinting" ? (
                   <button
@@ -290,7 +286,7 @@ const Sidebar: React.FC = () => {
                     onClick={handleRouterConfirm}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white transition-colors"
                   >
-                    Start <ArrowRight size={15} />
+                    {t("start")} <ArrowRight size={15} />
                   </button>
                 ) : routerStage === "error" ? (
                   <button
@@ -298,14 +294,14 @@ const Sidebar: React.FC = () => {
                     onClick={resetRouterError}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white transition-colors"
                   >
-                    Try again
+                    {t("tryAgain")}
                   </button>
                 ) : (
                   <button
                     type="submit"
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white transition-colors"
                   >
-                    Continue <ArrowRight size={15} />
+                    {t("continue")} <ArrowRight size={15} />
                   </button>
                 )}
               </div>
