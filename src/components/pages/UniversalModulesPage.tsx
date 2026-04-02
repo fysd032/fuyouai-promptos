@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchRegistry } from "@/src/lib/registry";
 import { ModuleRunner } from "@/src/components/ModuleRunner";
 import { ArrowRight, ArrowLeft } from "lucide-react";
+import { useLocale } from "next-intl";
 
 /** Category definitions (analysis / creation / ...) */
 type ModuleCategory =
@@ -17,7 +18,7 @@ type ModuleCategory =
   | "tool"
   | "other";
 
-const CATEGORY_TABS: Array<{ key: ModuleCategory; label: string }> = [
+const CATEGORY_TABS_EN: Array<{ key: ModuleCategory; label: string }> = [
   { key: "all", label: "All" },
   { key: "analysis", label: "Analysis" },
   { key: "creation", label: "Creation" },
@@ -27,6 +28,18 @@ const CATEGORY_TABS: Array<{ key: ModuleCategory; label: string }> = [
   { key: "role", label: "Role Play" },
   { key: "tool", label: "Tools" },
   { key: "other", label: "Other" },
+];
+
+const CATEGORY_TABS_ZH: Array<{ key: ModuleCategory; label: string }> = [
+  { key: "all", label: "全部" },
+  { key: "analysis", label: "帮我分析" },
+  { key: "creation", label: "帮我写" },
+  { key: "business", label: "帮我做计划" },
+  { key: "academic", label: "帮我做研究" },
+  { key: "tech", label: "技术相关" },
+  { key: "role", label: "模拟对话" },
+  { key: "tool", label: "小工具" },
+  { key: "other", label: "其他" },
 ];
 
 type RegistryVariant = {
@@ -136,12 +149,21 @@ const SYSTEM_TOOL_IDS = new Set(["meta_prompt", "risk_control", "knowledge_base"
 
 type LayerKey = "work" | "system";
 
-const LAYER_TABS: Array<{ key: LayerKey; label: string }> = [
+const LAYER_TABS_EN: Array<{ key: LayerKey; label: string }> = [
   { key: "work", label: "General Modules" },
   { key: "system", label: "System Tools" },
 ];
 
+const LAYER_TABS_ZH: Array<{ key: LayerKey; label: string }> = [
+  { key: "work", label: "通用模板" },
+  { key: "system", label: "系统工具" },
+];
+
 export default function UniversalModulesPage() {
+  const locale = useLocale();
+  const isZh = locale === "zh";
+  const CATEGORY_TABS = isZh ? CATEGORY_TABS_ZH : CATEGORY_TABS_EN;
+  const LAYER_TABS = isZh ? LAYER_TABS_ZH : LAYER_TABS_EN;
   const [modules, setModules] = useState<RegistryModule[]>([]);
   const [selectedModuleId, setSelectedModuleId] = useState<string>("");
   const [selectedVariant, setSelectedVariant] = useState<RegistryVariant | null>(null);
@@ -264,7 +286,7 @@ export default function UniversalModulesPage() {
         <input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          placeholder="Search module name or ID..."
+          placeholder={isZh ? "搜索模板名称..." : "Search module name or ID..."}
           className="w-full px-3 py-2 rounded-lg text-sm sm:text-base bg-[#0A0F1C] border border-[#374151] text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500"
         />
       </div>
@@ -288,7 +310,7 @@ export default function UniversalModulesPage() {
           >
             <div className="text-white font-medium text-sm sm:text-base">{m.frontModuleLabel ?? m.frontModuleId}</div>
             <div className="text-xs sm:text-sm text-gray-400 flex items-center justify-between mt-1">
-              <span>Variants: {m.variants?.length || 0}</span>
+              <span>{isZh ? "变体" : "Variants"}: {m.variants?.length || 0}</span>
               <span className="text-xs text-emerald-400 font-mono">
                 {getModuleCategory(m)}
               </span>
@@ -298,7 +320,7 @@ export default function UniversalModulesPage() {
 
         {!filteredModules.length && (
           <div className="text-sm sm:text-base text-gray-400 p-3">
-            No matching modules found (try another category or clear search)
+            {isZh ? "没有找到匹配的模板，试试其他分类或清除搜索" : "No matching modules found (try another category or clear search)"}
           </div>
         )}
       </div>
@@ -332,14 +354,14 @@ export default function UniversalModulesPage() {
             className="lg:hidden flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-3 transition-colors"
           >
             <ArrowLeft size={16} />
-            Back to modules
+            {isZh ? "返回列表" : "Back to modules"}
           </button>
 
           <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
-            {activeModule?.frontModuleLabel ?? "No module selected"}
+            {activeModule?.frontModuleLabel ?? (isZh ? "请选择一个模板" : "No module selected")}
           </h2>
 
-          <div className="text-sm sm:text-base text-gray-400 mb-4">Please select a variant</div>
+          <div className="text-sm sm:text-base text-gray-400 mb-4">{isZh ? "选择一个使用场景" : "Please select a variant"}</div>
 
           <div className="flex flex-wrap gap-2 mb-6">
             {activeModule?.variants?.map((v) => (
@@ -367,7 +389,7 @@ export default function UniversalModulesPage() {
                 : "bg-gray-700 text-gray-400 cursor-not-allowed"
             }`}
           >
-            Use Template <ArrowRight size={16} />
+            {isZh ? "开始使用" : "Use Template"} <ArrowRight size={16} />
           </button>
         </div>
       )}
@@ -378,7 +400,7 @@ export default function UniversalModulesPage() {
     <div className="flex flex-col gap-4 sm:gap-6 h-full min-w-0">
       {/* Mobile hint */}
       <div className="lg:hidden text-center py-1.5 px-3 bg-[#1F2937]/60 border border-[#374151]/50 rounded-lg">
-        <span className="text-xs text-gray-400">For the best experience, visit on PC / tablet</span>
+        <span className="text-xs text-gray-400">{isZh ? "建议在电脑或平板上使用，体验更好" : "For the best experience, visit on PC / tablet"}</span>
       </div>
 
       <div className="flex gap-4 sm:gap-6 flex-1 min-h-0">
