@@ -90,42 +90,42 @@ const CLARIFICATION_LABELS: Record<string, string> = {
 const CORE_FRAMEWORKS = [
   {
     key: "task-decomposition-v3",
-    title: "Task Decomposition",
-    fullTitle: "Task Decomposition",
-    desc: "Break down complex, dynamic requirements into clear execution steps, constraints, and delivery standards.",
-    bullets: ["Flexible core configuration and tag classification", "Cumulative step-by-step execution flow", "Support for nested loops and staged output"],
+    title: "不知从哪开始",
+    fullTitle: "先把它拆开来",
+    desc: "大问题让人动不了，因为脑子在同时处理太多东西。把它拆成你能动手的小块，第一步自然浮出来。",
+    bullets: ["把模糊的事说清楚", "找到第一个能动的点", "不漏掉关键条件"],
     prompt: `(Generating...)`,
   },
   {
     key: "reasoning-engine-v3",
-    title: "CoT Reasoning",
-    fullTitle: "CoT Deep Reasoning Framework (Chain of Thought)",
-    desc: "Force the model to reason step-by-step, avoiding intuitive errors, suitable for complex logical analysis.",
-    bullets: ["Problem restatement and key info extraction", "Multi-path logical reasoning", "Converge conclusions and verify"],
+    title: "只看见一条路",
+    fullTitle: "帮你多想几步",
+    desc: "不是你想得不对，是你想得不够多。强制从不同角度拆解同一个问题，盲区自然暴露出来。",
+    bullets: ["换个立场重新看", "列出你没考虑的可能", "逻辑走到底再判断"],
     prompt: `(Generating...)`,
   },
   {
     key: "content-builder-v3",
-    title: "Content Generation",
-    fullTitle: "Structured Content Generation Framework (Content Builder)",
-    desc: "Define target audience and outline first, then fill in content, ensuring logical consistency and unified style for long-form writing.",
-    bullets: ["Identify audience and core pain points", "Build pyramid-structured outline", "Fill content module by module"],
+    title: "写了但不对",
+    fullTitle: "帮你校准方向",
+    desc: "写了一堆但总觉得差点什么，说明方向偏了或者没抓住重点。对比你想要的和实际写出来的，差在哪一目了然。",
+    bullets: ["对比预期和实际", "找到偏掉的地方", "调整后重新输出"],
     prompt: `(Generating...)`,
   },
   {
     key: "analytical-engine-v3",
-    title: "Deep Analysis",
-    fullTitle: "Analytical Reasoning Framework (Analytical Engine)",
-    desc: "From a consultant's perspective, analyze business or social issues from multiple dimensions, providing evidence-based decision recommendations.",
-    bullets: ["Define problem boundaries", "MECE analysis across 3-5 dimensions", "Evidence-based action recommendations"],
+    title: "越想越乱",
+    fullTitle: "先停下来，理一遍",
+    desc: "越想越乱是因为你在脑子里转圈，没有落到纸面上。把想法倒出来、排个序，思路自己就清了。",
+    bullets: ["把脑子里的东西全倒出来", "找到真正在纠结的点", "理出先后顺序"],
     prompt: `(Generating...)`,
   },
   {
     key: "task-tree-v3",
-    title: "Complex Task Tree",
-    fullTitle: "Complex Task Structure Tree (Task Tree / ToT)",
-    desc: "For large-scale projects, build hierarchical task trees, marking dependencies and risk points.",
-    bullets: ["Level 0-2 task hierarchy division", "Identify inter-task dependencies", "Develop execution roadmap"],
+    title: "事情太复杂",
+    fullTitle: "一层一层剥开",
+    desc: "复杂不是因为事情真的难，是因为所有东西搅在一起了。先分清楚哪些是核心、哪些是干扰，复杂度立刻降下来。",
+    bullets: ["分清主线和支线", "按优先级排好", "一次只处理一件"],
     prompt: `(Generating...)`,
   },
 ] as const;
@@ -635,10 +635,10 @@ const CoreFrameworkPage: React.FC = () => {
 
       <div className="relative pt-2 sm:pt-4 pb-4 sm:pb-10 text-center z-10">
         <h1 className="text-xl sm:text-[32px] font-semibold text-[#F9FAFB] tracking-tight mb-1 sm:mb-2 drop-shadow-sm">
-          Core Methodologies
+          卡住了，怎么破？
         </h1>
         <p className="text-[#9CA3AF] text-xs sm:text-base max-w-2xl mx-auto mb-3 sm:mb-8">
-          5 core engines based on Chain of Thought (CoT) and structured engineering, enabling ultimate AI output control.
+          不同的卡法，有不同的解法。选一个最像你现在状态的。
         </p>
 
         <div className="flex flex-row flex-nowrap overflow-x-auto sm:inline-flex sm:flex-wrap p-1 bg-[#111827] border border-[#1F2937] rounded-xl shadow-lg no-scrollbar gap-0.5 sm:gap-0">
@@ -855,7 +855,7 @@ const CoreFrameworkPage: React.FC = () => {
               <textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                placeholder={`TASK\nDescribe your task\n\nGOAL\nWhat outcome do you want\n\nCONSTRAINTS\nTime / budget / resources`}
+                placeholder={`不用整理好再说。想到什么说什么，越乱越好，让我来帮你理。`}
                 className="w-full h-[140px] sm:h-[240px] bg-[#0A0F1C] border border-[#1F2937] rounded-xl p-3 sm:p-5 text-sm sm:text-[15px] text-[#F9FAFB] placeholder:text-[#6B7280] focus:outline-none focus:border-[#3B82F6]/50 focus:ring-1 focus:ring-[#3B82F6]/20 transition-all resize-none leading-relaxed"
               />
 
@@ -870,7 +870,7 @@ const CoreFrameworkPage: React.FC = () => {
                   ) : (
                     <Play size={16} fill="currentColor" />
                   )}
-                  {status === "loading" ? "Generating..." : "Generate Prompt and Run"}
+                  {status === "loading" ? "生成中..." : "帮我换个角度 →"}
                 </button>
               </div>
             </div>

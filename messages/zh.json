@@ -8,18 +8,18 @@
     "dashboard": "仪表盘"
   },
   "Hero": {
-    "badge": "FuyouAI · Prompt OS",
-    "headline": "说出你要做的事，直接拿到结果",
-    "subheadline1": "写邮件、商业计划、PRD、周报、PPT 大纲、市场分析 ——",
-    "subheadline2": "31 个模块，60 秒出结果，不需要 prompt skills",
-    "inputLabel": "告诉我你想完成什么",
-    "placeholder1": "给客户写一封关于下一步计划的跟进邮件",
-    "placeholder2": "为一个 AI 创业公司写商业计划",
-    "placeholder3": "分析竞争对手的市场策略",
-    "start": "开始",
+    "badge": "FUYOU AI",
+    "headline": "你卡住，是因为只看见了一条路。",
+    "subheadline1": "每一个卡住的人，脑子里不是空的，是太满了。",
+    "subheadline2": "FUYOU AI，帮你跳出去，看见你没看见的那几条路。",
+    "inputLabel": "告诉我你卡在哪",
+    "placeholder1": "想创业但方向太多，不知道从哪里开始",
+    "placeholder2": "写了一堆但总觉得差点什么",
+    "placeholder3": "要做一个决定，但越想越乱",
+    "start": "帮我换个角度",
     "routing": "路由中...",
     "tryAgain": "重试",
-    "moduleInfo": "31 个专业模块 · 自动意图路由 · 结构化输出",
+    "moduleInfo": "5套思维框架 · 30+专业模板 · 5种卡住场景",
     "usedBy": "用户群体",
     "roleFounders": "创始人",
     "roleProductManagers": "产品经理",
@@ -167,10 +167,10 @@
     "read": "阅读"
   },
   "FinalCTA": {
-    "headline": "立即开始产出真实成果",
-    "subheadline": "60 秒内获得首个结果。无需任何设置。",
-    "button": "免费开始",
-    "note": "无需提示词技巧 · 零学习曲线"
+    "headline": "卡住的时候，你需要的不是更努力",
+    "subheadline": "你需要的，是另一个角度。",
+    "button": "现在就换个角度试试",
+    "note": "5套思维框架 · 30+专业模板 · 5种卡住场景"
   },
   "Footer": {
     "copyright": "© {year} FuyouAI. 保留所有权利。",
