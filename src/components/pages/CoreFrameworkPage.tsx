@@ -770,7 +770,9 @@ const CoreFrameworkPage: React.FC = () => {
                 {currentStep === 1 ? "1" : <Check size={14} />}
               </div>
               <span className="text-xs sm:text-sm font-medium text-[#F9FAFB]">
-                {currentStep === 1 ? "Input Context" : "Execution Done"}
+                {currentStep === 1
+                  ? (isZh ? "说说你卡在哪" : "Input Context")
+                  : (isZh ? "结果出来了" : "Execution Done")}
               </span>
             </div>
 

@@ -5,7 +5,7 @@
     "modules": "模块中心",
     "signIn": "登录",
     "getStarted": "立即开始",
-    "dashboard": "仪表盘"
+    "dashboard": "进入"
   },
   "Hero": {
     "badge": "FUYOU AI",
@@ -265,19 +265,19 @@
     "signOut": "退出登录"
   },
   "Sidebar": {
-    "newTask": "新任务",
+    "newTask": "说说你卡在哪",
     "moduleCenterTag": "模块中心",
     "moduleCenterTitle": "模块中心",
-    "coreFrameworks": "核心框架",
-    "coreFrameworksDesc": "方法论",
-    "generalModules": "通用模块",
-    "generalModulesDesc": "通用模块",
+    "coreFrameworks": "按场景找方法",
+    "coreFrameworksDesc": "5种卡住场景",
+    "generalModules": "工具箱",
+    "generalModulesDesc": "30+专业模板",
     "sessionHistory": "会话历史",
     "sessionHistoryDesc": "历史记录",
     "systemOnline": "系统在线",
-    "modalTitle": "你想做什么？",
-    "modalDesc": "描述你的任务，我们会将它路由到正确的模块。",
-    "modalPlaceholder": "描述你想完成的事情...",
+    "modalTitle": "你卡在哪了？",
+    "modalDesc": "不用整理好再说，想到什么说什么，越乱越好。",
+    "modalPlaceholder": "比如：想创业但方向太多、写了一堆但总觉得差点什么...",
     "cancel": "取消",
     "routing": "路由中...",
     "ready": "就绪",

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Layers, Box, Briefcase, ChevronRight, X, Plus, ArrowRight, Loader2, Check } from "lucide-react";
 import { useIntentRouter, type RouterResult } from "@/src/hooks/useIntentRouter";
 import { supabase } from "@/src/lib/supabaseClient";
+import { useTranslations } from "next-intl";
 
 type SidebarProps = {
   forceMobile?: boolean;
@@ -16,6 +17,7 @@ type SidebarProps = {
 const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslations("Sidebar");
   const drawerEnabled = typeof isOpen === "boolean";
   const drawerOpen = Boolean(isOpen);
   const [showModal, setShowModal] = useState(false);
@@ -77,15 +79,15 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
   const items = [
     {
       path: "/modules/core",
-      label: "Core Frameworks",
+      label: t("coreFrameworks"),
       icon: <Layers size={18} />,
-      desc: "Methodologies",
+      desc: t("coreFrameworksDesc"),
     },
     {
       path: "/modules/general",
-      label: "General Modules",
+      label: t("generalModules"),
       icon: <Box size={18} />,
-      desc: "General Modules",
+      desc: t("generalModulesDesc"),
     },
     {
       path: "/modules/industry",
@@ -125,9 +127,9 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9CA3AF]/60 mb-2">
-                Module Center
+                {t("moduleCenterTag")}
               </div>
-              <h2 className="text-sm font-semibold text-[#F9FAFB]">Module Center</h2>
+              <h2 className="text-sm font-semibold text-[#F9FAFB]">{t("moduleCenterTitle")}</h2>
             </div>
             {drawerEnabled && (
               <button
@@ -147,7 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
             className="mt-4 w-full flex items-center justify-center gap-2 bg-[#1E9FFF] hover:bg-[#4CB2FF] active:scale-[0.98] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-[0_2px_10px_rgba(30,159,255,0.25)]"
           >
             <Plus size={16} />
-            New Task
+            {t("newTask")}
           </button>
         </div>
 
@@ -219,7 +221,7 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
             <div className="flex items-center gap-2 mb-1">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
               <span className="text-[10px] font-medium text-emerald-400">
-                System Online
+                {t("systemOnline")}
               </span>
             </div>
             <p className="text-[10px] text-[#6B7280]">PromptOS v1</p>
@@ -248,8 +250,8 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
               <X size={16} />
             </button>
 
-            <h2 className="text-lg font-semibold text-white mb-1">What do you want to do?</h2>
-            <p className="text-xs text-[#6B7280] mb-5">Describe your task and we'll route it to the right module.</p>
+            <h2 className="text-lg font-semibold text-white mb-1">{t("modalTitle")}</h2>
+            <p className="text-xs text-[#6B7280] mb-5">{t("modalDesc")}</p>
 
             <form onSubmit={handleRouterSubmit} className="flex flex-col gap-3">
               <input
@@ -257,7 +259,7 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
                 type="text"
                 value={routerInput}
                 onChange={(e) => setRouterInput(e.target.value)}
-                placeholder="e.g. Write a product launch email, Build a project plan..."
+                placeholder={t("modalPlaceholder")}
                 className="w-full rounded-xl border border-[#1F2937] bg-[#111827] px-4 py-3 text-sm text-white placeholder:text-[#4B5563] focus:outline-none focus:ring-2 focus:ring-[#1E9FFF]/40 focus:border-[#1E9FFF]/50 transition-all"
               />
 
@@ -277,7 +279,7 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-[#1F2937] text-[#9CA3AF] hover:text-white hover:bg-[#1F2937] transition-colors"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
 
                 {routerStage === "loading" ? (
@@ -286,7 +288,7 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
                     disabled
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1E9FFF]/60 text-white cursor-not-allowed"
                   >
-                    <Loader2 size={14} className="animate-spin" /> Routing...
+                    <Loader2 size={14} className="animate-spin" /> {t("routing")}
                   </button>
                 ) : routerStage === "confirmed" ? (
                   <button
@@ -294,7 +296,7 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
                     disabled
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-emerald-500 text-white"
                   >
-                    <Check size={14} /> Ready
+                    <Check size={14} /> {t("ready")}
                   </button>
                 ) : routerStage === "hinting" ? (
                   <button
@@ -302,7 +304,7 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
                     onClick={handleRouterConfirm}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white transition-colors"
                   >
-                    Start <ArrowRight size={14} />
+                    {t("start")} <ArrowRight size={14} />
                   </button>
                 ) : routerStage === "error" ? (
                   <button
@@ -310,14 +312,14 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
                     onClick={resetRouterError}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white transition-colors"
                   >
-                    Try again
+                    {t("tryAgain")}
                   </button>
                 ) : (
                   <button
                     type="submit"
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white transition-colors"
                   >
-                    Continue <ArrowRight size={14} />
+                    {t("continue")} <ArrowRight size={14} />
                   </button>
                 )}
               </div>
