@@ -5,6 +5,7 @@ import { fetchRegistry } from "@/src/lib/registry";
 import { ModuleRunner } from "@/src/components/ModuleRunner";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { useLocale } from "next-intl";
+import { MODULE_LABELS_ZH, VARIANT_LABELS_ZH } from "@/src/config/moduleLabelsZh";
 
 /** Category definitions (analysis / creation / ...) */
 type ModuleCategory =
@@ -164,6 +165,16 @@ export default function UniversalModulesPage() {
   const isZh = locale === "zh";
   const CATEGORY_TABS = isZh ? CATEGORY_TABS_ZH : CATEGORY_TABS_EN;
   const LAYER_TABS = isZh ? LAYER_TABS_ZH : LAYER_TABS_EN;
+
+  // Locale-aware label helpers
+  const getModuleLabel = (m: RegistryModule) => {
+    if (isZh) return MODULE_LABELS_ZH[m.frontModuleId] ?? m.frontModuleLabel ?? m.frontModuleId;
+    return m.frontModuleLabel ?? m.frontModuleId;
+  };
+  const getVariantLabel = (v: RegistryVariant) => {
+    if (isZh) return VARIANT_LABELS_ZH[v.variantId] ?? v.label ?? v.variantId;
+    return v.label ?? v.variantId;
+  };
   const [modules, setModules] = useState<RegistryModule[]>([]);
   const [selectedModuleId, setSelectedModuleId] = useState<string>("");
   const [selectedVariant, setSelectedVariant] = useState<RegistryVariant | null>(null);
@@ -308,7 +319,7 @@ export default function UniversalModulesPage() {
                 : "border-transparent hover:bg-[#1F2937]"
             }`}
           >
-            <div className="text-white font-medium text-sm sm:text-base">{m.frontModuleLabel ?? m.frontModuleId}</div>
+            <div className="text-white font-medium text-sm sm:text-base">{getModuleLabel(m)}</div>
             <div className="text-xs sm:text-sm text-gray-400 flex items-center justify-between mt-1">
               <span>{isZh ? "变体" : "Variants"}: {m.variants?.length || 0}</span>
               <span className="text-xs text-emerald-400 font-mono">
@@ -358,7 +369,7 @@ export default function UniversalModulesPage() {
           </button>
 
           <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
-            {activeModule?.frontModuleLabel ?? (isZh ? "请选择一个模板" : "No module selected")}
+            {activeModule ? getModuleLabel(activeModule) : (isZh ? "请选择一个模板" : "No module selected")}
           </h2>
 
           <div className="text-sm sm:text-base text-gray-400 mb-4">{isZh ? "选择一个使用场景" : "Please select a variant"}</div>
@@ -375,7 +386,7 @@ export default function UniversalModulesPage() {
                 }`}
                 title={v.description}
               >
-                {v.label || v.variantId}
+                {getVariantLabel(v)}
               </button>
             ))}
           </div>
