@@ -88,6 +88,26 @@ export const Landing: React.FC = () => {
           <span className="font-semibold text-lg tracking-tight text-white/95">FuyouAI</span>
         </div>
 
+        {/* Mobile: login button */}
+        <div className="flex md:hidden items-center gap-3">
+          {userEmail ? (
+            <Link
+              href="/modules"
+              className="bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
+            >
+              {t("dashboard")}
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
+            >
+              {t("signIn")}
+            </Link>
+          )}
+        </div>
+
+        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
           <button onClick={scrollToFeatures} className="hover:text-white transition-colors">
             {t("features")}
