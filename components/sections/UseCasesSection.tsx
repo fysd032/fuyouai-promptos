@@ -99,7 +99,7 @@ export const UseCasesSection: React.FC = () => {
     const c = colorMap[activeItem.color];
 
     return (
-      <section className="max-w-5xl mx-auto px-6 py-24 relative z-10">
+      <section className="max-w-5xl mx-auto px-6 py-16 relative z-10">
         <div className="text-center mb-14">
           <p className="text-xs font-medium tracking-[0.25em] text-slate-500 uppercase mb-4">
             {t("sectionTag")}
@@ -176,7 +176,7 @@ export const UseCasesSection: React.FC = () => {
 
   // ── English: original 4-column card grid ──────────────────────
   return (
-    <section className="max-w-7xl mx-auto px-6 py-24 relative z-10">
+    <section className="max-w-7xl mx-auto px-6 py-16 relative z-10">
       <div className="text-center mb-14">
         <p className="text-xs font-medium tracking-[0.25em] text-slate-500 uppercase mb-4">
           {t("sectionTag")}

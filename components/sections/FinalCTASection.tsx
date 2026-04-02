@@ -8,7 +8,7 @@ export const FinalCTASection: React.FC = () => {
   const t = useTranslations("FinalCTA");
 
   return (
-    <section className="max-w-4xl mx-auto px-6 py-24 relative z-10">
+    <section className="max-w-4xl mx-auto px-6 py-16 relative z-10">
       <div className="rounded-3xl bg-gradient-to-b from-[#0d1929] to-slate-900/60 border border-[#1E9FFF]/20 shadow-[0_0_100px_rgba(30,159,255,0.10),0_0_0_1px_rgba(30,159,255,0.06)] px-12 py-20 text-center">
         <h2 className="text-4xl lg:text-5xl font-semibold text-white tracking-tight mb-5 leading-[1.1]">
           {t("headline")}

@@ -52,25 +52,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const isError = routerStage === "error";
 
   return (
-    <header className="max-w-4xl mx-auto px-6 pt-32 pb-8 text-center relative z-10">
-      <p className="text-xs font-medium tracking-[0.3em] text-slate-500 uppercase mb-8">
+    <header className="max-w-4xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-4 sm:pb-6 text-center relative z-10">
+      <p className="text-xs font-medium tracking-[0.3em] text-slate-500 uppercase mb-5">
         {t("badge")}
       </p>
 
-      <h1 className="text-3xl sm:text-5xl lg:text-[56px] font-semibold leading-[1.1] tracking-tight text-white mb-8 whitespace-nowrap">
+      <h1 className="text-2xl sm:text-4xl lg:text-[56px] font-semibold leading-[1.15] tracking-tight text-white mb-4 sm:mb-5">
         {t("headline")}
       </h1>
 
-      <p className="text-lg lg:text-xl leading-[1.7] text-slate-400 font-normal max-w-xl mx-auto mb-16">
+      <p className="text-sm sm:text-lg lg:text-xl leading-[1.7] text-slate-400 font-normal max-w-xl mx-auto mb-6 sm:mb-10">
         {t("subheadline1")}<br />
         {t("subheadline2")}
       </p>
 
-      <div className="max-w-4xl mx-auto flex flex-col gap-4">
+      <div className="max-w-4xl mx-auto flex flex-col gap-3 sm:gap-4">
         <p className="text-xs text-slate-500 text-left pl-1">{t("inputLabel")}</p>
 
         <form onSubmit={handleRouterSubmit} className="flex flex-col gap-2">
-          <div className="relative flex items-center">
+          <div className="relative flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
             <input
               id="hero-input"
               ref={inputRef}
@@ -78,10 +78,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               value={routerInput}
               onChange={(e) => setRouterInput(e.target.value)}
               placeholder={PLACEHOLDERS[placeholderIdx]}
-              style={{ height: "72px" }}
-              className="w-full rounded-xl border border-white/40 bg-white/[0.04] pl-6 pr-48 text-xl text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#1E9FFF]/50 focus:border-[#1E9FFF]/60 focus:shadow-[0_0_24px_rgba(30,159,255,0.08)] transition-all"
+              className="w-full h-12 sm:h-[72px] rounded-xl border border-white/40 bg-white/[0.04] pl-4 sm:pl-6 pr-4 sm:pr-48 text-sm sm:text-xl text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#1E9FFF]/50 focus:border-[#1E9FFF]/60 focus:shadow-[0_0_24px_rgba(30,159,255,0.08)] transition-all"
             />
-            <div className="absolute right-2 flex items-center gap-2">
+            <div className="sm:absolute sm:right-2 flex items-center gap-2 justify-end">
               {isLoading ? (
                 <span className="flex items-center gap-2 bg-[#1E9FFF]/70 text-white text-sm font-medium px-7 py-3 rounded-lg cursor-not-allowed">
                   <Loader2 size={15} className="animate-spin" /> {t("routing")}
@@ -125,24 +124,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           )}
         </form>
 
-        <p className="text-xs text-slate-600 text-center mt-4">
+        <p className="text-xs text-slate-600 text-center mt-3">
           {t("moduleInfo")}
         </p>
 
-        {/* Trust line */}
-        <div className="flex items-center justify-center gap-2 flex-wrap mt-5">
-          <span className="text-[11px] text-slate-600">{t("usedBy")}</span>
-          {[t("roleFounders"), t("roleProductManagers"), t("roleAIBuilders"), t("roleCreators")].map((role) => (
-            <span
-              key={role}
-              className="text-[11px] text-slate-500 bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 rounded-full"
-            >
-              {role}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-center gap-6 mt-4">
+        <div className="flex items-center justify-center gap-6 mt-3">
           <span className="text-xs text-slate-600">{t("previewFree")}</span>
           <button
             type="button"
