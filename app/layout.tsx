@@ -1,7 +1,7 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,9 +10,8 @@ export const metadata: Metadata = {
     "FuyouAI transforms ambiguous requirements into stable, automated workflows.",
 };
 
-function detectLocale(acceptLanguage: string | null): "en" | "zh" {
+function detectLocaleFromHeader(acceptLanguage: string | null): "en" | "zh" {
   if (!acceptLanguage) return "en";
-  // Check if Chinese is preferred
   const langs = acceptLanguage.toLowerCase();
   if (langs.startsWith("zh") || langs.includes(",zh")) return "zh";
   return "en";
@@ -23,9 +22,18 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const headersList = await headers();
-  const acceptLanguage = headersList.get("accept-language");
-  const locale = detectLocale(acceptLanguage);
+  // Priority: cookie (user's explicit choice) > Accept-Language (browser default)
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get("NEXT_LOCALE")?.value;
+
+  let locale: "en" | "zh";
+  if (cookieLocale === "en" || cookieLocale === "zh") {
+    locale = cookieLocale;
+  } else {
+    const headersList = await headers();
+    locale = detectLocaleFromHeader(headersList.get("accept-language"));
+  }
+
   const messages = (await import(`../messages/${locale}.json`)).default;
 
   return (
