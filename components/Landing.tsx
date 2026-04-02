@@ -140,9 +140,13 @@ export const Landing: React.FC = () => {
       <div className="w-full border-t border-white/[0.04]" />
       <UseCasesSection />
 
-      {/* Output Preview — moved up, highest visual weight */}
-      <div className="w-full border-t border-white/[0.04]" />
-      <OutputPreviewSection />
+      {/* Output Preview — English only (Chinese version uses scenario cards in UseCases) */}
+      {locale !== "zh" && (
+        <>
+          <div className="w-full border-t border-white/[0.04]" />
+          <OutputPreviewSection />
+        </>
+      )}
 
       {/* How It Works */}
       <div className="w-full border-t border-white/[0.04]" />
