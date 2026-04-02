@@ -57,7 +57,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {t("badge")}
       </p>
 
-      <h1 className="text-5xl lg:text-[60px] font-semibold leading-[1.1] tracking-tight text-white mb-8">
+      <h1 className="text-3xl sm:text-5xl lg:text-[56px] font-semibold leading-[1.1] tracking-tight text-white mb-8 whitespace-nowrap">
         {t("headline")}
       </h1>
 
