@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FUYOU AI - 换个角度，路就出来了</title>
+  <meta name="description" content="卡住的时候，你需要的不是更努力，而是另一个角度。FUYOU AI 帮你跳出思维困局，看见你没看见的那几条路。" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans SC"', '"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif'],
+            mono: ['Menlo', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    .fade-in { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
+    .scenario-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .scenario-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+    .cta-btn { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59,130,246,0.4); }
+    /* Browser frame dots */
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-red { background: #FF5F56; }
+    .dot-yellow { background: #FFBD2E; }
+    .dot-green { background: #27C93F; }
+  </style>
+</head>
+<body class="bg-[#0B0F1A] text-[#E2E8F0] min-h-screen">
+
+  <!-- Hero: Left text + Right product frame -->
+  <section class="relative min-h-screen flex items-center px-6 overflow-hidden">
+    <div class="absolute top-1/4 left-1/3 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="max-w-6xl mx-auto w-full relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center py-20">
+
+      <!-- Left: Text -->
+      <div class="flex flex-col order-1">
+        <p class="text-[#64748B] text-xs tracking-widest mb-6 fade-in">FUYOU AI</p>
+
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold leading-snug mb-2 fade-in" style="transition-delay:0.05s">
+          <span style="color:rgba(255,255,255,0.45)">坐在那里两个小时，</span><br>
+          <span style="color:rgba(255,255,255,0.45)">不是因为你不够努力——</span>
+        </h1>
+
+        <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold leading-snug mb-6 fade-in" style="transition-delay:0.1s">
+          <span class="text-white">你卡住，是因为只看见了</span><span class="text-[#4A90E2]">一条路</span><span class="text-white">。</span>
+        </h2>
+
+        <p class="text-[#94A3B8] text-base md:text-lg leading-relaxed mb-8 max-w-lg fade-in" style="transition-delay:0.15s">
+          FUYOU AI，帮你跳出去，看见你没看见的那几条路。<br>
+          帮你从大概想法，到具体步骤。
+        </p>
+
+        <!-- Buttons -->
+        <div class="flex flex-wrap items-center gap-4 mb-8 fade-in" style="transition-delay:0.2s">
+          <a href="/modules/core" class="cta-btn inline-flex items-center gap-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-medium px-6 py-3 rounded-xl text-base">
+            现在就换个角度试试
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </a>
+          <a href="#modules" class="text-[#94A3B8] hover:text-white text-sm transition-colors">
+            了解怎么做到的 &darr;
+          </a>
+        </div>
+
+        <!-- Stats -->
+        <div class="flex items-center gap-6 text-sm fade-in" style="transition-delay:0.25s">
+          <div class="border-t border-[#1E293B] pt-4 flex items-center gap-6 text-[#94A3B8]">
+            <span>追问+链式推理</span>
+            <span class="text-[#1E293B]">&middot;</span>
+            <span><strong class="text-white text-lg">30+</strong> 专业模板</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Product Frame -->
+      <div class="order-2 fade-in" style="transition-delay:0.3s">
+        <div class="w-full max-w-[440px] mx-auto bg-[#161B22] rounded-xl border border-[#30363D] shadow-2xl shadow-black/40 overflow-hidden">
+          <!-- Browser top bar -->
+          <div class="flex items-center gap-2 px-4 py-3 bg-[#1C2128] border-b border-[#30363D]">
+            <div class="flex gap-1.5">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <div class="flex-1 text-center">
+              <span class="text-[10px] text-[#6B7280] font-mono">fuyouai.com/modules/core</span>
+            </div>
+          </div>
+
+          <!-- Inner layout -->
+          <div class="flex min-h-[320px]">
+            <!-- Sidebar -->
+            <div class="w-[130px] flex-shrink-0 border-r border-[#30363D] p-3 space-y-1.5 hidden sm:block">
+              <div class="flex items-center gap-2 bg-[#3B82F6]/10 border border-[#3B82F6]/30 rounded-lg px-2.5 py-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#3B82F6]"></span>
+                <span class="text-[11px] text-[#3B82F6] font-medium leading-tight">卡住了，怎么破</span>
+              </div>
+              <div class="flex items-center gap-2 rounded-lg px-2.5 py-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#30363D]"></span>
+                <span class="text-[11px] text-[#6B7280] leading-tight">写不出来，怎么办</span>
+              </div>
+            </div>
+
+            <!-- Main content -->
+            <div class="flex-1 p-4">
+              <h4 class="text-sm font-bold text-[#F1F5F9] mb-3">卡住了，怎么破？</h4>
+              <!-- Mini tabs -->
+              <div class="flex flex-wrap gap-1.5 mb-4">
+                <span class="text-[10px] px-2 py-1 rounded bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/30 font-medium">不知从哪开始</span>
+                <span class="text-[10px] px-2 py-1 rounded text-[#6B7280] border border-[#30363D]">只看见一条路</span>
+                <span class="text-[10px] px-2 py-1 rounded text-[#6B7280] border border-[#30363D]">事情太复杂</span>
+                <span class="text-[10px] px-2 py-1 rounded text-[#6B7280] border border-[#30363D]">越想越乱</span>
+                <span class="text-[10px] px-2 py-1 rounded text-[#6B7280] border border-[#30363D]">写了但不对</span>
+              </div>
+              <!-- Card -->
+              <div class="bg-[#1C2128] border border-[#30363D] rounded-lg p-3 mb-4">
+                <p class="text-[10px] text-[#F59E0B] mb-1">当你不知道从哪里开始</p>
+                <p class="text-xs font-bold text-[#F1F5F9] mb-1.5">先把它拆开来</p>
+                <p class="text-[10px] text-[#6B7280] leading-relaxed">大问题让人动不了，因为脑子在同时处理太多东西。</p>
+              </div>
+              <!-- Input + button -->
+              <div class="bg-[#0D1117] border border-[#30363D] rounded-lg px-3 py-2 mb-3">
+                <p class="text-[10px] text-[#484F58]">不用整理好再说。想到什么说什么，越乱越好，让我来帮你理。</p>
+              </div>
+              <a href="/modules/core" class="inline-flex items-center gap-1 bg-[#3B82F6] text-white text-[11px] font-medium px-3 py-1.5 rounded-lg">
+                帮我换个角度 <span>&rarr;</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Scenarios -->
+  <section class="px-6 py-20 md:py-32">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold text-center mb-4 fade-in">你认识这些瞬间吗？</h2>
+
+      <div class="space-y-6">
+        <!-- Scenario 1 -->
+        <div class="scenario-card bg-[#111827] border border-[#1E293B] rounded-2xl p-6 md:p-8 fade-in">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-xs font-medium text-[#3B82F6] bg-[#3B82F6]/10 px-3 py-1 rounded-full">创业方向</span>
+            <span class="text-xs text-[#475569]">不知道从哪里想</span>
+          </div>
+          <blockquote class="text-[#CBD5E1] text-lg leading-relaxed mb-5 border-l-2 border-[#1E293B] pl-5">
+            "我想创业，但是方向太多，感觉每个方向都有人做了，我还有机会吗？"
+          </blockquote>
+          <div class="flex items-start gap-3">
+            <span class="text-[#3B82F6] mt-1 flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </span>
+            <p class="text-[#94A3B8] leading-relaxed">
+              他以为问题是「选哪个方向」，其实问题是他还没找到自己的独特切入点——<span class="text-[#E2E8F0] font-medium">方向本身不重要，你进入的角度才重要。</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Scenario 2 -->
+        <div class="scenario-card bg-[#111827] border border-[#1E293B] rounded-2xl p-6 md:p-8 fade-in">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-full">内容创作</span>
+            <span class="text-xs text-[#475569]">脑子空了写不出来</span>
+          </div>
+          <blockquote class="text-[#CBD5E1] text-lg leading-relaxed mb-5 border-l-2 border-[#1E293B] pl-5">
+            "每天都要更新，感觉写来写去都是那几个话题，完全没有新鲜感了。"
+          </blockquote>
+          <div class="flex items-start gap-3">
+            <span class="text-emerald-400 mt-1 flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </span>
+            <p class="text-[#94A3B8] leading-relaxed">
+              她以为问题是「没有素材」，其实是一直在同一个视角里打转——<span class="text-[#E2E8F0] font-medium">换一个读者身份来看自己的内容，三个新角度立刻出来。</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Scenario 3 -->
+        <div class="scenario-card bg-[#111827] border border-[#1E293B] rounded-2xl p-6 md:p-8 fade-in">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-xs font-medium text-amber-400 bg-amber-400/10 px-3 py-1 rounded-full">日常决策</span>
+            <span class="text-xs text-[#475569]">左右为难拖着不动</span>
+          </div>
+          <blockquote class="text-[#CBD5E1] text-lg leading-relaxed mb-5 border-l-2 border-[#1E293B] pl-5">
+            "要不要辞职？想了三个月了，列了很多理由，但就是定不下来。"
+          </blockquote>
+          <div class="flex items-start gap-3">
+            <span class="text-amber-400 mt-1 flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </span>
+            <p class="text-[#94A3B8] leading-relaxed">
+              他以为问题是「要不要辞」，其实他在纠结的是另一件事——<span class="text-[#E2E8F0] font-medium">真正的问题搞清楚，决定自然就出来了。</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why it's hard -->
+  <section class="px-6 py-20 md:py-28">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="text-2xl md:text-3xl font-bold mb-6 fade-in">为什么换个角度，<br>这么难靠自己做到？</h2>
+      <p class="text-lg md:text-xl text-[#94A3B8] leading-relaxed fade-in">
+        因为我们永远困在自己的经验里，<br>
+        <span class="text-[#E2E8F0] font-medium">看不见墙外面的那条路。</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how" class="px-6 py-20 md:py-32 bg-[#0D1117]">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold text-center mb-4 fade-in">FUYOU AI 怎么帮你</h2>
+      <p class="text-[#64748B] text-center mb-16 fade-in">三步，从卡住到看见路</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-[#111827] border border-[#1E293B] rounded-2xl p-6 text-center fade-in">
+          <div class="w-12 h-12 rounded-full bg-[#3B82F6]/10 border border-[#3B82F6]/20 flex items-center justify-center text-[#3B82F6] font-bold text-lg mx-auto mb-5">01</div>
+          <h3 class="text-lg font-bold text-[#F1F5F9] mb-3">把你的「乱」说出来</h3>
+          <p class="text-sm text-[#94A3B8] leading-relaxed">不需要整理，想到什么说什么，把卡住的那个瞬间描述出来</p>
+        </div>
+        <div class="bg-[#111827] border border-[#1E293B] rounded-2xl p-6 text-center fade-in" style="transition-delay:0.1s">
+          <div class="w-12 h-12 rounded-full bg-[#3B82F6]/10 border border-[#3B82F6]/20 flex items-center justify-center text-[#3B82F6] font-bold text-lg mx-auto mb-5">02</div>
+          <h3 class="text-lg font-bold text-[#F1F5F9] mb-3">找到真正的问题</h3>
+          <p class="text-sm text-[#94A3B8] leading-relaxed">用提问的方式帮你看见，你以为的问题和真正的问题，往往不一样</p>
+        </div>
+        <div class="bg-[#111827] border border-[#1E293B] rounded-2xl p-6 text-center fade-in" style="transition-delay:0.2s">
+          <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-lg mx-auto mb-5">03</div>
+          <h3 class="text-lg font-bold text-[#F1F5F9] mb-3">路就出来了</h3>
+          <p class="text-sm text-[#94A3B8] leading-relaxed">不是给你一个答案，是让你自己看见那几条你没想到的路</p>
+        </div>
+      </div>
+
+      <p class="text-center text-[#64748B] text-sm mt-12 fade-in">
+        追问+链式推理 · 30+ 专业模板
+      </p>
+    </div>
+  </section>
+
+  <!-- Module Center -->
+  <section id="modules" class="px-6 py-20 md:py-32">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-4 fade-in">
+        <p class="text-xs text-[#64748B] tracking-wider mb-2">模块中心</p>
+        <h2 class="text-2xl md:text-3xl font-bold">卡住了，怎么破？</h2>
+      </div>
+      <p class="text-[#94A3B8] text-center mb-12 fade-in">不同的卡法，有不同的解法。选一个最像你现在状态的。</p>
+
+      <!-- 5 Module Tabs -->
+      <div class="flex flex-wrap justify-center gap-3 mb-10 fade-in" id="module-tabs">
+        <button data-tab="0" class="module-tab px-4 py-2 rounded-lg text-sm font-medium border transition-colors border-[#3B82F6] bg-[#3B82F6]/10 text-[#3B82F6]">不知从<br class="sm:hidden">哪开始</button>
+        <button data-tab="1" class="module-tab px-4 py-2 rounded-lg text-sm font-medium border transition-colors border-[#1E293B] text-[#94A3B8] hover:text-white hover:border-[#475569]">只看见<br class="sm:hidden">一条路</button>
+        <button data-tab="2" class="module-tab px-4 py-2 rounded-lg text-sm font-medium border transition-colors border-[#1E293B] text-[#94A3B8] hover:text-white hover:border-[#475569]">事情<br class="sm:hidden">太复杂</button>
+        <button data-tab="3" class="module-tab px-4 py-2 rounded-lg text-sm font-medium border transition-colors border-[#1E293B] text-[#94A3B8] hover:text-white hover:border-[#475569]">越想<br class="sm:hidden">越乱</button>
+        <button data-tab="4" class="module-tab px-4 py-2 rounded-lg text-sm font-medium border transition-colors border-[#1E293B] text-[#94A3B8] hover:text-white hover:border-[#475569]">写了<br class="sm:hidden">但不对</button>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- Left: Module Detail -->
+        <div class="lg:col-span-3 bg-[#111827] border border-[#1E293B] rounded-2xl p-6 md:p-8 fade-in">
+          <div id="module-content">
+            <div class="module-panel" data-panel="0">
+              <p class="text-sm text-[#F59E0B] mb-2">当你不知道从哪里开始</p>
+              <h3 class="text-xl font-bold text-[#F1F5F9] mb-4">先把它拆开来</h3>
+              <p class="text-[#94A3B8] leading-relaxed mb-6">大问题让人动不了，因为脑子在同时处理太多东西。<br>把它拆成你能动手的小块，第一步自然浮出来。</p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">把模糊的事说清楚</span>
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">找到第一个能动的点</span>
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">不漏掉关键条件</span>
+              </div>
+            </div>
+            <div class="module-panel hidden" data-panel="1">
+              <p class="text-sm text-[#3B82F6] mb-2">当你只看见一条路</p>
+              <h3 class="text-xl font-bold text-[#F1F5F9] mb-4">帮你多想几步</h3>
+              <p class="text-[#94A3B8] leading-relaxed mb-6">不是你想得不对，是你想得不够多。<br>强制从不同角度拆解同一个问题，盲区自然暴露出来。</p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">换个立场重新看</span>
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">列出你没考虑的可能</span>
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">逻辑走到底再判断</span>
+              </div>
+            </div>
+            <div class="module-panel hidden" data-panel="2">
+              <p class="text-sm text-emerald-400 mb-2">当事情太复杂</p>
+              <h3 class="text-xl font-bold text-[#F1F5F9] mb-4">一层一层剥开</h3>
+              <p class="text-[#94A3B8] leading-relaxed mb-6">复杂不是因为事情真的难，是因为所有东西搅在一起了。<br>先分清楚哪些是核心、哪些是干扰，复杂度立刻降下来。</p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">分清主线和支线</span>
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">按优先级排好</span>
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">一次只处理一件</span>
+              </div>
+            </div>
+            <div class="module-panel hidden" data-panel="3">
+              <p class="text-sm text-purple-400 mb-2">当你越想越乱</p>
+              <h3 class="text-xl font-bold text-[#F1F5F9] mb-4">先停下来，理一遍</h3>
+              <p class="text-[#94A3B8] leading-relaxed mb-6">越想越乱是因为你在脑子里转圈，没有落到纸面上。<br>把想法倒出来、排个序，思路自己就清了。</p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">把脑子里的东西全倒出来</span>
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">找到真正在纠结的点</span>
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">理出先后顺序</span>
+              </div>
+            </div>
+            <div class="module-panel hidden" data-panel="4">
+              <p class="text-sm text-rose-400 mb-2">当你写了但不对</p>
+              <h3 class="text-xl font-bold text-[#F1F5F9] mb-4">帮你校准方向</h3>
+              <p class="text-[#94A3B8] leading-relaxed mb-6">写了一堆但总觉得差点什么，说明方向偏了或者没抓住重点。<br>对比你想要的和实际写出来的，差在哪一目了然。</p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">对比预期和实际</span>
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">找到偏掉的地方</span>
+                <span class="text-xs border border-[#1E293B] text-[#94A3B8] px-3 py-1.5 rounded-lg">调整后重新输出</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Try it -->
+        <div class="lg:col-span-2 bg-[#111827] border border-[#1E293B] rounded-2xl p-6 md:p-8 fade-in" style="transition-delay:0.1s">
+          <div class="flex gap-4 mb-6 border-b border-[#1E293B] pb-3">
+            <span class="text-sm font-medium text-white border-b-2 border-[#3B82F6] pb-3 -mb-3">开始用</span>
+            <span class="text-sm text-[#64748B] pb-3 -mb-3">看案例</span>
+          </div>
+          <div class="flex items-center gap-2 mb-4">
+            <span class="w-6 h-6 rounded-full bg-[#3B82F6] flex items-center justify-center text-xs text-white font-bold">1</span>
+            <span class="text-sm text-[#E2E8F0]">说说你卡在哪</span>
+          </div>
+          <div class="bg-[#0B0F1A] border border-[#1E293B] rounded-xl p-4 mb-4">
+            <p class="text-sm text-[#64748B] leading-relaxed">不用整理好再说。想到什么说什么，越乱越好，让我来帮你理。</p>
+          </div>
+          <div class="flex gap-3 mb-6">
+            <button class="flex items-center gap-2 text-sm text-[#94A3B8] border border-[#1E293B] px-4 py-2 rounded-lg hover:text-white hover:border-[#475569] transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+              语音
+            </button>
+            <button class="flex items-center gap-2 text-sm text-[#94A3B8] border border-[#1E293B] px-4 py-2 rounded-lg hover:text-white hover:border-[#475569] transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+              上传
+            </button>
+          </div>
+          <a href="/modules/core" class="cta-btn w-full inline-flex items-center justify-center gap-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-medium px-6 py-3 rounded-xl text-sm">
+            帮我换个角度 <span>&rarr;</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sidebar categories -->
+  <section class="px-6 py-16 bg-[#0D1117]">
+    <div class="max-w-4xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="fade-in">
+          <p class="text-xs text-[#64748B] tracking-wider mb-4">按场景找方法</p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-3 bg-[#111827] border border-[#1E293B] rounded-xl px-4 py-3">
+              <span class="w-2 h-2 rounded-full bg-[#3B82F6]"></span>
+              <span class="text-sm text-white font-medium">卡住了，怎么破</span>
+            </div>
+            <div class="flex items-center gap-3 bg-[#111827]/50 border border-[#1E293B] rounded-xl px-4 py-3">
+              <span class="w-2 h-2 rounded-full bg-[#1E293B]"></span>
+              <span class="text-sm text-[#94A3B8]">写不出来，怎么办</span>
+            </div>
+          </div>
+        </div>
+        <div class="fade-in" style="transition-delay:0.1s">
+          <p class="text-xs text-[#64748B] tracking-wider mb-4">工具箱</p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-3 bg-[#111827]/50 border border-[#1E293B] rounded-xl px-4 py-3">
+              <span class="w-2 h-2 rounded-full bg-[#1E293B]"></span>
+              <span class="text-sm text-[#94A3B8]">常用模块</span>
+            </div>
+            <div class="flex items-center gap-3 bg-[#111827]/50 border border-[#1E293B] rounded-xl px-4 py-3">
+              <span class="w-2 h-2 rounded-full bg-[#1E293B]"></span>
+              <span class="text-sm text-[#94A3B8]">历史记录</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="px-6 py-24 md:py-32">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="text-2xl md:text-3xl font-bold mb-4 fade-in">
+        卡住的时候，<br>你需要的不是更努力
+      </h2>
+      <p class="text-xl text-[#94A3B8] mb-10 fade-in">
+        你需要的，是<span class="text-white font-medium">另一个角度</span>
+      </p>
+      <a href="/modules/core" class="cta-btn inline-flex items-center justify-center gap-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-medium px-10 py-4 rounded-xl text-lg fade-in">
+        免费换个角度看看
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-[#1E293B] px-6 py-8">
+    <div class="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-[#475569]">
+      <span>&copy; 2025 FUYOU AI &middot; fuyouai.com</span>
+      <span>换个角度，路就出来了</span>
+    </div>
+  </footer>
+
+  <script>
+    // Scroll fade-in
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // Module tab switching
+    document.querySelectorAll('.module-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = btn.dataset.tab;
+        document.querySelectorAll('.module-tab').forEach(t => {
+          t.classList.remove('border-[#3B82F6]', 'bg-[#3B82F6]/10', 'text-[#3B82F6]');
+          t.classList.add('border-[#1E293B]', 'text-[#94A3B8]');
+        });
+        btn.classList.remove('border-[#1E293B]', 'text-[#94A3B8]');
+        btn.classList.add('border-[#3B82F6]', 'bg-[#3B82F6]/10', 'text-[#3B82F6]');
+        document.querySelectorAll('.module-panel').forEach(p => p.classList.add('hidden'));
+        document.querySelector(`.module-panel[data-panel="${idx}"]`).classList.remove('hidden');
+      });
+    });
+  </script>
+</body>
+</html>

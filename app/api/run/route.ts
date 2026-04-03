@@ -1,122 +1,152 @@
-import { NextRequest, NextResponse } from "next/server";
-import { runCoreEngine } from "@/lib/promptos/core/run-core-engine";
-import { resolveCorePromptKey } from "@/lib/promptos/core/resolve-core";
-import { bootstrapCore } from "@/lib/promptos/core/bootstrap";
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { runEngine } from "@/lib/promptos/run-engine";
+import { getBackendModules } from "@/src/config/moduleMapping";
+import { detectLanguage } from "@/lib/lang/detectLanguage";
+import { recordCoreRun } from "@/lib/db/conversations";
+import { withRouteError } from "@/lib/api/withRouteError";
 
-type Tier = "basic" | "pro";
-type EngineType = "deepseek" | "gemini";
-
-function rid() {
-  try {
-    // @ts-ignore
-    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-      return crypto.randomUUID();
-    }
-  } catch {}
-  return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 200 });
 }
 
-function normalizeTier(raw: unknown): Tier {
-  const t = String(raw ?? "basic").toLowerCase().trim();
-  return t === "pro" ? "pro" : "basic";
-}
-
-function normalizeEngineType(raw: unknown): EngineType {
-  const t = String(raw ?? "deepseek").toLowerCase().trim();
-  return t === "gemini" ? "gemini" : "deepseek";
-}
-
-function json(status: number, payload: any, requestId: string) {
-  return NextResponse.json(
-    { ...payload, meta: { requestId, ...(payload?.meta ?? {}) } },
-    { status }
-  );
-}
-
-export async function POST(req: NextRequest) {
-  const requestId = rid();
-
-  try {
-    const body = await req.json().catch(() => ({}));
-
-    const coreKey = String(body?.coreKey ?? "").trim();
-    const userInput = String(body?.userInput ?? "").trim();
-    const tier = normalizeTier(body?.tier);
-    const engineType = normalizeEngineType(body?.engineType);
-    const industryId = body?.industryId ?? null;
-
-    if (!coreKey) {
-      return json(
-        400,
-        { ok: false, error: { message: "Missing coreKey" } },
-        requestId
-      );
-    }
-
-    if (!userInput) {
-      return json(
-        400,
-        { ok: false, error: { message: "Missing userInput" } },
-        requestId
-      );
-    }
-
-    await bootstrapCore();
-
-    const resolved = resolveCorePromptKey(coreKey, tier);
-    if (!resolved.ok) {
-      return json(
-        400,
-        {
-          ok: false,
-          error: { message: resolved.error },
-          meta: { tried: resolved.tried },
-        },
-        requestId
-      );
-    }
-
-    const result = await runCoreEngine({
-      coreKey: resolved.coreKey,
-      tier,
-      promptKey: resolved.promptKey,
-      userInput,
-      engineType,
-      mode: tier,
-      industryId,
-    });
-
-    if (!result.ok) {
-      return json(
-        500,
-        {
-          ok: false,
-          error: { message: result.error },
-        },
-        requestId
-      );
-    }
-
-    // ✅ 正确：runCoreEngine 没有 output 字段
-    const output = result.modelOutput ?? "";
-
-    return json(
-      200,
-      {
-        ok: true,
-        output,
-        finalPrompt: result.finalPrompt,
-      },
-      requestId
-    );
-  } catch (e: any) {
-    return json(
-      500,
-      {
-        ok: false,
-        error: { message: e?.message ?? String(e) },
-      },
-      requestId
+async function handler(req: Request) {
+  // ── Auth ──────────────────────────────────────────────────────────────
+  const authHeader = req.headers.get("Authorization");
+  const token = authHeader?.replace("Bearer ", "").trim();
+  if (!token) {
+    return NextResponse.json(
+      { error: "unauthorized", message: "Login required" },
+      { status: 401 }
     );
   }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser(token);
+  if (!user) {
+    return NextResponse.json(
+      { error: "unauthorized", message: "Login required" },
+      { status: 401 }
+    );
+  }
+
+  // ── Parse body ────────────────────────────────────────────────────────
+  const body = await req.json().catch(() => ({}));
+  const {
+    text,
+    answers = {},
+    frontModuleId,
+    variantId,
+    routerAnswers = {},
+    conversationId = null,
+  } = body || {};
+
+  const trimmedText = typeof text === "string" ? text.trim() : "";
+  if (!trimmedText || !frontModuleId || !variantId) {
+    return NextResponse.json(
+      { error: "missing_fields", message: "text, frontModuleId and variantId are required" },
+      { status: 400 }
+    );
+  }
+
+  if (trimmedText.length > 4000) {
+    return NextResponse.json(
+      { error: "input_too_long", message: "Input must be 4000 characters or fewer" },
+      { status: 400 }
+    );
+  }
+
+  // ── Resolve promptKey ─────────────────────────────────────────────────
+  const modules = getBackendModules(frontModuleId, variantId);
+  const promptKey = modules[0]?.promptKey;
+
+  if (!promptKey) {
+    return NextResponse.json(
+      { error: "invalid_module", message: "Module not found" },
+      { status: 400 }
+    );
+  }
+
+  // ── Build userInput ───────────────────────────────────────────────────
+  // Whitelist and sanitize context fields to prevent prompt injection
+  const ALLOWED_CONTEXT_KEYS = new Set([
+    "audience", "tone", "format", "length", "language", "platform",
+    "industry", "goal", "style", "topic", "deadline", "budget",
+  ]);
+
+  function sanitizeContextValue(v: unknown): string {
+    if (typeof v !== "string") return "";
+    // Strip control characters and limit length
+    return v.replace(/[\x00-\x1f]/g, "").slice(0, 500);
+  }
+
+  const rawContext = { ...answers, ...routerAnswers };
+  const combinedContext: Record<string, string> = {};
+  for (const [k, v] of Object.entries(rawContext)) {
+    if (ALLOWED_CONTEXT_KEYS.has(k)) {
+      const sanitized = sanitizeContextValue(v);
+      if (sanitized) combinedContext[k] = sanitized;
+    }
+  }
+
+  const hasContext = Object.keys(combinedContext).length > 0;
+  const userInput = hasContext
+    ? `${trimmedText}\n\nAdditional context:\n${JSON.stringify(combinedContext)}`
+    : trimmedText;
+
+  // ── Run engine ────────────────────────────────────────────────────────
+  const language = detectLanguage(trimmedText);
+
+  let result;
+  try {
+    result = await runEngine({
+      promptKey,
+      userInput,
+      engineType: "deepseek",
+      language,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Engine error";
+    return NextResponse.json(
+      { error: "engine_failed", message },
+      { status: 500 }
+    );
+  }
+
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: "engine_failed", message: result.error ?? "Engine failed" },
+      { status: 500 }
+    );
+  }
+
+  // ── Save to history (non-fatal) ───────────────────────────────────────
+  let savedConversationId: string | null = null;
+  try {
+    const record = await recordCoreRun({
+      userId: user.id,
+      conversationId: typeof conversationId === "string" ? conversationId : null,
+      userInput,
+      coreKey: `${frontModuleId}::${variantId}`,
+      engineType: result.engineTypeUsed ?? "deepseek",
+      output: String(result.modelOutput ?? ""),
+      latencyMs: 0,
+      tokenUsageInput: result.tokenUsage?.input,
+      tokenUsageOutput: result.tokenUsage?.output,
+      source: "general",
+    });
+    savedConversationId = record.conversationId;
+  } catch (e) {
+    console.error("[api/run] recordCoreRun failed (non-fatal):", e);
+  }
+
+  // ── Return ────────────────────────────────────────────────────────────
+  return NextResponse.json({
+    output: result.modelOutput,
+    promptKey,
+    frontModuleId,
+    conversationId: savedConversationId,
+  });
 }
+
+export const POST = withRouteError(handler);

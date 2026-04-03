@@ -1,0 +1,277 @@
+// app/api/subscription/route.ts
+// 获取当前用户的订阅状态
+// 统一返回结构：{ ok, subscription: { plan, status, creem_customer_id, creem_subscription_id, updated_at } | null }
+
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getCorsHeaders as _getCorsHeaders } from "@/lib/api/cors";
+
+const DEBUG = process.env.DEBUG_SUBSCRIPTION === "true";
+
+// 订阅记录类型
+type SubscriptionRow = {
+  plan: string | null;
+  status: string | null;
+  trial_end: string | null;
+  created_at: string | null;
+  creem_customer_id: string | null;
+  creem_subscription_id: string | null;
+  cancel_at_period_end?: boolean | null;
+  current_period_end?: string | null;
+  updated_at: string | null;
+};
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function getCorsHeaders(origin: string | null) {
+  return _getCorsHeaders(origin, { methods: "GET, OPTIONS", credentials: true });
+}
+
+
+// 规范化 plan 字段：只允许 "basic" | "pro" | "free"
+// 数据库里的 "starter" 映射为 "basic"
+function normalizePlan(plan: string | null | undefined): "basic" | "pro" | "free" {
+  if (!plan) return "free";
+  const p = plan.toLowerCase();
+  if (p === "starter" || p === "basic") return "basic";
+  if (p === "pro") return "pro";
+  return "free";
+}
+
+// 规范化 status 字段：只允许 "active" | "inactive"
+type UiStatus = "active" | "canceling" | "inactive";
+function normalizeStatus(
+  status: string | null | undefined,
+  cancelAtPeriodEnd?: boolean | null
+): UiStatus {
+  if (!status) return "inactive";
+  if (["active", "trialing"].includes(status)) {
+    return cancelAtPeriodEnd ? "canceling" : "active";
+  }
+  return "inactive";
+}
+
+export async function GET(req: Request) {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
+  try {
+    // 校验用户（优先 Authorization header）
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    const supabase = await createClient();
+    let user = null;
+
+    if (token) {
+      const { data, error } = await supabase.auth.getUser(token);
+      if (!error) user = data.user;
+    } else {
+      const { data } = await supabase.auth.getUser();
+      user = data.user;
+    }
+
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, error: "Please sign in" },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // 使用 admin client 绕过 RLS（用户已通过 token 验证）
+    const supabaseAdmin = getSupabaseAdmin();
+    const supabaseUrl = process.env.SUPABASE_URL || "";
+
+    // 查询 subscriptions 表
+    const { data, error } = await supabaseAdmin
+      .from("subscriptions")
+      .select(
+        "plan, status, trial_end, updated_at, creem_customer_id, creem_subscription_id, cancel_at_period_end, current_period_end"
+      )
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const sub = data as SubscriptionRow | null;
+
+    if (DEBUG) {
+      console.log("[Subscription] user_id:", user.id);
+      console.log("[Subscription] origin:", origin);
+      console.log("[Subscription] found:", Boolean(sub));
+      if (sub) {
+        console.log("[Subscription] plan:", sub.plan, "status:", sub.status);
+      }
+      if (error) {
+        console.log("[Subscription] error:", error.code, error.message);
+      }
+    }
+
+    // 构建 debug 信息（仅 DEBUG=true 时返回）
+    const debugInfo = DEBUG ? {
+      user_id: user.id,
+      supabase_url_host: supabaseUrl ? new URL(supabaseUrl).host : null,
+      query_error: error ? { code: error.code, message: error.message } : null,
+      found: Boolean(sub),
+    } : undefined;
+
+    if (error) {
+      console.error("[Subscription] DB error:", error);
+      return NextResponse.json(
+        { ok: false, error: "Failed to fetch subscription.", ...(debugInfo ? { debug: debugInfo } : {}) },
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    // 没有订阅记录 → 检查 user_entitlements
+    if (!sub) {
+      type EntRow = { expires_at: string | null };
+
+      // 优先检查 lifetime 永久权限
+      const { data: lifetime } = await supabaseAdmin
+        .from("user_entitlements")
+        .select("expires_at")
+        .eq("user_id", user.id)
+        .eq("type", "lifetime")
+        .maybeSingle<EntRow>();
+
+      if (lifetime !== null) {
+        const expiresAt = lifetime.expires_at ? new Date(lifetime.expires_at) : null;
+        const isActive = !expiresAt || new Date() < expiresAt;
+        if (DEBUG) {
+          console.log("[Subscription] lifetime found, expiresAt:", lifetime.expires_at, "active:", isActive);
+        }
+        if (isActive) {
+          return NextResponse.json(
+            {
+              ok: true,
+              subscription: {
+                plan: "pro",
+                status: "active",
+                trialEnd: null,
+                cancel_at_period_end: false,
+                current_period_end: lifetime.expires_at ?? null,
+                creem_customer_id: null,
+                creem_subscription_id: null,
+                updated_at: null,
+              },
+              ...(debugInfo ? { debug: debugInfo } : {}),
+            },
+            { headers: corsHeaders }
+          );
+        }
+      }
+
+      // 检查 beta_trial
+      const { data: ent } = await supabaseAdmin
+        .from("user_entitlements")
+        .select("expires_at")
+        .eq("user_id", user.id)
+        .eq("type", "beta_trial")
+        .maybeSingle<EntRow>();
+
+      if (ent !== null) {
+        const expiresAt = ent.expires_at ? new Date(ent.expires_at) : null;
+        const isActive = expiresAt !== null && new Date() < expiresAt;
+        if (DEBUG) {
+          console.log("[Subscription] beta_trial found, expiresAt:", ent.expires_at, "active:", isActive);
+        }
+        if (isActive) {
+          return NextResponse.json(
+            {
+              ok: true,
+              subscription: {
+                plan: "free",
+                status: "trialing",
+                trialEnd: ent.expires_at,
+                cancel_at_period_end: false,
+                current_period_end: null,
+                creem_customer_id: null,
+                creem_subscription_id: null,
+                updated_at: null,
+              },
+              ...(debugInfo ? { debug: debugInfo } : {}),
+            },
+            { headers: corsHeaders }
+          );
+        }
+      }
+
+      if (DEBUG) {
+        console.log("[Subscription] No record found, returning null");
+      }
+      return NextResponse.json(
+        { ok: true, subscription: null, ...(debugInfo ? { debug: debugInfo } : {}) },
+        { headers: corsHeaders }
+      );
+    }
+
+    // 返回订阅信息（统一结构）
+    const normalizedPlan = normalizePlan(sub.plan);
+    const normalizedStatus = normalizeStatus(sub.status, sub.cancel_at_period_end);
+
+    // sub 存在但 plan 为 free → 兜底检查 lifetime 永久权限
+    if (normalizedPlan === "free") {
+      type EntRow = { expires_at: string | null };
+      const { data: lt } = await supabaseAdmin
+        .from("user_entitlements")
+        .select("expires_at")
+        .eq("user_id", user.id)
+        .eq("type", "lifetime")
+        .maybeSingle<EntRow>();
+
+      if (lt) {
+        const ltExpires = lt.expires_at ? new Date(lt.expires_at) : null;
+        if (!ltExpires || new Date() < ltExpires) {
+          return NextResponse.json(
+            {
+              ok: true,
+              subscription: {
+                plan: "pro",
+                status: "active",
+                trialEnd: null,
+                cancel_at_period_end: false,
+                current_period_end: ltExpires?.toISOString() ?? null,
+                creem_customer_id: sub.creem_customer_id || null,
+                creem_subscription_id: sub.creem_subscription_id || null,
+                updated_at: sub.updated_at || null,
+              },
+              ...(debugInfo ? { debug: debugInfo } : {}),
+            },
+            { headers: corsHeaders }
+          );
+        }
+      }
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        subscription: {
+          plan: normalizedPlan,
+          status: normalizedStatus,
+          cancel_at_period_end: Boolean(sub.cancel_at_period_end),
+          current_period_end: sub.current_period_end || null,
+          trialEnd: sub.status === "trialing" ? sub.trial_end : null,
+          creem_customer_id: sub.creem_customer_id || null,
+          creem_subscription_id: sub.creem_subscription_id || null,
+          updated_at: sub.updated_at || null,
+        },
+        ...(debugInfo ? { debug: debugInfo } : {}),
+      },
+      { headers: corsHeaders }
+    );
+  } catch (e: any) {
+    console.error("[Subscription] Error:", e);
+    return NextResponse.json(
+      { ok: false, error: e?.message || String(e) },
+      { status: 500, headers: corsHeaders }
+    );
+  }
+}
+
+export async function OPTIONS(req: Request) {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
