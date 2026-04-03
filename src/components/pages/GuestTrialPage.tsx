@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Play, Loader2, Copy, Check, Sparkles, ArrowRight } from "lucide-react";
+import { useLocale } from "next-intl";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 
 type RunState = {
@@ -13,6 +14,7 @@ type RunState = {
 };
 
 export default function GuestTrialPage() {
+  const locale = useLocale();
   const [userInput, setUserInput] = useState("");
   const [frontModuleId, setFrontModuleId] = useState("");
   const [variantId, setVariantId] = useState("");
@@ -104,7 +106,7 @@ export default function GuestTrialPage() {
           FuyouAI
         </Link>
         <Link
-          href="/login"
+          href={`/${locale}/login`}
           className="text-sm text-slate-400 hover:text-white transition-colors"
         >
           Sign In
@@ -198,7 +200,7 @@ export default function GuestTrialPage() {
                 Want to save results and access all modules?
               </p>
               <Link
-                href="/login?from=/modules/core"
+                href={`/${locale}/login?from=/modules/core`}
                 className="text-xs text-blue-400 hover:text-blue-300 transition-colors whitespace-nowrap ml-4"
               >
                 Create free account &rarr;
@@ -220,7 +222,7 @@ export default function GuestTrialPage() {
               </p>
             </div>
             <Link
-              href="/login?from=/modules/core"
+              href={`/${locale}/login?from=/modules/core`}
               className="inline-flex items-center gap-2 px-8 py-3 bg-[#3B82F6] hover:bg-blue-600 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5"
             >
               Create Free Account <ArrowRight size={15} />

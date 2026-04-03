@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { SiteFooter } from "./SiteFooter";
 import { supabase } from "../src/lib/supabaseClient";
 import {
@@ -14,6 +14,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
 export const Pricing: React.FC = () => {
   const t = useTranslations("Pricing");
+  const locale = useLocale();
   const router = useRouter();
   const [loading, setLoading] = useState<"basic" | "pro" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +55,7 @@ export const Pricing: React.FC = () => {
 
       if (res.status === 401) {
         // 未登录，跳转登录页（Next 方式：用 query 带回跳地址）
-        router.push(`/login?from=${encodeURIComponent("/pricing")}`);
+        router.push(`/${locale}/login?from=${encodeURIComponent("/pricing")}`);
         return;
       }
 

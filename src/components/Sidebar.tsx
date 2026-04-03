@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Layers, Box, Briefcase, ChevronRight, X, Plus, ArrowRight, Loader2, Check } from "lucide-react";
 import { useIntentRouter, type RouterResult } from "@/src/hooks/useIntentRouter";
 import { supabase } from "@/src/lib/supabaseClient";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 type SidebarProps = {
   forceMobile?: boolean;
@@ -18,6 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations("Sidebar");
+  const locale = useLocale();
   const drawerEnabled = typeof isOpen === "boolean";
   const drawerOpen = Boolean(isOpen);
   const [showModal, setShowModal] = useState(false);
@@ -42,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ forceMobile, isOpen, onClose }) => {
     if (session) {
       router.push(`/modules/general/${result.frontModuleId}/${result.variantId}/run`);
     } else {
-      router.push("/login?from=/modules/core");
+      router.push(`/${locale}/login?from=/modules/core`);
     }
   }, [router, onClose]);
 

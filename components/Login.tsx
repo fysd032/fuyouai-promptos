@@ -10,11 +10,12 @@ import {
   Loader2,
   ArrowRight,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { supabase } from "../src/lib/supabaseClient";
 
 export const Login: React.FC = () => {
   const t = useTranslations("Login");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -53,7 +54,7 @@ export const Login: React.FC = () => {
 
   // Utility: clean URL (remove code/token params)
   const cleanUrl = () => {
-    const base = `${window.location.origin}/login`;
+    const base = `${window.location.origin}/${locale}/login`;
     window.history.replaceState({}, "", base);
   };
 
@@ -167,7 +168,7 @@ export const Login: React.FC = () => {
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: `${window.location.origin}/login?from=${encodeURIComponent(
+        emailRedirectTo: `${window.location.origin}/${locale}/login?from=${encodeURIComponent(
           redirectTo
         )}`,
       },

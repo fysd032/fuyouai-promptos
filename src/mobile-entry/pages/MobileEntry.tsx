@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import Link from "next/link";
 import { suggestions } from "../config/suggestions";
 import { supabase } from "@/src/lib/supabaseClient";
@@ -29,6 +30,7 @@ const placeholderOptions = [
 
 const MobileEntry: React.FC = () => {
   const router = useRouter();
+  const locale = useLocale();
 
   const placeholder = useMemo(() => placeholderOptions[0], []);
 
@@ -51,7 +53,7 @@ const MobileEntry: React.FC = () => {
     if (session) {
       router.push("/m2/run");
     } else {
-      router.push("/login?from=/m2/run");
+      router.push(`/${locale}/login?from=/m2/run`);
     }
   }
 

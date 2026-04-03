@@ -6,6 +6,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Lock, Sparkles, LogIn } from "lucide-react";
+import { useLocale } from "next-intl";
 import { useSubscription, isActivePlan } from "../context/SubscriptionContext";
 
 interface RequirePlanProps {
@@ -23,6 +24,7 @@ export const RequirePlan: React.FC<RequirePlanProps> = ({
   description,
 }) => {
   const pathname = usePathname();
+  const locale = useLocale();
   const { subscription, loading, isAuthenticated } = useSubscription();
   const resolveRedirectPath = () => {
     const current = pathname || "/";
@@ -69,7 +71,7 @@ export const RequirePlan: React.FC<RequirePlanProps> = ({
             {description || "Sign in to view and upgrade your subscription"}
           </p>
           <Link
-            href={`/login?from=${encodeURIComponent(resolveRedirectPath())}`}
+            href={`/${locale}/login?from=${encodeURIComponent(resolveRedirectPath())}`}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5"
           >
             <LogIn size={16} />

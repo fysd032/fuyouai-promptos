@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { SiteFooter } from "./SiteFooter";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { useLocale } from "next-intl";
 import { supabase } from "../src/lib/supabaseClient";
 
 const API_BASE =
@@ -30,6 +31,7 @@ const PageWrapper: React.FC<{ title: string; children: React.ReactNode }> = ({ t
 
 // Manage Billing - 自动跳转到 Creem 客户门户
 export const ManageBilling: React.FC = () => {
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
@@ -58,7 +60,7 @@ export const ManageBilling: React.FC = () => {
         // 401 → 跳登录页
         if (res.status === 401) {
           const from = pathname || "/";
-          router.push(`/login?from=${encodeURIComponent(from)}`);
+          router.push(`/${locale}/login?from=${encodeURIComponent(from)}`);
           return;
         }
 
@@ -143,6 +145,7 @@ export const ManageBilling: React.FC = () => {
 
 // Subscription - 展示当前订阅状态
 export const Subscription: React.FC = () => {
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
@@ -179,7 +182,7 @@ export const Subscription: React.FC = () => {
         // 401 → 跳登录页
         if (res.status === 401) {
           const from = pathname || "/";
-          router.push(`/login?from=${encodeURIComponent(from)}`);
+          router.push(`/${locale}/login?from=${encodeURIComponent(from)}`);
           return;
         }
 
@@ -229,7 +232,7 @@ export const Subscription: React.FC = () => {
       if (res.status === 401) {
         setPortalLoading(false);
         const from = pathname || "/";
-        router.push(`/login?from=${encodeURIComponent(from)}`);
+        router.push(`/${locale}/login?from=${encodeURIComponent(from)}`);
         return;
       }
 

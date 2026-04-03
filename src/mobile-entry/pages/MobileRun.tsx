@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { supabase } from "@/src/lib/supabaseClient";
 
 type PlanQuestion = {
@@ -41,6 +42,7 @@ const FALLBACK_NOTICE = (
 );
 
 const MobileRun: React.FC = () => {
+  const locale = useLocale();
   const router = useRouter();
   const [runState, setRunState] = useState<MobileRunState | null>(null);
 
@@ -69,7 +71,7 @@ const MobileRun: React.FC = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
-        router.replace("/login?from=/m2/run");
+        router.replace(`/${locale}/login?from=/m2/run`);
       }
     });
   }, [router]);

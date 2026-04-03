@@ -9,6 +9,7 @@ import { supabase } from "@/src/lib/supabaseClient";
 import { useSubscription } from "@/src/context/SubscriptionContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 
 const IS_DEV = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 const INVITE_ENABLED = process.env.NEXT_PUBLIC_INVITE_ENABLED !== "false";
@@ -18,6 +19,7 @@ interface InviteGateProps {
 }
 
 export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
+  const locale = useLocale();
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "verified" | "needs_sub" | "no_auth" | "expired">("loading");
   const [code, setCode] = useState("");
@@ -218,7 +220,7 @@ export const InviteGate: React.FC<InviteGateProps> = ({ children }) => {
             Please sign in to access FuyouAI modules.
           </p>
           <Link
-            href={`/login?from=${encodeURIComponent(currentPath)}`}
+            href={`/${locale}/login?from=${encodeURIComponent(currentPath)}`}
             className="inline-flex items-center justify-center gap-2 w-full px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-all"
           >
             <LogIn size={18} />

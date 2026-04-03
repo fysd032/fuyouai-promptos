@@ -99,7 +99,7 @@ export const Landing: React.FC = () => {
             </Link>
           ) : (
             <Link
-              href="/login"
+              href={`/${locale}/login`}
               className="bg-[#1E9FFF] hover:bg-[#4CB2FF] text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
             >
               {t("signIn")}
@@ -125,7 +125,7 @@ export const Landing: React.FC = () => {
             </Link>
           ) : (
             <>
-              <Link href="/login" className="hover:text-white transition-colors whitespace-nowrap">
+              <Link href={`/${locale}/login`} className="hover:text-white transition-colors whitespace-nowrap">
                 {t("signIn")}
               </Link>
               <button
