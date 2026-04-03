@@ -63,7 +63,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
       <p className="text-sm sm:text-lg lg:text-xl leading-[1.7] text-slate-400 font-normal max-w-xl mx-auto mb-6 sm:mb-10">
         {t("subheadline1")}<br />
-        {t("subheadline2")}
+        {t("subheadline2")}<br />
+        {t("subheadline3")}
       </p>
 
       <div className="max-w-4xl mx-auto flex flex-col gap-3 sm:gap-4">

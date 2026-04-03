@@ -10,8 +10,9 @@
   "Hero": {
     "badge": "FUYOU AI",
     "headline": "你卡住，是因为只看见了一条路",
-    "subheadline1": "每一个卡住的人，脑子里不是空的，是太满了",
+    "subheadline1": "",
     "subheadline2": "FUYOU AI，帮你跳出去，看见你没看见的那几条路",
+    "subheadline3": "帮你从大概想法，到具体步骤",
     "inputLabel": "告诉我你卡在哪",
     "placeholder1": "想创业但方向太多，不知道从哪里开始",
     "placeholder2": "写了一堆但总觉得差点什么",
@@ -19,7 +20,7 @@
     "start": "帮我理一下",
     "routing": "帮你想想...",
     "tryAgain": "重试",
-    "moduleInfo": "5套思维框架 · 30+专业模板 · 5种卡住场景",
+    "moduleInfo": "追问+链式推理 · 30+专业模板",
     "usedBy": "",
     "roleFounders": "",
     "roleProductManagers": "",
@@ -132,7 +133,7 @@
     "headline": "卡住的时候，你需要的不是更努力",
     "subheadline": "",
     "button": "现在就换个角度试试",
-    "note": "5套思维框架 · 30+专业模板 · 5种卡住场景"
+    "note": "追问+链式推理 · 30+专业模板"
   },
   "Footer": {
     "copyright": "© {year} FuyouAI. 保留所有权利。",
@@ -251,7 +252,7 @@
     "resendLink": "重新发送链接",
     "resendCode": "重新发送验证码",
     "trialDetails": "查看 15 天试用详情",
-    "trialFeature1": "访问全部 5 套思维框架和 30+ 专业模板",
+    "trialFeature1": "访问全部 30+ 专业模板",
     "trialFeature2": "完全访问提示词优化器",
     "trialFeature3": "试用结束后自动降级为免费版",
     "trialFeature4": "无需信用卡，不会自动扣费",
